@@ -1833,7 +1833,7 @@
   function ECHero(options) {
     options = options || {};
     this.element = document.createElement("div");
-    this.element.className = BASE_CLS + " width-100% padding-72px_32px textAlign-center boxSizing-border-box background-var(--ec-bg,_#fff) borderRadius-16px display-flex flexDirection-column justifyContent-center alignItems-center gap-16px position-relative overflow-hidden";
+    this.element.className = BASE_CLS + " width-100% padding-72px_32px textAlign-center boxSizing-border-box background-var(--ec-bg,_#fff) display-flex flexDirection-column justifyContent-center alignItems-center gap-16px position-relative overflow-hidden";
 
     if (options.background) this.element.style.background = options.background;
 
