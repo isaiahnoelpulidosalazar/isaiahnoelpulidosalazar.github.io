@@ -34,6 +34,7 @@
   var MOBILE_BREAKPOINT = 768;
   var STYLE_TAG_ID = "ec-stylesheet-rules";
   var PROCESSED_ATTR = "data-ec-processed";
+  var IS_FONT_SET = false;
   var IS_BORDER_BOX_SET = false;
 
   /* ─── CSS property name map (camelCase → kebab-case) ────────────────── */
@@ -339,7 +340,14 @@
   }
 
   function scanDOM() {
-    if (!IS_BORDER_BOX_SET){
+    if (!IS_FONT_SET) {
+      // Set a default font-family for better aesthetics
+      var fontRule = "* { font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif; }";
+      generatedRules["global-font"] = fontRule;
+      getStyleTag().textContent += "\n" + fontRule;
+      IS_FONT_SET = true;
+    }
+    if (!IS_BORDER_BOX_SET) {
       // Ensure all elements use border-box for more intuitive sizing
       var globalRule = "* { box-sizing: border-box; }";
       generatedRules["global-border-box"] = globalRule;
