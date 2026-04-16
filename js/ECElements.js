@@ -201,6 +201,8 @@
 
     if (options.variant === "outline") {
       this.element.classList.add("background-transparent", "color-var(--ec-accent,_#1a73e8)", "border-1.5px_solid_var(--ec-accent,_#1a73e8)");
+    } else if (options.variant === "white") {
+      this.element.classList.add("background-#ffffff", "color-var(--ec-accent,_#1a73e8)", "border-1.5px_solid_var(--ec-accent,_#1a73e8)");
     } else {
       this.element.classList.add("background-var(--ec-accent,_#1a73e8)", "color-#ffffff");
     }
