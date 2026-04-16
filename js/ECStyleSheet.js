@@ -34,6 +34,7 @@
   var MOBILE_BREAKPOINT = 768;
   var STYLE_TAG_ID = "ec-stylesheet-rules";
   var PROCESSED_ATTR = "data-ec-processed";
+  var IS_BORDER_BOX_SET = false;
 
   /* ─── CSS property name map (camelCase → kebab-case) ────────────────── */
 
@@ -338,6 +339,13 @@
   }
 
   function scanDOM() {
+    if (!IS_BORDER_BOX_SET){
+      // Ensure all elements use border-box for more intuitive sizing
+      var globalRule = "* { box-sizing: border-box; }";
+      generatedRules["global-border-box"] = globalRule;
+      getStyleTag().textContent += "\n" + globalRule;
+      IS_BORDER_BOX_SET = true;
+    }
     var elements = document.querySelectorAll("*:not([" + PROCESSED_ATTR + "])");
     elements.forEach(function (el) {
       processElement(el);
