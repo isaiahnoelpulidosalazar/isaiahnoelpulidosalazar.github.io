@@ -10,195 +10,12 @@
   <script src="js/ECElements.js"></script>
 
   <style>
-    /* Builder Layout - Fixed Overflow */
-    body {
-      margin: 0; padding: 0;
-      display: flex;
-      height: 100vh;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      overflow: hidden;
-      background: #f1f3f5;
-    }
-    
-    #left-sidebar {
-      width: 260px;
-      background: #ffffff;
-      border-right: 1px solid #dee2e6;
-      display: flex;
-      flex-direction: column;
-      z-index: 100;
-      box-shadow: 2px 0 5px rgba(0,0,0,0.05);
-      overflow: hidden;
-    }
-    
-    #canvas {
-      flex: 1;
-      overflow-y: auto;
-      padding: 40px;
-      position: relative;
-      transition: background-color 0.3s, color 0.3s;
-      min-height: 0;
-    }
-    
-    #right-sidebar {
-      width: 320px;
-      background: #ffffff;
-      border-left: 1px solid #dee2e6;
-      display: flex;
-      flex-direction: column;
-      z-index: 100;
-      box-shadow: -2px 0 5px rgba(0,0,0,0.05);
-      overflow: hidden;
-    }
-
-    .sidebar-header {
-      padding: 16px;
-      background: #212529;
-      color: #ffffff;
-      font-weight: 600;
-      font-size: 16px;
-      flex-shrink: 0;
-    }
-
-    /* Components List */
-    #component-list {
-      padding: 12px;
-      overflow-y: auto;
-      flex: 1;
-      min-height: 0;
-    }
-    .category-label {
-      font-size: 12px;
-      font-weight: 700;
-      color: #868e96;
-      text-transform: uppercase;
-      margin: 16px 0 8px 4px;
-      letter-spacing: 0.05em;
-    }
-    .component-btn {
-      display: block;
-      width: 100%;
-      padding: 10px 12px;
-      margin-bottom: 8px;
-      background: #f8f9fa;
-      border: 1px solid #dee2e6;
-      border-radius: 6px;
-      cursor: grab;
-      text-align: left;
-      font-size: 13px;
-      font-weight: 500;
-      color: #495057;
-      transition: all 0.2s;
-      user-select: none;
-      box-sizing: border-box;
-    }
-    .component-btn:hover {
-      background: #e9ecef;
-      border-color: #ced4da;
-    }
-    .component-btn:active {
-      cursor: grabbing;
-    }
-
-    /* Properties Panel */
-    #properties-panel {
-      padding: 16px;
-      overflow-y: auto;
-      flex: 1;
-      min-height: 0;
-    }
-    .prop-group { margin-bottom: 12px; }
-    .prop-label {
-      display: block;
-      font-size: 12px;
-      font-weight: 600;
-      color: #495057;
-      margin-bottom: 4px;
-    }
-    .prop-input, .prop-select, .prop-textarea {
-      width: 100%;
-      padding: 8px;
-      border: 1px solid #ced4da;
-      border-radius: 4px;
-      font-size: 13px;
-      box-sizing: border-box;
-      background: #fff;
-    }
-    .prop-textarea { resize: vertical; }
-    .prop-input:focus, .prop-select:focus, .prop-textarea:focus {
-      border-color: #1a73e8;
-      outline: none;
-    }
-    .prop-checkbox-group {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .prop-checkbox-group input {
-      margin: 0;
-      cursor: pointer;
-    }
-
-    /* Dynamic List Editor */
-    .prop-list-container {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      margin-top: 4px;
-    }
-    .prop-list-item {
-      background: #f8f9fa;
-      border: 1px solid #ced4da;
-      padding: 10px;
-      border-radius: 6px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      position: relative;
-    }
-    .prop-list-field {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-    .prop-list-item-label {
-      font-size: 11px;
-      font-weight: 600;
-      color: #6c757d;
-    }
-    .prop-list-del-btn {
-      align-self: flex-end;
-      background: #ffe3e3;
-      color: #c92a2a;
-      border: none;
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-size: 11px;
-      cursor: pointer;
-      font-weight: 600;
-      transition: background 0.15s;
-    }
-    .prop-list-del-btn:hover { background: #ffc9c9; }
-    .prop-list-add-btn {
-      background: #e7f5ff;
-      color: #1864ab;
-      border: 1px dashed #74c0fc;
-      padding: 10px;
-      border-radius: 6px;
-      font-size: 12px;
-      cursor: pointer;
-      font-weight: 600;
-      text-align: center;
-      transition: background 0.15s;
-    }
-    .prop-list-add-btn:hover { background: #d0ebff; }
-
-    /* Canvas Items and Drag & Drop */
+    /* Builder interactions & pseudo-states that are complex to write strictly with inline utility classes */
     #canvas.drop-zone { min-height: 100%; }
     .drop-zone { transition: background-color 0.2s, border-color 0.2s; }
     
     .drag-over {
-      background: rgba(26, 115, 232, 0.05) !important;
+      background-color: rgba(26, 115, 232, 0.05) !important;
       border: 2px dashed #1a73e8 !important;
     }
 
@@ -239,58 +56,33 @@
     }
     .control-btn:hover { background: rgba(255,255,255,0.2); }
 
-    /* Layout Containers for the Builder */
-    .container-layout {
-      min-height: 60px;
+    /* For textarea inputs since ECElements does not natively provide a textarea */
+    .prop-textarea {
+      width: 100%; padding: 8px; border: 1px solid #ced4da; border-radius: 4px;
+      font-size: 13px; box-sizing: border-box; background: #fff; resize: vertical;
+      outline: none; transition: border-color 0.15s;
     }
-    .col-layout {
-      border: 1px dashed #adb5bd;
-      min-height: 50px;
-      padding: 12px;
-      border-radius: 6px;
-      background: rgba(255,255,255,0.2);
-    }
-
-    /* Export Button Area */
-    .sidebar-footer {
-      padding: 16px;
-      background: #f8f9fa;
-      border-top: 1px solid #dee2e6;
-      flex-shrink: 0;
-    }
-    #export-btn {
-      width: 100%;
-      padding: 10px;
-      background: #1a73e8;
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    #export-btn:hover { background: #1557b0; }
-
+    .prop-textarea:focus { border-color: #1a73e8; }
   </style>
 </head>
-<body>
+<body class="margin-0 padding-0 display-flex height-100vh overflow-hidden background-var(--ec-surface,_#f1f3f5)">
 
   <!-- Left Sidebar (Components) -->
-  <div id="left-sidebar">
-    <div class="sidebar-header">Components</div>
-    <div id="component-list"></div>
-    <div class="sidebar-footer">
-      <button id="export-btn">Export Website</button>
+  <div id="left-sidebar" class="width-260px background-var(--ec-bg,_#ffffff) borderRight-1px_solid_var(--ec-border,_#dee2e6) display-flex flexDirection-column zIndex-100 overflow-hidden boxShadow-2px_0_5px_rgba(0,0,0,0.05)">
+    <div class="padding-16px background-#212529 color-#ffffff fontWeight-600 fontSize-16px flexShrink-0">Components</div>
+    <div id="component-list" class="padding-12px overflowY-auto flex-1 minHeight-0"></div>
+    <div id="sidebar-footer" class="padding-16px background-var(--ec-surface,_#f8f9fa) borderTop-1px_solid_var(--ec-border,_#dee2e6) flexShrink-0">
+      <!-- Export button will be injected here via ECElements -->
     </div>
   </div>
   
   <!-- Canvas Area -->
-  <div id="canvas" class="drop-zone"></div>
+  <div id="canvas" class="flex-1 overflowY-auto padding-40px position-relative transition-background_0.3s,_color_0.3s drop-zone"></div>
   
   <!-- Right Sidebar (Properties) -->
-  <div id="right-sidebar">
-    <div class="sidebar-header">Properties</div>
-    <div id="properties-panel"></div>
+  <div id="right-sidebar" class="width-340px background-var(--ec-bg,_#ffffff) borderLeft-1px_solid_var(--ec-border,_#dee2e6) display-flex flexDirection-column zIndex-100 overflow-hidden boxShadow--2px_0_5px_rgba(0,0,0,0.05)">
+    <div class="padding-16px background-#212529 color-#ffffff fontWeight-600 fontSize-16px flexShrink-0">Properties</div>
+    <div id="properties-panel" class="padding-16px overflowY-auto flex-1 minHeight-0 display-flex flexDirection-column gap-12px"></div>
   </div>
 
   <script>
@@ -301,6 +93,12 @@
       window.currentAppDarkMode = false;
       window.globalCanvasClasses = '';
 
+      // Set builder export button using ECElements
+      const exportBtn = new ECButton('Export Website', { variant: 'filled' });
+      exportBtn.element.className += ' width-100% padding-10px';
+      exportBtn.onClick(exportToJS);
+      document.getElementById('sidebar-footer').appendChild(exportBtn.element);
+
       // Helper to rebuild components that don't have extensive setter APIs
       function rebuildComponent(wrapper, constructFn) {
           const data = wrapper.ecObj._builder_data;
@@ -309,7 +107,6 @@
           
           newObj.element.dataset.baseClass = newObj.element.className;
           
-          // Preserve builder-fixed visual properties state for export 
           if (wrapper.ecObj.element.dataset.builderFixed) {
               newObj.element.dataset.builderFixed = wrapper.ecObj.element.dataset.builderFixed;
           }
@@ -330,7 +127,7 @@
       class LayoutContainer {
         constructor(type) {
           this.element = document.createElement('div');
-          this.element.className = 'container-layout display-flex gap-16px width-100% boxSizing-border-box flexWrap-wrap';
+          this.element.className = 'container-layout display-flex gap-16px width-100% boxSizing-border-box flexWrap-wrap minHeight-60px';
           if (type === 'Card Container') {
             this.element.classList.add('eccard', 'padding-24px');
           }
@@ -346,7 +143,7 @@
           
           while(this.cols.length < n) {
             const col = document.createElement('div');
-            col.className = 'col-layout drop-zone flex-1 display-flex flexDirection-column gap-12px boxSizing-border-box';
+            col.className = 'col-layout drop-zone flex-1 display-flex flexDirection-column gap-12px boxSizing-border-box border-1px_dashed_#adb5bd minHeight-50px padding-12px borderRadius-6px background-rgba(255,255,255,0.2)';
             col.style.minWidth = '200px';
             this.cols.push(col);
             this.element.appendChild(col);
@@ -360,22 +157,20 @@
             col.remove();
           }
         }
-        
         getColumns() { return this._builder_data.columns; }
       }
 
-      // Factory for Instantiating Components
+      // Factory for Instantiating Components with defaults
       const componentFactory = {
         'Layout: Blank Container': () => new LayoutContainer('Blank Container'),
         'Layout: Card Container': () => new LayoutContainer('Card Container'),
         'ECSidebar': () => {
           const s = new ECSidebar('Sidebar');
-          // Visually alter for the builder interface so it's not fixed outside the canvas
           s.element.classList.remove('display-none', 'transform-translateX(-100%)', 'position-fixed');
           s.element.classList.add('display-block', 'transform-translateX(0)', 'position-relative');
-          s.element.style.height = '300px';
-          s.element.style.zIndex = '1';
-          s.element.dataset.builderFixed = 'ECSidebar'; // Flag for the export function to reset it
+          s.element.style.height = '300px'; s.element.style.zIndex = '1';
+          s.element.dataset.builderFixed = 'ECSidebar'; 
+          s._builder_data = { title: 'Sidebar', width: '260px' };
           return s;
         },
         'ECTopbar': () => {
@@ -383,72 +178,116 @@
           t.element.classList.remove('position-fixed');
           t.element.classList.add('position-relative');
           t.element.dataset.builderFixed = 'ECTopbar';
+          t._builder_data = { title: 'Top Bar' };
           return t;
         },
-        'ECBanner': () => new ECBanner('Announcement Banner!'),
-        'ECStepper': () => new ECStepper(['Step 1', 'Step 2', 'Step 3'], 1),
+        'ECBanner': () => {
+          const b = new ECBanner('Announcement Banner!', { dismissible: true, loop: false });
+          b._builder_data = { text: 'Announcement Banner!', loop: false, dismissible: true };
+          return b;
+        },
+        'ECStepper': () => {
+          const st = new ECStepper(['Step 1', 'Step 2', 'Step 3'], 1);
+          st._builder_data = { steps: [{label: 'Step 1'}, {label: 'Step 2'}, {label: 'Step 3'}], currentStep: 1 };
+          return st;
+        },
         'ECCarousel': () => {
           const c = new ECCarousel();
           c.addItem('<div style="background:#1a73e8; color:#fff; height:150px; display:flex; align-items:center; justify-content:center; border-radius:10px;">Slide 1</div>');
-          c.addItem('<div style="background:#28a745; color:#fff; height:150px; display:flex; align-items:center; justify-content:center; border-radius:10px;">Slide 2</div>');
+          c._builder_data = { items: [{html: '<div style="background:#1a73e8; color:#fff; height:150px; display:flex; align-items:center; justify-content:center; border-radius:10px;">Slide 1</div>'}] };
           return c;
         },
         'ECHero': () => {
-          const h = new ECHero({ title: 'Welcome', subtitle: 'Start building your site', actions: [{label: 'Get Started'}] });
-          h.element.classList.remove('height-100vh');
-          h.element.style.padding = '60px 20px';
+          const h = new ECHero({ title: 'Welcome', subtitle: 'Start building your site', eyebrow: 'GET STARTED' });
+          h.element.classList.remove('height-100vh'); h.element.style.padding = '60px 20px';
           h.element.dataset.builderFixed = 'ECHero';
+          h._builder_data = { title: 'Welcome', subtitle: 'Start building your site', eyebrow: 'GET STARTED', background: '', imageSrc: '', imageAlt: '', imageMaxWidth: '' };
           return h;
         },
-        'ECProgressBar': () => new ECProgressBar({ value: 50, label: 'Loading...' }),
+        'ECMediaCard': () => {
+          const m = new ECMediaCard({ author: 'Jane Doe', content: 'This is a media card.', imageSrc: 'https://via.placeholder.com/400x200', imageHeight: '200px' });
+          m._builder_data = { author: 'Jane Doe', avatarSrc: '', timestamp: '', imageSrc: 'https://via.placeholder.com/400x200', imageAlt: '', imageHeight: '200px', content: 'This is a media card.' };
+          return m;
+        },
+        'ECAvatar': () => {
+          const a = new ECAvatar({ initials: 'JD', size: '40px' });
+          a._builder_data = { initials: 'JD', size: '40px', src: '', alt: '' };
+          return a;
+        },
+        'ECBreadcrumbs': () => {
+          const b = new ECBreadcrumbs([{label: 'Home', href: '#'}, {label: 'Library', href: '#'}], '/');
+          b._builder_data = { separator: '/', items: [{label: 'Home', href: '#'}, {label: 'Library', href: '#'}] };
+          return b;
+        },
+        'ECProgressBar': () => {
+          const p = new ECProgressBar({ value: 50, label: 'Loading...', showPercent: true });
+          p._builder_data = { value: 50, label: 'Loading...', showPercent: true, height: 8 };
+          return p;
+        },
         'ECCountdown': () => {
           const dt = new Date(Date.now() + 86400000);
           const c = new ECCountdown(dt);
           c._builder_data = { targetDate: dt.toISOString().split('T')[0] };
           return c;
         },
-        'ECBadge': () => new ECBadge('Badge', 'primary'),
-        'ECSpinner': () => new ECSpinner(),
+        'ECBadge': () => {
+          const b = new ECBadge('Badge', 'primary');
+          b._builder_data = { label: 'Badge', type: 'primary' };
+          return b;
+        },
+        'ECSpinner': () => {
+          const s = new ECSpinner({ size: 'md' });
+          s._builder_data = { size: 'md' };
+          return s;
+        },
         'ECAccordion': () => {
-          const a = new ECAccordion({ items: [{ title: 'Section 1', content: 'Content 1' }, { title: 'Section 2', content: 'Content 2' }] });
-          a._builder_data = { items: [{title: 'Section 1', content: 'Content 1'}, {title: 'Section 2', content: 'Content 2'}] };
+          const a = new ECAccordion({ allowMultiple: false, items: [{ title: 'Section 1', content: 'Content 1', open: true }] });
+          a._builder_data = { allowMultiple: false, items: [{title: 'Section 1', content: 'Content 1', open: true}] };
           return a;
         },
         'ECList': () => {
-          const l = new ECList({ items: ['Item 1', 'Item 2'] });
-          l._builder_data = { items: [{text: 'Item 1'}, {text: 'Item 2'}], variant: 'plain' };
+          const l = new ECList({ items: ['Item 1', 'Item 2'], variant: 'plain', direction: 'vertical' });
+          l._builder_data = { items: [{text: 'Item 1'}, {text: 'Item 2'}], variant: 'plain', direction: 'vertical' };
           return l;
         },
         'ECDivider': () => {
           const d = new ECDivider({ label: 'Divider' });
-          d._builder_data = { label: 'Divider', thick: false, dashed: false };
+          d._builder_data = { label: 'Divider', thick: false, dashed: false, vertical: false };
           return d;
         },
         'ECButton': () => {
           const b = new ECButton('Button');
-          b._builder_data = { label: 'Button', variant: 'filled' };
+          b._builder_data = { label: 'Button', variant: 'filled', disabled: false };
           return b;
         },
         'ECRadio': () => {
-          const r = new ECRadio('radios', [{label: 'Option A', value: 'a'}, {label: 'Option B', value: 'b'}]);
-          r._builder_data = { options: [{value: 'a', label: 'Option A'}, {value: 'b', label: 'Option B'}] };
+          const r = new ECRadio('radios', [{label: 'Option A', value: 'a'}]);
+          r._builder_data = { options: [{value: 'a', label: 'Option A', checked: false}] };
           return r;
         },
-        'ECToggle': () => new ECToggle('Toggle Switch'),
-        'ECCheckbox': () => new ECCheckbox('Checkbox'),
+        'ECToggle': () => {
+          const t = new ECToggle('Toggle Switch', false);
+          t._builder_data = { label: 'Toggle Switch', checked: false };
+          return t;
+        },
+        'ECCheckbox': () => {
+          const c = new ECCheckbox('Checkbox', false);
+          c._builder_data = { label: 'Checkbox', checked: false };
+          return c;
+        },
         'ECTextbox': () => {
           const t = new ECTextbox({ label: 'Text Input', placeholder: 'Enter text' });
           t._builder_data = { label: 'Text Input', placeholder: 'Enter text', type: 'text', value: '' };
           return t;
         },
         'ECDropdown': () => {
-          const d = new ECDropdown({ label: 'Dropdown', items: [{label: 'Item 1', value: '1'}, {label: 'Item 2', value: '2'}] });
-          d._builder_data = { label: 'Dropdown', options: [{value: '1', label: 'Item 1'}, {value: '2', label: 'Item 2'}] };
+          const d = new ECDropdown({ label: 'Dropdown', items: [{label: 'Item 1', value: '1'}] });
+          d._builder_data = { label: 'Dropdown', options: [{value: '1', label: 'Item 1'}] };
           return d;
         },
         'ECSlider': () => {
           const s = new ECSlider({ label: 'Range Slider', min: 0, max: 100, step: 1, value: 50 });
-          s._builder_data = { label: 'Range Slider', min: 0, max: 100, step: 1, value: 50 };
+          s._builder_data = { label: 'Range Slider', min: 0, max: 100, step: 1, value: 50, suffix: '', ticks: '' };
           return s;
         },
         'ECDatePicker': () => {
@@ -456,33 +295,74 @@
           d._builder_data = { label: 'Date Picker', value: '' };
           return d;
         },
-        'ECFileUpload': () => new ECFileUpload(),
-        'ECRating': () => new ECRating({ value: 3 })
+        'ECFileUpload': () => {
+          const f = new ECFileUpload();
+          f._builder_data = { title: 'Drag & Drop files here', subtitle: 'or click to browse', accept: '*', multiple: true, maxSize: 0 };
+          return f;
+        },
+        'ECRating': () => {
+          const r = new ECRating({ value: 3, max: 5, readonly: false, showLabel: true });
+          r._builder_data = { value: 3, max: 5, readonly: false, showLabel: true };
+          return r;
+        }
       };
 
       // Property editor configuration bindings
       const propsConfig = {
         'Layout: Blank Container': [{ label: 'Columns', key: 'columns', type: 'number', update: (o, v) => o.setColumns(v) }],
         'Layout: Card Container': [{ label: 'Columns', key: 'columns', type: 'number', update: (o, v) => o.setColumns(v) }],
-        'ECButton': [
-          { label: 'Label', key: 'label', type: 'text', update: (o, v) => o.setLabel(v) },
-          { label: 'Variant', key: 'variant', type: 'select', options: ['filled', 'outline', 'white'], update: (o, v, w) => rebuildComponent(w, d => new ECButton(d.label || 'Button', {variant: d.variant})) },
-          { label: 'Disabled', key: 'disabled', type: 'checkbox', update: (o, v) => v ? o.disable() : o.enable() }
-        ],
-        'ECTopbar': [{ label: 'Title', key: 'title', type: 'text', update: (o, v) => o.setTitle(v) }],
         'ECSidebar': [
           { label: 'Title', key: 'title', type: 'text', update: (o, v) => o.setTitle(v) },
           { label: 'Width', key: 'width', type: 'text', update: (o, v) => o.setWidth(v) }
         ],
-        'ECBanner': [{ label: 'Text', key: 'text', type: 'text', update: (o, v) => { if(o._content) o._content.textContent = v; } }],
-        'ECStepper': [{ label: 'Step (Index)', key: 'step', type: 'number', update: (o, v) => o.setStep(v) }],
+        'ECTopbar': [{ label: 'Title', key: 'title', type: 'text', update: (o, v) => o.setTitle(v) }],
+        'ECBanner': [
+          { label: 'Text', key: 'text', type: 'text', update: (o, v, w) => rebuildComponent(w, d => new ECBanner(d.text, { loop: d.loop, dismissible: d.dismissible })) },
+          { label: 'Loop (Marquee)', key: 'loop', type: 'checkbox', update: (o, v, w) => rebuildComponent(w, d => new ECBanner(d.text, { loop: d.loop, dismissible: d.dismissible })) },
+          { label: 'Dismissible', key: 'dismissible', type: 'checkbox', update: (o, v, w) => rebuildComponent(w, d => new ECBanner(d.text, { loop: d.loop, dismissible: d.dismissible })) }
+        ],
+        'ECStepper': [
+          { label: 'Current Step Index', key: 'currentStep', type: 'number', update: (o, v, w) => rebuildComponent(w, d => new ECStepper((d.steps||[]).map(s=>s.label), Number(d.currentStep))) },
+          { label: 'Steps', key: 'steps', type: 'list', fields: [{key: 'label', label: 'Step Label'}], update: (o, v, w) => rebuildComponent(w, d => new ECStepper((d.steps||[]).map(s=>s.label), Number(d.currentStep))) }
+        ],
+        'ECCarousel': [
+          { label: 'Items (HTML)', key: 'items', type: 'list', fields: [{key: 'html', label: 'HTML Content', type: 'textarea'}], update: (o, v, w) => rebuildComponent(w, d => {
+              const c = new ECCarousel();
+              (d.items || []).forEach(i => c.addItem(i.html)); return c;
+          })}
+        ],
         'ECHero': [
-          { label: 'Title', key: 'title', type: 'text', update: (o, v) => o.setTitle(v) },
-          { label: 'Subtitle', key: 'subtitle', type: 'text', update: (o, v) => o.setSubtitle(v) }
+          { label: 'Eyebrow', key: 'eyebrow', type: 'text', update: (o, v, w) => rebuildComponent(w, d => new ECHero(d)) },
+          { label: 'Title', key: 'title', type: 'text', update: (o, v, w) => rebuildComponent(w, d => new ECHero(d)) },
+          { label: 'Subtitle', key: 'subtitle', type: 'textarea', update: (o, v, w) => rebuildComponent(w, d => new ECHero(d)) },
+          { label: 'Background Color', key: 'background', type: 'text', update: (o, v, w) => rebuildComponent(w, d => new ECHero(d)) },
+          { label: 'Image URL', key: 'imageSrc', type: 'text', update: (o, v, w) => rebuildComponent(w, d => new ECHero(d)) },
+          { label: 'Image Alt', key: 'imageAlt', type: 'text', update: (o, v, w) => rebuildComponent(w, d => new ECHero(d)) },
+          { label: 'Image Max Width', key: 'imageMaxWidth', type: 'text', update: (o, v, w) => rebuildComponent(w, d => new ECHero(d)) }
+        ],
+        'ECMediaCard': [
+          { label: 'Author', key: 'author', type: 'text', update: (o, v, w) => rebuildComponent(w, d => new ECMediaCard(d)) },
+          { label: 'Avatar URL', key: 'avatarSrc', type: 'text', update: (o, v, w) => rebuildComponent(w, d => new ECMediaCard(d)) },
+          { label: 'Timestamp', key: 'timestamp', type: 'text', update: (o, v, w) => rebuildComponent(w, d => new ECMediaCard(d)) },
+          { label: 'Image URL', key: 'imageSrc', type: 'text', update: (o, v, w) => rebuildComponent(w, d => new ECMediaCard(d)) },
+          { label: 'Image Alt', key: 'imageAlt', type: 'text', update: (o, v, w) => rebuildComponent(w, d => new ECMediaCard(d)) },
+          { label: 'Image Height', key: 'imageHeight', type: 'text', update: (o, v, w) => rebuildComponent(w, d => new ECMediaCard(d)) },
+          { label: 'Content (HTML)', key: 'content', type: 'textarea', update: (o, v, w) => rebuildComponent(w, d => new ECMediaCard(d)) }
+        ],
+        'ECAvatar': [
+          { label: 'Initials', key: 'initials', type: 'text', update: (o, v, w) => rebuildComponent(w, d => new ECAvatar(d)) },
+          { label: 'Size (e.g. 40px)', key: 'size', type: 'text', update: (o, v, w) => rebuildComponent(w, d => new ECAvatar(d)) },
+          { label: 'Image URL', key: 'src', type: 'text', update: (o, v, w) => rebuildComponent(w, d => new ECAvatar(d)) },
+          { label: 'Image Alt', key: 'alt', type: 'text', update: (o, v, w) => rebuildComponent(w, d => new ECAvatar(d)) }
+        ],
+        'ECBreadcrumbs': [
+          { label: 'Separator', key: 'separator', type: 'text', update: (o, v, w) => rebuildComponent(w, d => new ECBreadcrumbs(d.items, d.separator)) },
+          { label: 'Crumb Items', key: 'items', type: 'list', fields: [{key: 'label', label: 'Label'}, {key: 'href', label: 'URL'}], update: (o, v, w) => rebuildComponent(w, d => new ECBreadcrumbs(d.items, d.separator)) }
         ],
         'ECProgressBar': [
           { label: 'Value (0-100)', key: 'value', type: 'number', update: (o, v) => o.setValue(v) },
           { label: 'Label', key: 'label', type: 'text', update: (o, v) => o.setLabel(v) },
+          { label: 'Show Percent', key: 'showPercent', type: 'checkbox', update: (o, v, w) => rebuildComponent(w, d => new ECProgressBar(d)) },
           { label: 'Height (px)', key: 'height', type: 'number', update: (o, v) => o.setHeight(v) }
         ],
         'ECCountdown': [
@@ -496,31 +376,35 @@
           { label: 'Type', key: 'type', type: 'select', options: ['default', 'primary', 'success', 'warning', 'danger', 'info'], update: (o, v) => o.setType(v) }
         ],
         'ECSpinner': [{ label: 'Size', key: 'size', type: 'select', options: ['sm', 'md', 'lg'], update: (o, v) => o.setSize(v) }],
-        
         'ECAccordion': [
-          { label: 'Accordion Items', key: 'items', type: 'list', fields: [{key: 'title', label: 'Title'}, {key: 'content', label: 'Content'}], update: (o, v, w) => {
-             rebuildComponent(w, d => {
-                 const acc = new ECAccordion();
-                 (d.items || []).forEach(i => acc.addItem(i.title || 'New Section', i.content || ''));
-                 return acc;
-             });
-          }}
+          { label: 'Allow Multiple Open', key: 'allowMultiple', type: 'checkbox', update: (o, v, w) => rebuildComponent(w, d => new ECAccordion(d)) },
+          { label: 'Accordion Items', key: 'items', type: 'list', fields: [{key: 'title', label: 'Title'}, {key: 'content', label: 'Content', type: 'textarea'}, {key: 'open', label: 'Start Open', type: 'checkbox'}], update: (o, v, w) => rebuildComponent(w, d => {
+              const acc = new ECAccordion(d);
+              (d.items || []).forEach(i => acc.addItem(i.title || 'New Section', i.content || '', i.open)); return acc;
+          })}
         ],
         'ECList': [
-          { label: 'Variant', key: 'variant', type: 'select', options: ['plain', 'bordered', 'striped', 'hoverable'], update: (o, v, w) => rebuildComponent(w, d => {
-               const lst = new ECList({variant: d.variant});
-               (d.items || []).forEach(i => lst.addItem(i.text || 'Item'));
-               return lst;
-          })},
-          { label: 'List Items', key: 'items', type: 'list', fields: [{key: 'text', label: 'Item Text'}], update: (o, v, w) => {
-               o.clear();
-               (v || []).forEach(i => o.addItem(i.text || 'Item'));
-          }}
+          { label: 'Variant', key: 'variant', type: 'select', options: ['plain', 'bordered', 'striped', 'hoverable'], update: (o, v, w) => rebuildComponent(w, d => new ECList({ variant: d.variant, direction: d.direction, items: (d.items||[]).map(i=>i.text) })) },
+          { label: 'Direction', key: 'direction', type: 'select', options: ['vertical', 'horizontal'], update: (o, v, w) => rebuildComponent(w, d => new ECList({ variant: d.variant, direction: d.direction, items: (d.items||[]).map(i=>i.text) })) },
+          { label: 'List Items', key: 'items', type: 'list', fields: [{key: 'text', label: 'Item Text'}], update: (o, v, w) => rebuildComponent(w, d => new ECList({ variant: d.variant, direction: d.direction, items: (d.items||[]).map(i=>i.text) })) }
         ],
         'ECDivider': [
           { label: 'Label', key: 'label', type: 'text', update: (o, v, w) => rebuildComponent(w, d => new ECDivider(d)) },
           { label: 'Thick', key: 'thick', type: 'checkbox', update: (o, v, w) => rebuildComponent(w, d => new ECDivider(d)) },
-          { label: 'Dashed', key: 'dashed', type: 'checkbox', update: (o, v, w) => rebuildComponent(w, d => new ECDivider(d)) }
+          { label: 'Dashed', key: 'dashed', type: 'checkbox', update: (o, v, w) => rebuildComponent(w, d => new ECDivider(d)) },
+          { label: 'Vertical', key: 'vertical', type: 'checkbox', update: (o, v, w) => rebuildComponent(w, d => new ECDivider(d)) }
+        ],
+        'ECButton': [
+          { label: 'Label', key: 'label', type: 'text', update: (o, v) => o.setLabel(v) },
+          { label: 'Variant', key: 'variant', type: 'select', options: ['filled', 'outline', 'white'], update: (o, v, w) => rebuildComponent(w, d => new ECButton(d.label || 'Button', {variant: d.variant, disabled: d.disabled})) },
+          { label: 'Disabled', key: 'disabled', type: 'checkbox', update: (o, v) => v ? o.disable() : o.enable() }
+        ],
+        'ECRadio': [
+          { label: 'Radio Options', key: 'options', type: 'list', fields: [{key: 'value', label: 'Value'}, {key: 'label', label: 'Display Label'}, {key: 'checked', label: 'Checked', type: 'checkbox'}], update: (o, v, w) => rebuildComponent(w, d => {
+              const r = new ECRadio('rad_' + Date.now());
+              (d.options || []).forEach(opt => r.addOption(opt.value || 'val', opt.label || opt.value || 'Option', opt.checked));
+              return r;
+          })}
         ],
         'ECToggle': [
           { label: 'Label', key: 'label', type: 'text', update: (o, v) => o.setLabel(v) },
@@ -530,53 +414,57 @@
           { label: 'Label', key: 'label', type: 'text', update: (o, v) => o.setLabel(v) },
           { label: 'Checked', key: 'checked', type: 'checkbox', update: (o, v) => o.setValue(v) }
         ],
-        'ECRadio': [
-          { label: 'Radio Options', key: 'options', type: 'list', fields: [{key: 'value', label: 'Value'}, {key: 'label', label: 'Display Label'}], update: (o, v, w) => {
-               rebuildComponent(w, d => {
-                   const r = new ECRadio('rad_' + Date.now());
-                   (d.options || []).forEach(opt => r.addOption(opt.value || 'val', opt.label || opt.value || 'Option'));
-                   return r;
-               });
-          }}
-        ],
         'ECTextbox': [
           { label: 'Label', key: 'label', type: 'text', update: (o, v, w) => rebuildComponent(w, d => new ECTextbox(d)) },
           { label: 'Placeholder', key: 'placeholder', type: 'text', update: (o, v) => o.setPlaceholder(v) },
-          { label: 'Type', key: 'type', type: 'select', options: ['text', 'password', 'email'], update: (o, v, w) => rebuildComponent(w, d => new ECTextbox(d)) },
+          { label: 'Type', key: 'type', type: 'select', options: ['text', 'password', 'email', 'number'], update: (o, v, w) => rebuildComponent(w, d => new ECTextbox(d)) },
           { label: 'Value', key: 'value', type: 'text', update: (o, v) => o.setValue(v) }
         ],
         'ECDropdown': [
           { label: 'Label', key: 'label', type: 'text', update: (o, v, w) => rebuildComponent(w, d => {
                const dr = new ECDropdown({label: d.label});
-               (d.options || []).forEach(opt => dr.addOption(opt.value || 'val', opt.label || opt.value || 'Option'));
-               return dr;
+               (d.options || []).forEach(opt => dr.addOption(opt.value || 'val', opt.label || opt.value || 'Option')); return dr;
           })},
           { label: 'Dropdown Options', key: 'options', type: 'list', fields: [{key: 'value', label: 'Value'}, {key: 'label', label: 'Display Label'}], update: (o, v, w) => rebuildComponent(w, d => {
                const dr = new ECDropdown({label: d.label});
-               (d.options || []).forEach(opt => dr.addOption(opt.value || 'val', opt.label || opt.value || 'Option'));
-               return dr;
+               (d.options || []).forEach(opt => dr.addOption(opt.value || 'val', opt.label || opt.value || 'Option')); return dr;
           })}
         ],
         'ECSlider': [
-          { label: 'Label', key: 'label', type: 'text', update: (o, v, w) => rebuildComponent(w, d => new ECSlider(d)) },
-          { label: 'Min', key: 'min', type: 'number', update: (o, v, w) => rebuildComponent(w, d => new ECSlider({ ...d, min: Number(d.min), max: Number(d.max), step: Number(d.step), value: Number(d.value) })) },
-          { label: 'Max', key: 'max', type: 'number', update: (o, v, w) => rebuildComponent(w, d => new ECSlider({ ...d, min: Number(d.min), max: Number(d.max), step: Number(d.step), value: Number(d.value) })) },
-          { label: 'Value', key: 'value', type: 'number', update: (o, v) => o.setValue(Number(v)) }
+          { label: 'Label', key: 'label', type: 'text', update: (o, v, w) => rebuildComponent(w, d => new ECSlider({ ...d, ticks: d.ticks ? d.ticks.split(',') : null })) },
+          { label: 'Min', key: 'min', type: 'number', update: (o, v, w) => rebuildComponent(w, d => new ECSlider({ ...d, ticks: d.ticks ? d.ticks.split(',') : null })) },
+          { label: 'Max', key: 'max', type: 'number', update: (o, v, w) => rebuildComponent(w, d => new ECSlider({ ...d, ticks: d.ticks ? d.ticks.split(',') : null })) },
+          { label: 'Step', key: 'step', type: 'number', update: (o, v, w) => rebuildComponent(w, d => new ECSlider({ ...d, ticks: d.ticks ? d.ticks.split(',') : null })) },
+          { label: 'Value', key: 'value', type: 'number', update: (o, v) => o.setValue(Number(v)) },
+          { label: 'Suffix (e.g. px)', key: 'suffix', type: 'text', update: (o, v, w) => rebuildComponent(w, d => new ECSlider({ ...d, ticks: d.ticks ? d.ticks.split(',') : null })) },
+          { label: 'Ticks (comma separated)', key: 'ticks', type: 'text', update: (o, v, w) => rebuildComponent(w, d => new ECSlider({ ...d, ticks: d.ticks ? d.ticks.split(',') : null })) }
         ],
         'ECDatePicker': [
           { label: 'Label', key: 'label', type: 'text', update: (o, v, w) => rebuildComponent(w, d => new ECDatePicker(d)) },
           { label: 'Value', key: 'value', type: 'text', update: (o, v) => o.setValue(v) }
         ],
-        'ECRating': [{ label: 'Value (0-5)', key: 'value', type: 'number', update: (o, v) => o.setValue(v) }]
+        'ECFileUpload': [
+          { label: 'Title', key: 'title', type: 'text', update: (o, v, w) => rebuildComponent(w, d => new ECFileUpload(d)) },
+          { label: 'Subtitle', key: 'subtitle', type: 'text', update: (o, v, w) => rebuildComponent(w, d => new ECFileUpload(d)) },
+          { label: 'Accept MIME Types', key: 'accept', type: 'text', update: (o, v, w) => rebuildComponent(w, d => new ECFileUpload(d)) },
+          { label: 'Allow Multiple', key: 'multiple', type: 'checkbox', update: (o, v, w) => rebuildComponent(w, d => new ECFileUpload(d)) },
+          { label: 'Max Size (bytes)', key: 'maxSize', type: 'number', update: (o, v, w) => rebuildComponent(w, d => new ECFileUpload({ ...d, maxSize: d.maxSize ? Number(d.maxSize) : null })) }
+        ],
+        'ECRating': [
+          { label: 'Value (0-5)', key: 'value', type: 'number', update: (o, v) => o.setValue(v) },
+          { label: 'Max Stars', key: 'max', type: 'number', update: (o, v, w) => rebuildComponent(w, d => new ECRating(d)) },
+          { label: 'Readonly', key: 'readonly', type: 'checkbox', update: (o, v, w) => rebuildComponent(w, d => new ECRating(d)) },
+          { label: 'Show Label', key: 'showLabel', type: 'checkbox', update: (o, v, w) => rebuildComponent(w, d => new ECRating(d)) }
+        ]
       };
 
       const componentGroups = {
         'Layout & Navigation': [
            'Layout: Blank Container', 'Layout: Card Container',
-           'ECSidebar', 'ECTopbar', 'ECBanner', 'ECStepper', 'ECCarousel', 'ECHero'
+           'ECSidebar', 'ECTopbar', 'ECBanner', 'ECBreadcrumbs', 'ECStepper', 'ECCarousel', 'ECHero', 'ECMediaCard'
         ],
         'Data & Feedback': [
-           'ECProgressBar', 'ECCountdown', 'ECBadge', 'ECSpinner', 'ECAccordion', 'ECList', 'ECDivider'
+           'ECProgressBar', 'ECCountdown', 'ECAvatar', 'ECBadge', 'ECSpinner', 'ECAccordion', 'ECList', 'ECDivider'
         ],
         'Forms & Input': [
            'ECButton', 'ECRadio', 'ECToggle', 'ECCheckbox', 'ECTextbox', 'ECDropdown', 'ECSlider', 'ECDatePicker', 'ECFileUpload', 'ECRating'
@@ -587,13 +475,13 @@
       const list = document.getElementById('component-list');
       Object.keys(componentGroups).forEach(group => {
         const title = document.createElement('div');
-        title.className = 'category-label';
+        title.className = 'fontSize-12px fontWeight-700 color-var(--ec-text-muted,_#6c757d) textTransform-uppercase margin-16px_0_8px_4px letterSpacing-0.05em';
         title.textContent = group;
         list.appendChild(title);
 
         componentGroups[group].forEach(type => {
           const btn = document.createElement('div');
-          btn.className = 'component-btn';
+          btn.className = 'display-block width-100% padding-10px_12px marginBottom-8px background-var(--ec-surface,_#f8f9fa) border-1px_solid_var(--ec-border,_#dee2e6) borderRadius-6px cursor-grab textAlign-left fontSize-13px fontWeight-500 color-var(--ec-text,_#212529) transition-all_0.2s userSelect-none boxSizing-border-box hover:borderColor-var(--ec-accent,_#1a73e8)';
           btn.textContent = type;
           btn.draggable = true;
           btn.ondragstart = (e) => { e.dataTransfer.setData('text/plain', type); };
@@ -703,7 +591,7 @@
       // Update Global Themes Across App
       function applyGlobalSettings() {
         const canvas = document.getElementById('canvas');
-        canvas.className = 'drop-zone ' + window.globalCanvasClasses;
+        canvas.className = 'flex-1 overflowY-auto padding-40px position-relative transition-background_0.3s,_color_0.3s drop-zone ' + window.globalCanvasClasses;
         if(window.ECStyleSheet) window.ECStyleSheet.scan();
 
         if(window.currentAppDarkMode) {
@@ -722,70 +610,26 @@
         });
       }
 
-      // Show Global App Properties
+      // Show Global App Properties using ECElements
       function showGlobalProperties() {
         const panel = document.getElementById('properties-panel');
-        panel.innerHTML = `<h4 style="margin-top:0; color:#212529; border-bottom: 1px solid #dee2e6; padding-bottom: 8px;">Global Settings</h4>`;
+        panel.innerHTML = `<h4 class="marginTop-0 color-var(--ec-text,_#212529) borderBottom-1px_solid_var(--ec-border,_#dee2e6) paddingBottom-8px">Global Settings</h4>`;
         
-        // Theme Select
-        const rowTheme = document.createElement('div');
-        rowTheme.className = 'prop-group';
-        const lblTheme = document.createElement('label');
-        lblTheme.className = 'prop-label';
-        lblTheme.textContent = 'App Theme Colors';
-        const selTheme = document.createElement('select');
-        selTheme.className = 'prop-select';
-        
-        ['Blue', 'Green', 'Red', 'Purple', 'Orange', 'Dark'].forEach(t => {
-          const opt = document.createElement('option');
-          opt.value = t; opt.textContent = t;
-          if (t === window.currentAppTheme) opt.selected = true;
-          selTheme.appendChild(opt);
+        const themeDrop = new ECDropdown({ 
+            label: 'App Theme Colors', 
+            items: ['Blue', 'Green', 'Red', 'Purple', 'Orange', 'Dark'].map(t => ({label:t, value:t})) 
         });
-        selTheme.onchange = (e) => {
-          window.currentAppTheme = e.target.value;
-          applyGlobalSettings();
-        };
-        rowTheme.appendChild(lblTheme);
-        rowTheme.appendChild(selTheme);
-        panel.appendChild(rowTheme);
+        themeDrop.setValue(window.currentAppTheme);
+        themeDrop.onChange(val => { window.currentAppTheme = val; applyGlobalSettings(); });
+        panel.appendChild(themeDrop.element);
 
-        // Dark Mode Checkbox
-        const rowDark = document.createElement('div');
-        rowDark.className = 'prop-group prop-checkbox-group';
-        const chkDark = document.createElement('input');
-        chkDark.type = 'checkbox';
-        chkDark.checked = window.currentAppDarkMode;
-        const lblDark = document.createElement('label');
-        lblDark.className = 'prop-label';
-        lblDark.style.marginBottom = '0';
-        lblDark.textContent = 'Enable Dark Mode';
-        chkDark.onchange = (e) => {
-          window.currentAppDarkMode = e.target.checked;
-          applyGlobalSettings();
-        };
-        rowDark.appendChild(chkDark);
-        rowDark.appendChild(lblDark);
-        panel.appendChild(rowDark);
+        const darkToggle = new ECToggle('Enable Dark Mode', window.currentAppDarkMode);
+        darkToggle.onChange(val => { window.currentAppDarkMode = val; applyGlobalSettings(); });
+        panel.appendChild(darkToggle.element);
 
-        // Custom Classes Text
-        const rowClasses = document.createElement('div');
-        rowClasses.className = 'prop-group';
-        const lblClasses = document.createElement('label');
-        lblClasses.className = 'prop-label';
-        lblClasses.textContent = 'Page Custom Classes (ECStyleSheet)';
-        const inputClasses = document.createElement('input');
-        inputClasses.type = 'text';
-        inputClasses.className = 'prop-input';
-        inputClasses.placeholder = 'e.g. padding-40px';
-        inputClasses.value = window.globalCanvasClasses;
-        inputClasses.oninput = (e) => {
-          window.globalCanvasClasses = e.target.value;
-          applyGlobalSettings();
-        };
-        rowClasses.appendChild(lblClasses);
-        rowClasses.appendChild(inputClasses);
-        panel.appendChild(rowClasses);
+        const classesBox = new ECTextbox({ label: 'Page Custom Classes', placeholder: 'e.g. padding-40px', value: window.globalCanvasClasses });
+        classesBox.onInput(val => { window.globalCanvasClasses = val; applyGlobalSettings(); });
+        panel.appendChild(classesBox.element);
       }
 
       function getPropValue(obj, cfg) {
@@ -798,11 +642,11 @@
         return '';
       }
 
-      // Show Properties for Selected Item
+      // Show Properties for Selected Item using ECElements
       function showProperties(wrapper) {
         const panel = document.getElementById('properties-panel');
         const type = wrapper.dataset.type;
-        panel.innerHTML = `<h4 style="margin-top:0; color:#212529; border-bottom: 1px solid #dee2e6; padding-bottom: 8px;">Editing: ${type}</h4>`;
+        panel.innerHTML = `<h4 class="marginTop-0 color-var(--ec-text,_#212529) borderBottom-1px_solid_var(--ec-border,_#dee2e6) paddingBottom-8px">Editing: ${type}</h4>`;
         
         const obj = wrapper.ecObj;
         const el = obj.element || obj;
@@ -822,17 +666,14 @@
         });
         
         configs.forEach(cfg => {
-          const row = document.createElement('div');
-          
           if (cfg.type === 'list') {
-            row.className = 'prop-group';
-            const label = document.createElement('label');
-            label.className = 'prop-label';
-            label.textContent = cfg.label;
-            row.appendChild(label);
+            const lbl = document.createElement('label');
+            lbl.className = 'fontSize-13px fontWeight-500 color-var(--ec-text-muted,_#6c757d)';
+            lbl.textContent = cfg.label;
+            panel.appendChild(lbl);
 
             const listContainer = document.createElement('div');
-            listContainer.className = 'prop-list-container';
+            listContainer.className = 'display-flex flexDirection-column gap-8px marginTop-4px';
 
             const renderList = () => {
               listContainer.innerHTML = '';
@@ -840,149 +681,165 @@
 
               items.forEach((item, index) => {
                 const itemBox = document.createElement('div');
-                itemBox.className = 'prop-list-item';
+                itemBox.className = 'background-var(--ec-surface,_#f8f9fa) border-1px_solid_var(--ec-border,_#dee2e6) padding-10px borderRadius-6px display-flex flexDirection-column gap-8px position-relative';
 
                 // Fields for this list item
                 cfg.fields.forEach(field => {
-                  const fieldWrap = document.createElement('div');
-                  fieldWrap.className = 'prop-list-field';
-                  
-                  const fLabel = document.createElement('label');
-                  fLabel.className = 'prop-list-item-label';
-                  fLabel.textContent = field.label;
-                  
-                  const fInput = document.createElement('input');
-                  fInput.className = 'prop-input';
-                  fInput.value = item[field.key] || '';
-                  
-                  fInput.oninput = (e) => {
-                    item[field.key] = e.target.value;
-                    obj._builder_data[cfg.key] = items;
-                    cfg.update(obj, items, wrapper);
-                  };
-                  
-                  fieldWrap.appendChild(fLabel);
-                  fieldWrap.appendChild(fInput);
-                  itemBox.appendChild(fieldWrap);
+                  let fInput;
+                  if (field.type === 'checkbox') {
+                      fInput = new ECCheckbox(field.label, !!item[field.key]);
+                      fInput.onChange(val => {
+                        item[field.key] = val; obj._builder_data[cfg.key] = items; cfg.update(obj, items, wrapper);
+                      });
+                  } else if (field.type === 'textarea') {
+                      fInput = { element: document.createElement('textarea') };
+                      fInput.element.className = 'prop-textarea';
+                      fInput.element.rows = 2;
+                      fInput.element.placeholder = field.label;
+                      fInput.element.value = item[field.key] || '';
+                      fInput.element.oninput = (e) => {
+                        item[field.key] = e.target.value; obj._builder_data[cfg.key] = items; cfg.update(obj, items, wrapper);
+                      };
+                  } else if (field.type === 'select') {
+                      fInput = new ECDropdown({ label: field.label, items: (field.options||[]).map(o => ({label: o, value: o})) });
+                      fInput.setValue(item[field.key] || '');
+                      fInput.onChange(val => {
+                        item[field.key] = val; obj._builder_data[cfg.key] = items; cfg.update(obj, items, wrapper);
+                      });
+                  } else {
+                      fInput = new ECTextbox({ label: field.label, type: field.type || 'text', value: item[field.key] || '' });
+                      fInput.onInput(val => {
+                        item[field.key] = val; obj._builder_data[cfg.key] = items; cfg.update(obj, items, wrapper);
+                      });
+                  }
+                  itemBox.appendChild(fInput.element);
                 });
 
                 // Remove button
-                const delBtn = document.createElement('button');
-                delBtn.className = 'prop-list-del-btn';
-                delBtn.textContent = 'Remove';
-                delBtn.onclick = () => {
+                const delBtn = new ECButton('Remove', { variant: 'outline' }).setTheme(ECTheme.Red);
+                delBtn.element.className += ' padding-4px_8px fontSize-11px alignSelf-flex-end';
+                delBtn.onClick(() => {
                   items.splice(index, 1);
                   obj._builder_data[cfg.key] = items;
                   cfg.update(obj, items, wrapper);
                   renderList();
-                };
-                itemBox.appendChild(delBtn);
+                });
+                itemBox.appendChild(delBtn.element);
 
                 listContainer.appendChild(itemBox);
               });
 
               // Add button
-              const addBtn = document.createElement('button');
-              addBtn.className = 'prop-list-add-btn';
-              addBtn.textContent = '+ Add Item';
-              addBtn.onclick = () => {
+              const addBtn = new ECButton('+ Add Item', { variant: 'outline' });
+              addBtn.element.className += ' width-100% borderStyle-dashed background-var(--ec-bg,_#fff)';
+              addBtn.onClick(() => {
                 const newItem = {};
-                cfg.fields.forEach(f => newItem[f.key] = '');
+                cfg.fields.forEach(f => {
+                    if (f.type === 'checkbox') newItem[f.key] = false;
+                    else newItem[f.key] = '';
+                });
                 items.push(newItem);
                 obj._builder_data[cfg.key] = items;
                 cfg.update(obj, items, wrapper);
                 renderList();
-              };
-              listContainer.appendChild(addBtn);
+              });
+              listContainer.appendChild(addBtn.element);
             };
 
             renderList();
-            row.appendChild(listContainer);
+            panel.appendChild(listContainer);
 
+          } else if (cfg.type === 'select') {
+              let dd = new ECDropdown({ label: cfg.label, items: cfg.options.map(o => ({label:o, value:o})) });
+              dd.setValue(getPropValue(obj, cfg));
+              dd.onChange(val => { obj._builder_data[cfg.key] = val; cfg.update(obj, val, wrapper); });
+              panel.appendChild(dd.element);
+          } else if (cfg.type === 'checkbox') {
+              let cb = new ECCheckbox(cfg.label, !!getPropValue(obj, cfg));
+              cb.onChange(val => { obj._builder_data[cfg.key] = val; cfg.update(obj, val, wrapper); });
+              panel.appendChild(cb.element);
+          } else if (cfg.type === 'textarea') {
+              let wrap = document.createElement('div');
+              let lbl = document.createElement('label');
+              lbl.className = 'fontSize-13px fontWeight-500 color-var(--ec-text-muted,_#6c757d) display-block marginBottom-4px';
+              lbl.textContent = cfg.label;
+              let ta = document.createElement('textarea');
+              ta.className = 'prop-textarea';
+              ta.rows = 4;
+              ta.value = getPropValue(obj, cfg);
+              ta.oninput = (e) => { obj._builder_data[cfg.key] = e.target.value; cfg.update(obj, e.target.value, wrapper); };
+              wrap.appendChild(lbl); wrap.appendChild(ta);
+              panel.appendChild(wrap);
           } else {
-            // Original flat properties parsing (select, checkbox, text)
-            let input;
-            if (cfg.type === 'select') {
-              row.className = 'prop-group';
-              input = document.createElement('select');
-              input.className = 'prop-select';
-              cfg.options.forEach(opt => {
-                const option = document.createElement('option');
-                option.value = opt; option.textContent = opt;
-                input.appendChild(option);
-              });
-              input.value = getPropValue(obj, cfg);
-              
-              const label = document.createElement('label');
-              label.className = 'prop-label';
-              label.textContent = cfg.label;
-              row.appendChild(label);
-              row.appendChild(input);
-              
-            } else if (cfg.type === 'checkbox') {
-              row.className = 'prop-group prop-checkbox-group';
-              input = document.createElement('input');
-              input.type = 'checkbox';
-              input.checked = !!getPropValue(obj, cfg);
-              
-              const label = document.createElement('label');
-              label.className = 'prop-label';
-              label.style.marginBottom = '0';
-              label.textContent = cfg.label;
-              row.appendChild(input);
-              row.appendChild(label);
-              
-            } else if (cfg.type === 'textarea') {
-              row.className = 'prop-group';
-              input = document.createElement('textarea');
-              input.className = 'prop-textarea';
-              input.rows = 4;
-              input.value = getPropValue(obj, cfg);
-              
-              const label = document.createElement('label');
-              label.className = 'prop-label';
-              label.textContent = cfg.label;
-              row.appendChild(label);
-              row.appendChild(input);
-  
-            } else {
-              row.className = 'prop-group';
-              input = document.createElement('input');
-              input.type = cfg.type;
-              input.className = 'prop-input';
-              
-              if(cfg.key === 'className') {
-                 input.value = el.className.replace(el.dataset.baseClass, '').trim();
-              } else {
-                 input.value = getPropValue(obj, cfg);
-              }
-  
-              const label = document.createElement('label');
-              label.className = 'prop-label';
-              label.textContent = cfg.label;
-              row.appendChild(label);
-              row.appendChild(input);
-            }
-            
-            if (cfg.type === 'checkbox') {
-              input.onchange = (e) => {
-                  obj._builder_data[cfg.key] = e.target.checked;
-                  cfg.update(obj, e.target.checked, wrapper);
-              };
-            } else {
-              input.oninput = (e) => {
-                  obj._builder_data[cfg.key] = e.target.value;
-                  cfg.update(obj, e.target.value, wrapper);
-              };
-            }
+              let typeMap = cfg.type === 'number' ? 'number' : 'text';
+              let tb = new ECTextbox({ label: cfg.label, value: getPropValue(obj, cfg), type: typeMap });
+              if (cfg.key === 'className') tb.setValue(el.className.replace(el.dataset.baseClass, '').trim());
+              tb.onInput(val => { obj._builder_data[cfg.key] = val; cfg.update(obj, val, wrapper); });
+              panel.appendChild(tb.element);
           }
-          
-          panel.appendChild(row);
         });
       }
 
-      // Initialize Defaults
-      showGlobalProperties();
+      // Generate JS Component Code Block
+      function generateComponentJS(type, data, v) {
+        let code = `  // ${type}\n  `;
+        const safe = val => JSON.stringify(val || '');
+        const nSafe = val => Number(val) || 0;
+        
+        switch(type) {
+          case 'ECSidebar': code += `var ${v} = new ECSidebar(${safe(data.title)}).setWidth(${safe(data.width)});`; break;
+          case 'ECTopbar': code += `var ${v} = new ECTopbar(${safe(data.title)});`; break;
+          case 'ECBanner': code += `var ${v} = new ECBanner(${safe(data.text)}, {loop: ${!!data.loop}, dismissible: ${!!data.dismissible}});`; break;
+          case 'ECStepper': code += `var ${v} = new ECStepper(${JSON.stringify((data.steps||[]).map(s=>s.label))}, ${nSafe(data.currentStep)});`; break;
+          case 'ECCarousel': 
+              code += `var ${v} = new ECCarousel();\n`;
+              (data.items||[]).forEach(i => { code += `  ${v}.addItem(${JSON.stringify(i.html)});\n`; });
+              break;
+          case 'ECHero': code += `var ${v} = new ECHero(${JSON.stringify(data)});`; break;
+          case 'ECMediaCard': code += `var ${v} = new ECMediaCard(${JSON.stringify(data)});`; break;
+          case 'ECAvatar': code += `var ${v} = new ECAvatar(${JSON.stringify(data)});`; break;
+          case 'ECBreadcrumbs': code += `var ${v} = new ECBreadcrumbs(${JSON.stringify(data.items)}, ${safe(data.separator)});`; break;
+          case 'ECProgressBar': code += `var ${v} = new ECProgressBar(${JSON.stringify(data)});`; break;
+          case 'ECCountdown': code += `var ${v} = new ECCountdown(${safe(data.targetDate)});`; break;
+          case 'ECBadge': code += `var ${v} = new ECBadge(${safe(data.label)}, ${safe(data.type)});`; break;
+          case 'ECSpinner': code += `var ${v} = new ECSpinner({ size: ${safe(data.size)} });`; break;
+          case 'ECAccordion': 
+              code += `var ${v} = new ECAccordion({allowMultiple: ${!!data.allowMultiple}});\n`;
+              (data.items||[]).forEach(i => { code += `  ${v}.addItem(${safe(i.title)}, ${safe(i.content)}, ${!!i.open});\n`; });
+              break;
+          case 'ECList': 
+              code += `var ${v} = new ECList({variant: ${safe(data.variant)}, direction: ${safe(data.direction)}});\n`;
+              (data.items||[]).forEach(i => { code += `  ${v}.addItem(${safe(i.text)});\n`; });
+              break;
+          case 'ECDivider': code += `var ${v} = new ECDivider(${JSON.stringify(data)});`; break;
+          case 'ECButton': 
+              code += `var ${v} = new ECButton(${safe(data.label)}, {variant: ${safe(data.variant)}});\n`;
+              if (data.disabled) code += `  ${v}.disable();\n`;
+              break;
+          case 'ECRadio': code += `var ${v} = new ECRadio("rad_" + Math.random().toString(36).substr(2, 9), ${JSON.stringify(data.options)});`; break;
+          case 'ECToggle': code += `var ${v} = new ECToggle(${safe(data.label)}, ${!!data.checked});`; break;
+          case 'ECCheckbox': code += `var ${v} = new ECCheckbox(${safe(data.label)}, ${!!data.checked});`; break;
+          case 'ECTextbox': code += `var ${v} = new ECTextbox(${JSON.stringify(data)});`; break;
+          case 'ECDropdown': code += `var ${v} = new ECDropdown({label: ${safe(data.label)}, items: ${JSON.stringify(data.options)}});`; break;
+          case 'ECSlider': 
+              let tks = data.ticks ? data.ticks.split(',') : null;
+              code += `var ${v} = new ECSlider({label: ${safe(data.label)}, min: ${nSafe(data.min)}, max: ${nSafe(data.max)}, step: ${nSafe(data.step)}, value: ${nSafe(data.value)}, suffix: ${safe(data.suffix)}, ticks: ${JSON.stringify(tks)}});`;
+              break;
+          case 'ECDatePicker': code += `var ${v} = new ECDatePicker(${JSON.stringify(data)});`; break;
+          case 'ECFileUpload': code += `var ${v} = new ECFileUpload(${JSON.stringify(data)});`; break;
+          case 'ECRating': code += `var ${v} = new ECRating(${JSON.stringify(data)});`; break;
+          default: code += `var ${v} = { element: document.createElement("div") }; ${v}.element.textContent = "Unknown Component";`; break;
+        }
+        
+        if(data.className) {
+            code += `\n  if(${v} && ${v}.element) ${v}.element.className += " " + ${safe(data.className)};`;
+        }
+        code += `\n  if(${v} && ${v}.setTheme) ${v}.setTheme(window.ECTheme['${window.currentAppTheme}']);`;
+        if (window.currentAppDarkMode) {
+            code += `\n  if(${v} && ${v}.enableDarkMode) ${v}.enableDarkMode();`;
+        }
+        return code + '\n';
+      }
 
       let ecStyleSheetCode = '';
       let ecElementsCode = '';
@@ -990,56 +847,55 @@
         .then(response => response.text())
         .then(jsString => {
           ecStyleSheetCode = jsString;
-          console.log(ecStyleSheetCode);
         });
       fetch("https://isaiahnoelpulidosalazar.github.io/js/ECElements.js")
         .then(response => response.text())
         .then(jsString => {
           ecElementsCode = jsString;
-          console.log(ecElementsCode);
         });
 
-      // Export Functionality
-      document.getElementById('export-btn').onclick = () => {
-        // Deep clone the canvas to clean up builder artifacts without affecting the live UI
-        const clone = document.getElementById('canvas').cloneNode(true);
+      // Export Functionality producing programmatic JavaScript
+      function exportToJS() {
+        let jsCode = `    // ECWebsite Generated JS\n`;
+        jsCode += `    var root = document.body;\n`;
         
-        // Remove controls and UI state classes
-        clone.querySelectorAll('.item-controls').forEach(el => el.remove());
-        clone.querySelectorAll('.selected, .drag-over, .drop-zone').forEach(el => el.classList.remove('selected', 'drag-over', 'drop-zone'));
-
-        // Restore visually-altered "fixed" components to their correct production state
-        clone.querySelectorAll('[data-builder-fixed="ECSidebar"]').forEach(el => {
-            el.classList.remove('display-block', 'transform-translateX(0)', 'position-relative');
-            el.classList.add('display-none', 'transform-translateX(-100%)', 'position-fixed');
-            el.style.height = '';
-            el.style.zIndex = '900';
-            delete el.dataset.builderFixed;
-        });
-        clone.querySelectorAll('[data-builder-fixed="ECTopbar"]').forEach(el => {
-            el.classList.remove('position-relative');
-            el.classList.add('position-fixed');
-            delete el.dataset.builderFixed;
-        });
-        clone.querySelectorAll('[data-builder-fixed="ECHero"]').forEach(el => {
-            el.classList.add('height-100vh');
-            el.style.padding = '';
-            delete el.dataset.builderFixed;
-        });
+        let varId = 0;
+        let containerIndex = 0;
         
-        // Unwrap the items from their .canvas-item wrappers
-        const items = clone.querySelectorAll('.canvas-item');
-        items.forEach(item => {
-          while(item.firstChild) item.parentNode.insertBefore(item.firstChild, item);
-          item.remove();
+        Array.from(document.getElementById('canvas').children).forEach(containerWrapper => {
+            if(!containerWrapper.classList.contains('container-layout')) return;
+            containerIndex++;
+            let cVar = 'container_' + containerIndex;
+            jsCode += `\n    // Container ${containerIndex}\n`;
+            jsCode += `    var ${cVar} = document.createElement('div');\n`;
+            let cClasses = 'container-layout display-flex gap-16px width-100% boxSizing-border-box flexWrap-wrap marginBottom-16px minHeight-60px';
+            if (containerWrapper.classList.contains('eccard')) cClasses += ' eccard padding-24px';
+            jsCode += `    ${cVar}.className = '${cClasses}';\n`;
+            jsCode += `    root.appendChild(${cVar});\n\n`;
+            
+            let colIndex = 0;
+            Array.from(containerWrapper.children).forEach(col => {
+                if(!col.classList.contains('col-layout')) return;
+                colIndex++;
+                let colVar = cVar + '_col_' + colIndex;
+                jsCode += `    var ${colVar} = document.createElement('div');\n`;
+                jsCode += `    ${colVar}.className = 'col-layout flex-1 display-flex flexDirection-column gap-12px boxSizing-border-box';\n`;
+                jsCode += `    ${colVar}.style.minWidth = '200px';\n`;
+                jsCode += `    ${cVar}.appendChild(${colVar});\n\n`;
+                
+                Array.from(col.children).forEach(item => {
+                    if(!item.classList.contains('canvas-item')) return;
+                    let type = item.dataset.type;
+                    let data = item.ecObj._builder_data || {};
+                    let v = 'comp_' + (++varId);
+                    
+                    jsCode += generateComponentJS(type, data, v);
+                    jsCode += `    ${colVar}.appendChild(${v}.element || ${v});\n\n`;
+                });
+            });
         });
 
-        // Capture ECStyleSheet rules to prevent Flash of Unstyled Content (FOUC)
-        const ecStyles = document.getElementById('ec-stylesheet-rules') ? document.getElementById('ec-stylesheet-rules').textContent : '';
-        const ecKeyframes = document.getElementById('ec-elements-keyframes') ? document.getElementById('ec-elements-keyframes').textContent : '';
         const bg = window.currentAppDarkMode ? '#1a1a2e' : '#f1f3f5';
-
-        // Generate final HTML
         const htmlContent = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1055,38 +911,19 @@
   <style>
     /* Base Body Styling */
     body {
-      margin: 0; 
-      padding: 0; 
-      min-height: 100vh; 
-      box-sizing: border-box;
+      margin: 0; padding: 40px; min-height: 100vh; box-sizing: border-box;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       background: ${bg};
     }
-    
-    /* Layout Structure Classes mapped from Builder */
-    .container-layout { margin-bottom: 16px; }
-    .col-layout { min-height: 20px; }
-
-    /* Dynamically Generated Rules Extracted from ECStyleSheet */
-    ${ecKeyframes}
-    ${ecStyles}
   </style>
 </head>
 <body class="${window.globalCanvasClasses}">
-  <!-- Begin Canvas Content -->
-  ${clone.innerHTML}
-  <!-- End Canvas Content -->
-
+  <!-- Layout is injected by JS -->
   <script>
-    // Ensure styles generated dynamically re-trigger in case of external classes
+  document.addEventListener("DOMContentLoaded", function() {
+${jsCode}
     if (window.ECStyleSheet) window.ECStyleSheet.scan();
-    
-    /* 
-     * Note: ECElements are initially built via JS constructors. This static HTML 
-     * export preserves the full DOM layout and ECStyleSheet classes natively.
-     * To bring back complex interactive components (Accordion toggle, Modal open, etc),
-     * you can re-initialize the ECElements or attach simple event handlers in JS.
-     */
+  });
   <\/script>
 </body>
 </html>`;
@@ -1095,13 +932,15 @@
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'ecwebsite.html';
+        a.download = 'ecwebsite_programmatic.html';
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-      };
+      }
 
+      // Initialize Defaults
+      showGlobalProperties();
     });
   </script>
 </body>
