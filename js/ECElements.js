@@ -1783,15 +1783,17 @@
       this._header = document.createElement("div");
       this._header.className = "display-flex alignItems-center gap-10px padding-14px_16px_0";
 
-      var avatar = document.createElement("div");
-      avatar.className = "width-38px height-38px borderRadius-50% background-var(--ec-surface,_#f8f9fa) border-1px_solid_var(--ec-border,_#dee2e6) display-flex alignItems-center justifyContent-center fontSize-14px fontWeight-600 color-var(--ec-accent,_#1a73e8) flexShrink-0 overflow-hidden";
-      if (options.avatarSrc) {
-        var img = document.createElement("img");
-        img.className = "width-100% height-100% objectFit-cover";
-        img.src = options.avatarSrc; img.alt = options.author;
-        avatar.appendChild(img);
-      } else {
-        avatar.textContent = (options.author || "?")[0].toUpperCase();
+      if (!options.noAvatar || options.noAvatar == "false") {
+        var avatar = document.createElement("div");
+        avatar.className = "width-38px height-38px borderRadius-50% background-var(--ec-surface,_#f8f9fa) border-1px_solid_var(--ec-border,_#dee2e6) display-flex alignItems-center justifyContent-center fontSize-14px fontWeight-600 color-var(--ec-accent,_#1a73e8) flexShrink-0 overflow-hidden";
+        if (options.avatarSrc) {
+          var img = document.createElement("img");
+          img.className = "width-100% height-100% objectFit-cover";
+          img.src = options.avatarSrc; img.alt = options.author;
+          avatar.appendChild(img);
+        } else {
+          avatar.textContent = (options.author || "?")[0].toUpperCase();
+        }
       }
 
       var meta = document.createElement("div");
@@ -1809,7 +1811,9 @@
         meta.appendChild(tsEl);
       }
 
-      this._header.appendChild(avatar);
+      if (!options.noAvatar || options.noAvatar == "false") {
+        this._header.appendChild(avatar);
+      }
       this._header.appendChild(meta);
       this.element.appendChild(this._header);
     }
@@ -1818,7 +1822,7 @@
       var imgWrap = document.createElement("div");
       imgWrap.className = "overflow-hidden";
       var cardImg = document.createElement("img");
-      cardImg.className = "width-100% objectFit-cover marginTop-14px display-block";
+      cardImg.className = "width-100% objectFit-contain marginTop-14px display-block borderTop-1px_solid_var(--ec-border,_#dee2e6) borderBottom-1px_solid_var(--ec-border,_#dee2e6)";
       cardImg.src = options.imageSrc; cardImg.alt = options.imageAlt || "";
       if (options.imageHeight) cardImg.style.height = options.imageHeight;
       imgWrap.appendChild(cardImg);
@@ -1839,7 +1843,9 @@
       var self = this;
       options.actions.forEach(function (act) { self.addAction(act.label, act.onClick, act.icon); });
     }
-    this.element.appendChild(this._footer);
+    if (options.footer) {
+      this.element.appendChild(this._footer);
+    }
 
     applyBaseMixin(this);
   }
