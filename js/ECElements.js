@@ -1829,6 +1829,12 @@
       this.element.appendChild(imgWrap);
     }
 
+    if (options.onClick) {
+      this.element.style.cursor = "pointer";
+      this.element.addEventListener("click", options.onClick);
+      this.element.classList.add(`ecbounce-${options.bounceAmount || 2}`);
+    }
+
     this._body = document.createElement("div");
     this._body.className = "padding-12px_16px fontSize-14px color-var(--ec-text,_#212529) lineHeight-1.6 flex-1";
     if (options.content) {
