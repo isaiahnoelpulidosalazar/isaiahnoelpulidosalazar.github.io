@@ -3,25 +3,24 @@ const { WebSocketServer } = require('ws');
 const { v4: uuidv4 } = require('uuid');
 const http = require('http');
 const path = require('path');
+const cors = require('cors');
 
 const app = express();
+app.use(cors({ origin: '*' })); 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../')));
 
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
 
-// In-memory session store
 const sessions = new Map();
 
-// Cleanup inactive sessions every 5 minutes
 setInterval(() => {
   const now = Date.now();
   for (const [id, session] of sessions.entries()) {
-    const inactive = now - session.lastActive > 30 * 60 * 1000; // 30 min
+    const inactive = now - session.lastActive > 30 * 60 * 1000;
     const ended = session.status === 'ENDED' && now - session.lastActive > 60 * 1000;
     if (inactive || ended) {
-      // Close any lingering connections
       if (session.host) try { session.host.close(); } catch (e) {}
       if (session.viewer) try { session.viewer.close(); } catch (e) {}
       sessions.delete(id);
@@ -41,11 +40,7 @@ app.post('/create-session', (req, res) => {
     status: 'WAITING',
     lastActive: Date.now(),
   });
-  const baseUrl = req.protocol + '://' + req.get('host');
-  res.json({
-    sessionId,
-    url: `${baseUrl}/viewer.html?session=${sessionId}`,
-  });
+  res.json({ sessionId });
   console.log(`[session] Created: ${sessionId}`);
 });
 
@@ -163,7 +158,4 @@ wss.on('connection', (ws, req) => {
 // ─── START ───────────────────────────────────────────────────────────────────
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`\n🖥️  ScreenShare Server running at http://localhost:${PORT}`);
-  console.log(`   WebSocket endpoint: ws://localhost:${PORT}/ws/{sessionId}\n`);
-});
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));

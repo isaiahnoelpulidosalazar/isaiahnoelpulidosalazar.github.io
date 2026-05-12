@@ -419,6 +419,9 @@ let frameCount = 0;
 let isSharing = false;
 let viewerConnected = false;
 
+const BACKEND_URL = 'https://isaiahnoelpulidosalazar-github-io.onrender.com';
+const WS_URL = 'wss://isaiahnoelpulidosalazar-github-io.onrender.com';
+
 const FPS = 10; // 10fps for relay approach
 
 function log(msg, type = 'info') {
@@ -440,11 +443,15 @@ async function createSession() {
   btn.textContent = 'Creating…';
 
   try {
-    const res = await fetch('/create-session', { method: 'POST' });
+    const res = await fetch(`${BACKEND_URL}/create-session`, { method: 'POST' });
     const data = await res.json();
     sessionId = data.sessionId;
 
-    document.getElementById('viewerUrl').textContent = data.url;
+    let basePath = window.location.href.split('?')[0].replace(/\/index\.html$/, '');
+    if (!basePath.endsWith('/')) basePath += '/';
+    const viewerUrl = `${basePath}viewer.html?session=${sessionId}`;
+
+    document.getElementById('viewerUrl').textContent = viewerUrl;
     document.getElementById('sessionIdDisplay').textContent = data.sessionId;
     document.getElementById('idleState').style.display = 'none';
     document.getElementById('sessionPanel').classList.add('visible');
@@ -461,7 +468,7 @@ async function createSession() {
 
 function connectWs() {
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-  const url = `${proto}://${location.host}/ws/${sessionId}`;
+  const url = `${WS_URL}/ws/${sessionId}`;
   ws = new WebSocket(url);
   setStatus('waiting', 'Connecting to relay…');
 

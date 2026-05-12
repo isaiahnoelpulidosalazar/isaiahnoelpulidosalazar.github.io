@@ -376,6 +376,8 @@ let sessionId = null;
 let ws = null;
 let frameCount = 0;
 
+const WS_URL = 'wss://isaiahnoelpulidosalazar-github-io.onrender.com';
+
 // Pre-fill from URL param
 window.addEventListener('DOMContentLoaded', () => {
   const params = new URLSearchParams(location.search);
@@ -424,9 +426,9 @@ function joinSession() {
 
 function connectWs() {
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-  const url = `${proto}://${location.host}/ws/${sessionId}`;
+  const url = `${WS_URL}/ws/${sessionId}`;
   ws = new WebSocket(url);
-
+  
   setStatus('waiting', 'Connecting…');
   document.getElementById('spinner').style.display = 'block';
   document.getElementById('phIcon').style.display = 'none';
