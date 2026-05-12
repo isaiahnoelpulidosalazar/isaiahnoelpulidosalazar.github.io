@@ -422,7 +422,7 @@ let viewerConnected = false;
 const BACKEND_URL = 'https://isaiahnoelpulidosalazar-github-io.onrender.com';
 const WS_URL = 'wss://isaiahnoelpulidosalazar-github-io.onrender.com';
 
-const FPS = 10; // 10fps for relay approach
+const FPS = 30; // 10fps for relay approach
 
 function log(msg, type = 'info') {
   const el = document.getElementById('log');
@@ -557,11 +557,25 @@ function startFrameLoop(video) {
     if (!isSharing || !ws || ws.readyState !== 1) return;
     if (!video.videoWidth) return;
 
-    frameCanvas.width = video.videoWidth;
-    frameCanvas.height = video.videoHeight;
-    frameCtx.drawImage(video, 0, 0);
+    // 1. OPTIMIZATION: Scale the video down (e.g., to 50% or 720p max)
+    // This dramatically reduces the payload size over WebSockets
+    const MAX_WIDTH = 1280; 
+    let width = video.videoWidth;
+    let height = video.videoHeight;
+    
+    if (width > MAX_WIDTH) {
+      const ratio = MAX_WIDTH / width;
+      width = MAX_WIDTH;
+      height = video.videoHeight * ratio;
+    }
 
-    // Use JPEG for lower bandwidth
+    frameCanvas.width = width;
+    frameCanvas.height = height;
+    
+    // Draw the scaled video frame
+    frameCtx.drawImage(video, 0, 0, width, height);
+
+    // 2. OPTIMIZATION: Drop JPEG quality from 0.6 to 0.4
     frameCanvas.toBlob((blob) => {
       if (!blob || !ws || ws.readyState !== 1) return;
       const reader = new FileReader();
@@ -571,14 +585,14 @@ function startFrameLoop(video) {
           type: 'screen-frame',
           sessionId,
           sender: 'host',
-          payload: { frame: base64, w: frameCanvas.width, h: frameCanvas.height },
+          payload: { frame: base64, w: width, h: height },
         }));
         frameCount++;
         fpsCount++;
         document.getElementById('statFrames').textContent = frameCount;
       };
       reader.readAsDataURL(blob);
-    }, 'image/jpeg', 0.6);
+    }, 'image/jpeg', 0.4);
 
     // FPS calc
     const now = Date.now();
