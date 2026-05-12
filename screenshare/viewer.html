@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ScreenShare — Viewer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #060608;
+    --surface: #0d0d14;
+    --border: #1a1a28;
+    --accent: #7c3aed;
+    --accent-glow: rgba(124,58,237,0.3);
+    --accent2: #00ff88;
+    --text: #e2e8f0;
+    --muted: #4a5568;
+    --danger: #ff4466;
+    --warn: #f59e0b;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(124,58,237,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(124,58,237,0.025) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  header {
+    position: relative; z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 32px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(6,6,8,0.9);
+    backdrop-filter: blur(12px);
+  }
+
+  .logo {
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 0.2em;
+    color: var(--accent2);
+    text-transform: uppercase;
+  }
+  .logo span { color: var(--muted); }
+
+  .role-badge {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    padding: 4px 12px;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    border-radius: 2px;
+  }
+
+  main {
+    position: relative; z-index: 1;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 48px 24px;
+    gap: 28px;
+  }
+
+  /* ── JOIN FORM ── */
+  .join-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+    max-width: 440px;
+    width: 100%;
+    text-align: center;
+  }
+
+  .join-icon { font-size: 48px; }
+
+  .join-panel h1 {
+    font-size: 34px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+
+  .join-panel h1 em {
+    font-style: normal;
+    color: var(--accent);
+  }
+
+  .join-panel p {
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .input-group {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+  }
+
+  input[type="text"] {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 13px 16px;
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  input[type="text"]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+  input[type="text"]::placeholder { color: var(--muted); }
+
+  .btn {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 13px 22px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: white;
+    font-weight: 700;
+  }
+  .btn-primary:hover { background: #6d28d9; transform: translateY(-1px); box-shadow: 0 0 24px var(--accent-glow); }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; box-shadow: none; }
+
+  .btn-outline {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+  .btn-outline:hover { border-color: var(--danger); color: var(--danger); }
+
+  /* ── VIEWER PANEL ── */
+  .viewer-panel {
+    display: none;
+    flex-direction: column;
+    gap: 20px;
+    width: 100%;
+    max-width: 960px;
+  }
+  .viewer-panel.visible { display: flex; }
+
+  /* Top bar */
+  .top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .status-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    padding: 8px 16px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--surface);
+  }
+
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--muted);
+    flex-shrink: 0;
+  }
+  .status-dot.waiting { background: var(--warn); animation: pulse 1.5s infinite; }
+  .status-dot.active { background: var(--accent2); box-shadow: 0 0 8px var(--accent2); animation: pulse 2s infinite; }
+  .status-dot.ended { background: var(--danger); }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  .session-id-chip {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    padding: 4px 10px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+  }
+
+  /* ── SCREEN CANVAS ── */
+  .screen-wrapper {
+    position: relative;
+    background: #000;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    width: 100%;
+    aspect-ratio: 16/9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  #screenCanvas {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: none;
+  }
+
+  .screen-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    color: var(--muted);
+  }
+
+  .screen-placeholder .ph-icon { font-size: 48px; opacity: 0.35; }
+
+  .screen-placeholder p {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-align: center;
+    line-height: 1.7;
+  }
+
+  .spinner {
+    width: 28px; height: 28px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    display: none;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .fullscreen-btn {
+    position: absolute;
+    bottom: 12px; right: 12px;
+    background: rgba(0,0,0,0.6);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: var(--text);
+    padding: 6px 10px;
+    font-size: 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    backdrop-filter: blur(6px);
+    transition: all 0.15s;
+    display: none;
+  }
+  .fullscreen-btn:hover { background: rgba(0,0,0,0.8); }
+
+  /* ── STATS & LOG ── */
+  .stats-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .stat-chip {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    padding: 5px 10px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+  }
+  .stat-chip span { color: var(--accent2); }
+
+  .log {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 16px;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    line-height: 1.8;
+    color: var(--muted);
+    max-height: 100px;
+    overflow-y: auto;
+  }
+  .log-entry { display: flex; gap: 10px; }
+  .log-time { color: var(--border); flex-shrink: 0; }
+  .log-entry.ok .log-msg { color: var(--accent2); }
+  .log-entry.err .log-msg { color: var(--danger); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Screen<span>Share</span></div>
+  <div class="role-badge">VIEWER</div>
+</header>
+
+<main>
+
+  <!-- JOIN -->
+  <div class="join-panel" id="joinPanel">
+    <div class="join-icon">👁️</div>
+    <h1>Watch a screen<br>in <em>real time</em>.</h1>
+    <p>Enter a session ID or paste a share link to connect and view someone's screen live.</p>
+    <div class="input-group">
+      <input type="text" id="sessionInput" placeholder="Paste session ID or link…" />
+      <button class="btn btn-primary" onclick="joinSession()">Join</button>
+    </div>
+  </div>
+
+  <!-- VIEWER -->
+  <div class="viewer-panel" id="viewerPanel">
+
+    <div class="top-bar">
+      <div class="status-bar">
+        <div class="status-dot" id="statusDot"></div>
+        <span id="statusText" style="color:var(--muted)">Connecting…</span>
+      </div>
+      <div class="session-id-chip" id="sessionChip">—</div>
+      <button class="btn btn-outline" onclick="leaveSession()">✕ Leave</button>
+    </div>
+
+    <div class="screen-wrapper" id="screenWrapper">
+      <canvas id="screenCanvas"></canvas>
+      <div class="screen-placeholder" id="placeholder">
+        <div class="spinner" id="spinner"></div>
+        <div class="ph-icon" id="phIcon">📺</div>
+        <p id="phText">Waiting for host to<br>start screen sharing…</p>
+      </div>
+      <button class="fullscreen-btn" id="fsBtn" onclick="toggleFullscreen()">⛶</button>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-chip">Frames Rcvd: <span id="statFrames">0</span></div>
+      <div class="stat-chip">Resolution: <span id="statRes">—</span></div>
+      <div class="stat-chip">Last Frame: <span id="statLast">—</span></div>
+    </div>
+
+    <div class="log" id="log"></div>
+  </div>
+
+</main>
+
+<script>
+let sessionId = null;
+let ws = null;
+let frameCount = 0;
+
+// Pre-fill from URL param
+window.addEventListener('DOMContentLoaded', () => {
+  const params = new URLSearchParams(location.search);
+  const session = params.get('session');
+  if (session) {
+    document.getElementById('sessionInput').value = session;
+    // Auto-join after short delay
+    setTimeout(joinSession, 300);
+  }
+});
+
+function log(msg, type = 'info') {
+  const el = document.getElementById('log');
+  const now = new Date().toTimeString().slice(0,8);
+  el.innerHTML += `<div class="log-entry ${type}"><span class="log-time">${now}</span><span class="log-msg">${msg}</span></div>`;
+  el.scrollTop = el.scrollHeight;
+}
+
+function setStatus(state, text) {
+  document.getElementById('statusDot').className = 'status-dot ' + state;
+  document.getElementById('statusText').textContent = text;
+}
+
+function extractSessionId(input) {
+  try {
+    const url = new URL(input);
+    return url.searchParams.get('session') || null;
+  } catch {
+    // Not a URL — treat as raw ID
+    return input.trim() || null;
+  }
+}
+
+function joinSession() {
+  const raw = document.getElementById('sessionInput').value.trim();
+  sessionId = extractSessionId(raw) || raw;
+
+  if (!sessionId) return;
+
+  document.getElementById('joinPanel').style.display = 'none';
+  document.getElementById('viewerPanel').classList.add('visible');
+  document.getElementById('sessionChip').textContent = sessionId.slice(0,8) + '…';
+
+  connectWs();
+}
+
+function connectWs() {
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  const url = `${proto}://${location.host}/ws/${sessionId}`;
+  ws = new WebSocket(url);
+
+  setStatus('waiting', 'Connecting…');
+  document.getElementById('spinner').style.display = 'block';
+  document.getElementById('phIcon').style.display = 'none';
+
+  ws.onopen = () => {
+    setStatus('waiting', 'Waiting for host…');
+    log('Connected to session relay', 'ok');
+  };
+
+  ws.onmessage = (e) => {
+    try {
+      const msg = JSON.parse(e.data);
+      handleMessage(msg);
+    } catch {}
+  };
+
+  ws.onclose = () => {
+    setStatus('ended', 'Disconnected');
+    log('Connection closed', 'err');
+  };
+
+  ws.onerror = () => {
+    log('WebSocket error — check session ID', 'err');
+  };
+}
+
+function handleMessage(msg) {
+  const { type, sender, payload } = msg;
+
+  if (type === 'error') {
+    log('Error: ' + payload, 'err');
+    setStatus('ended', 'Error: ' + payload);
+    return;
+  }
+
+  if (type === 'join') {
+    if (payload?.status === 'ACTIVE' || sender === 'host') {
+      setStatus('active', 'Host connected — live');
+      document.getElementById('spinner').style.display = 'none';
+      document.getElementById('phIcon').style.display = 'block';
+      document.getElementById('phText').textContent = 'Waiting for host to start sharing…';
+      log('Host is connected!', 'ok');
+    } else {
+      setStatus('waiting', 'Waiting for host to join…');
+      log('In waiting room — host not yet connected', 'info');
+    }
+    return;
+  }
+
+  if (type === 'screen-frame') {
+    renderFrame(payload);
+    return;
+  }
+
+  if (type === 'disconnect') {
+    if (sender === 'host') {
+      setStatus('ended', 'Host ended the session');
+      log('Host ended the session', 'err');
+      hideCanvas();
+      document.getElementById('phIcon').textContent = '📴';
+      document.getElementById('phText').textContent = 'Session ended by host.';
+    }
+    return;
+  }
+}
+
+function renderFrame(payload) {
+  if (!payload?.frame) return;
+
+  const canvas = document.getElementById('screenCanvas');
+  const ctx = canvas.getContext('2d');
+  const img = new Image();
+
+  img.onload = () => {
+    canvas.width = payload.w || img.naturalWidth;
+    canvas.height = payload.h || img.naturalHeight;
+    ctx.drawImage(img, 0, 0);
+
+    // Show canvas, hide placeholder
+    if (canvas.style.display !== 'block') {
+      canvas.style.display = 'block';
+      document.getElementById('placeholder').style.display = 'none';
+      document.getElementById('fsBtn').style.display = 'block';
+      setStatus('active', 'Receiving screen ●');
+      log('Screen stream started', 'ok');
+    }
+
+    frameCount++;
+    document.getElementById('statFrames').textContent = frameCount;
+    document.getElementById('statRes').textContent = `${canvas.width}×${canvas.height}`;
+    document.getElementById('statLast').textContent = new Date().toTimeString().slice(0,8);
+  };
+
+  img.src = 'data:image/jpeg;base64,' + payload.frame;
+}
+
+function hideCanvas() {
+  document.getElementById('screenCanvas').style.display = 'none';
+  document.getElementById('placeholder').style.display = 'flex';
+  document.getElementById('fsBtn').style.display = 'none';
+  document.getElementById('spinner').style.display = 'none';
+  document.getElementById('phIcon').style.display = 'block';
+}
+
+function toggleFullscreen() {
+  const wrapper = document.getElementById('screenWrapper');
+  if (!document.fullscreenElement) {
+    wrapper.requestFullscreen().catch(() => {});
+  } else {
+    document.exitFullscreen();
+  }
+}
+
+function leaveSession() {
+  if (ws) ws.close();
+  location.reload();
+}
+</script>
+</body>
+</html>
