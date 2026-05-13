@@ -1,4 +1,3 @@
-from node import Node
 import math
 import random
 
@@ -145,24 +144,6 @@ def pigeonhole_sort(a):
     res = []
     for i in range(size):
         res.extend([i + min_val] * holes[i])
-    return res
-
-def tree_sort(arr):
-    if not arr: return []
-    def insert(root, val):
-        if not root: return Node(val)
-        if val < root.v: root.l = insert(root.l, val)
-        else: root.r = insert(root.r, val)
-        return root
-    def traverse(root, res):
-        if root:
-            traverse(root.l, res)
-            res.append(root.v)
-            traverse(root.r, res)
-    root = None
-    for x in arr: root = insert(root, x)
-    res = []
-    traverse(root, res)
     return res
 
 def patience_sorting(arr):
