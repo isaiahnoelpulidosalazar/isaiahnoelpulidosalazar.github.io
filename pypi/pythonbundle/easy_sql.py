@@ -1,81 +1,56 @@
 import sqlite3
+from contextlib import closing
 
 class EasySQL:
-    def create_table(self, dbname: str, table_name: str, columns: list):
-        connection = sqlite3.connect(dbname + ".db")
-        sql_query = "CREATE TABLE IF NOT EXISTS " + table_name + "("
-        for a in columns:
-            column: dict = a
-            sql_query += list(column.keys())[0] + " " + list(column.values())[0] + ", "
-        sql_query = sql_query[:-2] + ")"
-        connection.cursor().execute(sql_query)
-        connection.commit()
+    def __init__(self, dbname: str):
+        self.db_path = f"{dbname}.db"
 
-    def print_table(self, dbname: str, table_name: str):
-        connection = sqlite3.connect(dbname + ".db")
-        print(connection.cursor().execute("SELECT * FROM " + table_name).fetchall())
+    def _execute(self, query: str, params: tuple = (), fetch: bool = False):
+        with closing(sqlite3.connect(self.db_path)) as connection:
+            with connection:
+                cursor = connection.cursor()
+                cursor.execute(query, params)
+                if fetch:
+                    return cursor.fetchall()
 
-    def get_table_values(self, dbname: str, table_name: str):
-        connection = sqlite3.connect(dbname + ".db")
-        return connection.cursor().execute("SELECT * FROM " + table_name).fetchall()
+    def create_table(self, table_name: str, columns: dict):
+        col_defs = [f"{k} {v}" for k, v in columns.items()]
+        sql_query = f"CREATE TABLE IF NOT EXISTS {table_name} ({', '.join(col_defs)})"
+        self._execute(sql_query)
 
-    def insert_to_table(self, dbname: str, table_name: str, values: list):
-        connection = sqlite3.connect(dbname + ".db")
-        sql_query = "INSERT INTO " + table_name + "("
-        for a in values:
-            value: dict = a
-            sql_query += list(value.keys())[0] + ", "
-        sql_query = sql_query[:-2] + ") VALUES ("
-        for a in values:
-            value: dict = a
-            sql_query += "'" + str(list(value.values())[0]) + "', "
-        sql_query = sql_query[:-2] + ")"
-        connection.cursor().execute(sql_query)
-        connection.commit()
+    def print_table(self, table_name: str):
+        rows = self.get_table_values(table_name)
+        if not rows:
+            print(f"Table '{table_name}' is empty.")
+        else:
+            for row in rows:
+                print(row)
 
-    def delete_from_table(self, dbname: str, table_name: str, columnValuePair: dict):
-        connection = sqlite3.connect(dbname + ".db")
-        sql_query = "DELETE FROM " + table_name + " WHERE " + list(columnValuePair.items())[0][0] + "='" + list(columnValuePair.items())[0][1] + "'"
-        connection.cursor().execute(sql_query)
-        connection.commit()
+    def get_table_values(self, table_name: str):
+        sql_query = f"SELECT * FROM {table_name}"
+        return self._execute(sql_query, fetch=True)
+
+    def insert_to_table(self, table_name: str, values: dict):
+        cols = ", ".join(values.keys())
+        placeholders = ", ".join(["?"] * len(values))
+        
+        sql_query = f"INSERT INTO {table_name} ({cols}) VALUES ({placeholders})"
+        self._execute(sql_query, tuple(values.values()))
+
+    def delete_from_table(self, table_name: str, conditions: dict):
+        if not conditions:
+            return
+            
+        where_clauses = [f"{k} = ?" for k in conditions.keys()]
+        where_string = " AND ".join(where_clauses)
+        
+        sql_query = f"DELETE FROM {table_name} WHERE {where_string}"
+        self._execute(sql_query, tuple(conditions.values()))
     
-    def clear_table(self, dbname: str, table_name: str):
-        connection = sqlite3.connect(dbname + ".db")
-        sql_query = "DELETE FROM " + table_name
-        connection.cursor().execute(sql_query)
-        connection.commit()
+    def clear_table(self, table_name: str):
+        sql_query = f"DELETE FROM {table_name}"
+        self._execute(sql_query)
     
-    def delete_table(self, dbname: str, table_name: str):
-        connection = sqlite3.connect(dbname + ".db")
-        sql_query = "DROP TABLE " + table_name
-        connection.cursor().execute(sql_query)
-        connection.commit()
-
-'''
-How to use:
-# Import the class
-from easy_sql import EasySQL
-
-# Create an instance of the class
-a = EasySQL()
-
-# Define the columns for the table
-columns = [{"fname": "text"}, {"lname": "text"}]
-
-# Create specified table
-a.create_table("sample", "sampletable", columns)
-
-# Define the values to be inserted
-values = [{"fname": "Isaiah"}, {"lname": "Salazar"}]
-values1 = [{"fname": "Saia"}, {"lname": "Razalas"}]
-
-# Insert the values into specified table
-a.insert_to_table("sample", "sampletable", values)
-a.insert_to_table("sample", "sampletable", values1)
-
-# Print the values in specified table
-print(a.get_table_values("sample", "sampletable"))
-
-# Delete a column-value pair from a specified table
-a.delete_from_table("sample", "sampletable", {"fname": "Saia"})
-'''
+    def delete_table(self, table_name: str):
+        sql_query = f"DROP TABLE IF EXISTS {table_name}"
+        self._execute(sql_query)

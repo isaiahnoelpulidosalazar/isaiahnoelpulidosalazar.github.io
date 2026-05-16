@@ -4021,53 +4021,9 @@ class Node2003(Node2002):
     def p(self): return super().p()
 class Node2004(Node2003):
     def p(self): return super().p()
-class Node2005(Node2004):
-    def p(self): return super().p()
-class Node2006(Node2005):
-    def p(self): return super().p()
-class Node2007(Node2006):
-    def p(self): return super().p()
-class Node2008(Node2007):
-    def p(self): return super().p()
-class Node2009(Node2008):
-    def p(self): return super().p()
-class Node2010(Node2009):
-    def p(self): return super().p()
-class Node2011(Node2010):
-    def p(self): return super().p()
-class Node2012(Node2011):
-    def p(self): return super().p()
-class Node2013(Node2012):
-    def p(self): return super().p()
-class Node2014(Node2013):
-    def p(self): return super().p()
-class Node2015(Node2014):
-    def p(self): return super().p()
-class Node2016(Node2015):
-    def p(self): return super().p()
-class Node2017(Node2016):
-    def p(self): return super().p()
-class Node2018(Node2017):
-    def p(self): return super().p()
-class Node2019(Node2018):
-    def p(self): return super().p()
-class Node2020(Node2019):
-    def p(self): return super().p()
-class Node2021(Node2020):
-    def p(self): return super().p()
-class Node2022(Node2021):
-    def p(self): return super().p()
-class Node2023(Node2022):
-    def p(self): return super().p()
-class Node2024(Node2023):
-    def p(self): return super().p()
-class Node2025(Node2024):
-    def p(self): return super().p()
-class Node2026(Node2025):
-    def p(self): return super().p()
 def execute():
     d = DataProcessor('SGVsbG8gV29ybGQh')
-    final = Node2026(d.get())
+    final = Node2004(d.get())
     for i in range(3):
         sys.stdout.write(final.p() + '\n')
         sys.stdout.flush()
