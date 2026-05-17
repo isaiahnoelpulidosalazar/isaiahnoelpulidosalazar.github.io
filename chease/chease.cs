@@ -3,11 +3,10 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 
-// current version - 1.3.0
+// current version - 1.3.1
 
 // changes:
-// - added set options for both arrays and dictionaries
-// - added file operations (create, read, update, delete)
+// - move chease.cs to chease folder
 
 enum TokenType
 {

@@ -3,7 +3,7 @@ name: Build chease.exe
 on:
   push:
     paths:
-      - 'cs/chease.cs'
+      - 'chease/chease.cs'
   workflow_dispatch:
 
 permissions:
@@ -28,7 +28,7 @@ jobs:
         id: version
         shell: pwsh
         run: |
-          $file = Get-Content "cs/chease.cs"
+          $file = Get-Content "chease/chease.cs"
           $line = $file | Select-String "current\sversion\s-\s*(\d+\.\d+\.\d+)"
 
           if (-not $line) {
@@ -43,7 +43,7 @@ jobs:
         id: changes
         shell: pwsh
         run: |
-          $file = Get-Content "cs/chease.cs"
+          $file = Get-Content "chease/chease.cs"
 
           $start = $file | Select-String "// changes:" | Select-Object -First 1
 
@@ -72,7 +72,7 @@ jobs:
         run: dotnet new console -n chease
 
       - name: Replace Program.cs
-        run: copy cs\chease.cs chease\Program.cs
+        run: copy chease\chease.cs chease\Program.cs
 
       - name: Publish EXE
         run: dotnet publish chease -c Release -r win-x64 --self-contained true /p:PublishSingleFile=true /p:IncludeNativeLibrariesForSelfExtract=true /p:AssemblyName=chease-v${{ steps.version.outputs.VERSION }} -o publish
@@ -112,7 +112,7 @@ jobs:
             Auto-generated release.
 
             Version: v${{ steps.version.outputs.VERSION }}
-            Built from latest commit in cs/.
+            Built from latest commit in chease/.
 
             Changes:
             ${{ steps.changes.outputs.CHANGES }}
