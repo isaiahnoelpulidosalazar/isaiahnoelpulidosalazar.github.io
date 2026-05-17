@@ -3,9 +3,68 @@ My website
 
 ---
 
+# androiddependency
+
+**androiddependency** is an Android library that eliminates boilerplate across projects. Includes Check (a class for validation), Convert (a class for data conversion), EasySQL (a simplified SQLite CRUD wrapper), FlippableImageView with custom animations, a custom RoundedAlertDialog with a modern card view, SimpleList for dynamic data binding, and an async URLRequest utility with callback runnables..
+
+---
+
+## Features
+
+`androiddependency` contains
+
+---
+
+## Installation
+
+Install the dependency by adding it to your root `settings.gradle` and project `build.gradle` files
+
+`settings.gradle`
+```gradle
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+        maven { url 'https://jitpack.io' } // Add this
+    }
+}
+```
+
+`build.gradle`
+```gradle
+dependencies {
+    implementation libs.activity.ktx
+    implementation libs.appcompat
+    implementation libs.constraintlayout
+    implementation libs.material
+
+    // Add this
+    implementation 'com.github.isaiahnoelpulidosalazar:isaiahnoelpulidosalazar.github.io:androiddependency-v1.2.1'
+    
+    testImplementation libs.junit
+    androidTestImplementation libs.espresso.core
+    androidTestImplementation libs.ext.junit
+}
+```
+
+---
+
+## Quick Usage Examples
+
+---
+
+## Contributing
+Pull requests are welcome! For major changes, please open an issue first to discuss what you would like to change. 
+
+## License
+[MIT](https://choosealicense.com/licenses/mit/)
+
+---
+
 # com.github.isaiahnoelpulidosalazar.nugetpackage
 
-**com.github.isaiahnoelpulidosalazar.nugetpackage** A NuGet package for .NET that simplifies validation through a custom Check class, a custom Convert class for data conversion, and a dedicated class that simplifies file IO through SimpleFileHandler.
+**com.github.isaiahnoelpulidosalazar.nugetpackage** is a NuGet package for .NET that simplifies validation through a custom Check class, a custom Convert class for data conversion, and a dedicated class that simplifies file IO through SimpleFileHandler.
 
 ---
 
@@ -147,7 +206,7 @@ Pull requests are welcome! For major changes, please open an issue first to disc
 
 # pythonbundle
 
-**pythonbundle** A PyPI package for Python 3.10+ that provides useful tools for data conversion and validation, a custom EasySQL class for simplified SQLite operations, a custom excel file handler, and a custom file IO handler..
+**pythonbundle** is a PyPI package for Python 3.10+ that provides useful tools for data conversion and validation, a custom EasySQL class for simplified SQLite operations, a custom excel file handler, and a custom file IO handler.
 
 ---
 
