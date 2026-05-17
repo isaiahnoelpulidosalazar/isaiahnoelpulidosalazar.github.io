@@ -1,46 +1,46 @@
 # com.github.isaiahnoelpulidosalazar.nugetpackage
 
-**com.github.isaiahnoelpulidosalazar.nugetpackage** is a versatile and lightweight C# utility library designed to accelerate .NET development. It provides a comprehensive collection of helper classes for string validation, classic cryptography, data type conversion, basic file handling, resource extraction, and a massive suite of sorting algorithms.
+**com.github.isaiahnoelpulidosalazar.nugetpackage** A NuGet package for .NET that simplifies validation through a custom Check class, a custom Convert class for data conversion, and a dedicated class that simplifies file IO through SimpleFileHandler.
 
 ---
 
-## 📦 Features
+## Features
 
 The package operates under the `nugetpackage` namespace and contains several distinct modules to help keep your codebase clean and readable:
 
-### 🛡️ Validation (`Check`)
+### Validation (`Check`)
 A robust validation class to simplify standard string, format, and date checks.
 - **Email**: Highly customizable email domain validation (allows whitelisting specific domain names, extensions, or full domains).
 - **Phone Numbers**: Validates Philippine mobile numbers (`09`, `+639`, `639`).
 - **Strings**: Check for spaces, symbols, pure numerical strings, or presence of numbers.
 - **Time/Dates**: Easily calculate the remaining time between two `DateTime` objects (Days, Hours, Minutes, Seconds).
 
-### 🔐 Cryptography (`Cipher`)
+### Cryptography (`Cipher`)
 A class to implement classic and recreational cipher techniques for string encryption.
 - Transposition Cipher
 - Giovanni Cipher
 - Keyword Cipher
 - Caesar Cipher
 
-### 🔄 Data Conversion (`Convert`)
+### Data Conversion (`Convert`)
 Effortless type casting, text manipulation, and data encoding.
 - Base64, Hex, and Binary encoding/decoding.
 - String reversal and Byte-array conversions (`UTF8`).
 - Quick string parsing to `Int`, `Double`, `Long`, and `Float`.
 
-### 🗂️ File & Resource Handling (`SimpleFileHandler`)
+### File & Resource Handling (`SimpleFileHandler`)
 Static methods to rapidly read, write, and extract files.
 - Rapid `Read()`, `Write()`, and `Append()` for text files.
 - **Embedded Resources**: Use `ProjectToLocation()` to easily extract and copy files marked as 'Embedded Resource' from your executing assembly to a physical directory.
 
-### 🧹 Sorting Algorithms (`SortAlgorithms`)
+### Sorting Algorithms (`SortAlgorithms`)
 A massive suite of sorting algorithms implemented in C# as quick plug-and-play functions for integer and double arrays.
 - **Standard**: Quick Sort, Merge Sort, Heap Sort, Selection Sort, Insertion Sort, Bubble Sort.
 - **Advanced/Niche**: Tim Sort, Intro Sort, Cocktail Shaker Sort, Shell Sort, Pigeonhole Sort, Bead Sort, Patience Sorting, and even Bogo Sort!
 
 ---
 
-## 🚀 Installation
+## Installation
 
 Install the package via the .NET CLI:
 
@@ -56,7 +56,7 @@ Install-Package com.github.isaiahnoelpulidosalazar.nugetpackage
 
 ---
 
-## 💻 Quick Usage Examples
+## Quick Usage Examples
 
 To use the package, simply include the namespace at the top of your file:
 ```csharp
@@ -132,8 +132,8 @@ Console.WriteLine(string.Join(", ", sortedArray)); // 1, 2, 5, 5, 6, 9
 
 ---
 
-## 🤝 Contributing
+## Contributing
 Pull requests are welcome! For major changes, please open an issue first to discuss what you would like to change. 
 
-## 📝 License
+## License
 [MIT](https://choosealicense.com/licenses/mit/) 

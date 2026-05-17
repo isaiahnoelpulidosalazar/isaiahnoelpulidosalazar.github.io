@@ -3,5 +3,5 @@ namespace nugetpackage;
 public class Changes
 {
     // changes:
-    // - add README
+    // - update README.md
 }

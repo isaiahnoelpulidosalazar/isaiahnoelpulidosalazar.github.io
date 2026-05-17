@@ -8,5 +8,4 @@ from .sort import bubble_sort, cocktail_shaker_sort, odd_even_sort, selection_so
 from .stackily import Stackily 
 
 # changes:
-# - remove tree_sort from sort.py
-# - remove node.py
+# - update README.md
