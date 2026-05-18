@@ -3,16 +3,22 @@ package com.github.isaiahnoelpulidosalazar.androiddependency;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import androidx.appcompat.content.res.AppCompatResources;
-import java.util.ArrayList;
+
 import java.util.Date;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * A utility class providing static helper methods for common validation and comparison tasks,
  * such as email validation, string analysis, drawable comparison, and time-difference calculations.
  */
-public class Check {
+public final class Check {
+
+    private Check() {
+        throw new UnsupportedOperationException("Check class cannot be instantiated");
+    }
 
     /**
      * A nested utility class for validating email addresses against configurable allowed domains.
@@ -38,12 +44,16 @@ public class Check {
      * boolean valid = Check.Email.isValid("user@gmail.com"); // true
      * }</pre>
      */
-    public static class Email {
+    public static final class Email {
 
-        static List<String> validDomainNames = new ArrayList<>();
-        static List<String> validDomainExtensions = new ArrayList<>();
-        static List<String> validDomains = new ArrayList<>();
-        static boolean shouldUseFullDomain = false;
+        private static final Set<String> validDomainNames = new HashSet<>();
+        private static final Set<String> validDomainExtensions = new HashSet<>();
+        private static final Set<String> validDomains = new HashSet<>();
+        private static volatile boolean shouldUseFullDomain = false;
+
+        private Email() {
+            throw new UnsupportedOperationException("Check.Email class cannot be instantiated");
+        }
 
         /**
          * Adds a domain name (the part before the dot) to the list of accepted domain names.
@@ -51,8 +61,10 @@ public class Check {
          *
          * @param str the domain name to add (e.g., {@code "gmail"})
          */
-        public static void addValidDomainName(String str){
-            validDomainNames.add(str);
+        public static void addValidDomainName(String str) {
+            if (str != null){
+                validDomainNames.add(str);
+            }
         }
 
         /**
@@ -61,8 +73,10 @@ public class Check {
          *
          * @param str the domain extension to add (e.g., {@code "com"})
          */
-        public static void addValidDomainExtension(String str){
-            validDomainExtensions.add(str);
+        public static void addValidDomainExtension(String str) {
+            if (str != null){
+                validDomainExtensions.add(str);
+            }
         }
 
         /**
@@ -71,25 +85,27 @@ public class Check {
          *
          * @param str the full domain to accept (e.g., {@code "gmail.com"})
          */
-        public static void addValidDomain(String str){
-            validDomains.add(str);
+        public static void addValidDomain(String str) {
+            if (str != null){
+                validDomains.add(str);
+            }
         }
 
         /**
          * Enables full domain validation mode.
          * When enabled, {@link #isValid(String)} matches the entire domain after {@code @}.
          */
-        public static void shouldUseFullDomain(){
+        public static void shouldUseFullDomain() {
             shouldUseFullDomain = true;
         }
 
         /**
          * Sets whether full domain validation mode is enabled or disabled.
          *
-         * @param bool {@code true} to enable full domain validation; {@code false} to use split mode
+         * @param useFullDomain {@code true} to enable full domain validation; {@code false} to use split mode
          */
-        public static void shouldUseFullDomain(boolean bool){
-            shouldUseFullDomain = bool;
+        public static void shouldUseFullDomain(boolean useFullDomain) {
+            shouldUseFullDomain = useFullDomain;
         }
 
         /**
@@ -104,23 +120,26 @@ public class Check {
          * @param str the email address to validate
          * @return {@code true} if the email matches the configured domain rules; {@code false} otherwise
          */
-        public static boolean isValid(String str){
-            if (shouldUseFullDomain){
-                try {
-                    String[] domain = str.split("@");
-                    return validDomains.contains(domain[1]);
-                } catch (Exception exception){
-                    return false;
-                }
+        public static boolean isValid(String str) {
+            if (str == null || !str.contains("@")) {
+                return false;
+            }
+
+            int atIndex = str.lastIndexOf('@');
+            if (atIndex == 0 || atIndex == str.length() - 1) {
+                return false;
+            }
+
+            String domainPart = str.substring(atIndex + 1);
+
+            if (shouldUseFullDomain) {
+                return validDomains.contains(domainPart);
             } else {
-                try {
-                    String[] domain = str.split("@");
-                    String domainName = domain[1].split("\\.")[0];
-                    String domainExtension = domain[1].split("\\.")[1];
-                    return validDomainNames.contains(domainName) && validDomainExtensions.contains(domainExtension);
-                } catch (Exception exception){
+                String[] parts = domainPart.split("\\.");
+                if (parts.length < 2) {
                     return false;
                 }
+                return validDomainNames.contains(parts[0]) && validDomainExtensions.contains(parts[1]);
             }
         }
     }
@@ -134,9 +153,19 @@ public class Check {
      * @return {@code true} if the drawable's bitmap and the provided bitmap are identical;
      *         {@code false} otherwise
      */
-    public static boolean equalDrawableAndBitmap(Context context, int resourceId, Bitmap bitmap){
-        BitmapDrawable drawable = (BitmapDrawable) AppCompatResources.getDrawable(context, resourceId);
-        return drawable.getBitmap().sameAs(bitmap);
+    public static boolean equalDrawableAndBitmap(Context context, int resourceId, Bitmap bitmap) {
+        if (context == null || bitmap == null){
+            return false;
+        }
+
+        Drawable drawable = AppCompatResources.getDrawable(context, resourceId);
+        
+        if (drawable instanceof BitmapDrawable) {
+            Bitmap drawableBitmap = ((BitmapDrawable) drawable).getBitmap();
+            return drawableBitmap != null && drawableBitmap.sameAs(bitmap);
+        }
+        
+        return false;
     }
 
     /**
@@ -147,13 +176,15 @@ public class Check {
      * @param str the string to inspect
      * @return {@code true} if the string contains at least one symbol; {@code false} otherwise
      */
-    public static boolean hasSymbols(String str){
+    public static boolean hasSymbols(String str) {
+        if (str == null || str.isEmpty()){
+            return false;
+        }
+        
         String symbols = "~`!@#$%^&*()_+-=[]{}\\|'\";:,.<>/?";
-        for (char a : str.toCharArray()){
-            for (char b : symbols.toCharArray()){
-                if (a == b){
-                    return true;
-                }
+        for (int i = 0; i < str.length(); i++) {
+            if (symbols.indexOf(str.charAt(i)) != -1) {
+                return true;
             }
         }
         return false;
@@ -165,13 +196,14 @@ public class Check {
      * @param str the string to inspect
      * @return {@code true} if the string contains at least one digit; {@code false} otherwise
      */
-    public static boolean hasNumbers(String str){
-        String numbers = "0123456789";
-        for (char a : str.toCharArray()){
-            for (char b : numbers.toCharArray()){
-                if (a == b){
-                    return true;
-                }
+    public static boolean hasNumbers(String str) {
+        if (str == null || str.isEmpty()){
+            return false;
+        }
+        
+        for (int i = 0; i < str.length(); i++) {
+            if (Character.isDigit(str.charAt(i))) {
+                return true;
             }
         }
         return false;
@@ -183,9 +215,13 @@ public class Check {
      * @param str the string to inspect
      * @return {@code true} if the string contains at least one space; {@code false} otherwise
      */
-    public static boolean hasSpaces(String str){
-        for (char a : str.toCharArray()){
-            if (a == ' '){
+    public static boolean hasSpaces(String str) {
+        if (str == null || str.isEmpty()){
+            return false;
+        }
+        
+        for (int i = 0; i < str.length(); i++) {
+            if (str.charAt(i) == ' ') {
                 return true;
             }
         }
@@ -199,8 +235,11 @@ public class Check {
      * @param until the target future date/time
      * @return the number of seconds from {@code now} until {@code until} as a {@code double}
      */
-    public static double howManySecondsLeft(Date now, Date until){
-        return new Date(until.getTime() - now.getTime()).getTime() / 1000.0;
+    public static double howManySecondsLeft(Date now, Date until) {
+        if (now == null || until == null){
+            return 0.0;
+        }
+        return (until.getTime() - now.getTime()) / 1000.0;
     }
 
     /**
@@ -210,8 +249,11 @@ public class Check {
      * @param until the target future date/time
      * @return the number of minutes from {@code now} until {@code until} as a {@code double}
      */
-    public static double howManyMinutesLeft(Date now, Date until){
-        return new Date(until.getTime() - now.getTime()).getTime() / 60000.0;
+    public static double howManyMinutesLeft(Date now, Date until) {
+        if (now == null || until == null){
+            return 0.0;
+        }
+        return (until.getTime() - now.getTime()) / 60000.0;
     }
 
     /**
@@ -221,8 +263,11 @@ public class Check {
      * @param until the target future date/time
      * @return the number of hours from {@code now} until {@code until} as a {@code double}
      */
-    public static double howManyHoursLeft(Date now, Date until){
-        return new Date(until.getTime() - now.getTime()).getTime() / 60000.0 / 60.0;
+    public static double howManyHoursLeft(Date now, Date until) {
+        if (now == null || until == null){
+            return 0.0;
+        }
+        return (until.getTime() - now.getTime()) / 3600000.0;
     }
 
     /**
@@ -232,7 +277,10 @@ public class Check {
      * @param until the target future date/time
      * @return the number of days from {@code now} until {@code until} as a {@code double}
      */
-    public static double howManyDaysLeft(Date now, Date until){
-        return new Date(until.getTime() - now.getTime()).getTime() / 60000.0 / 60.0 / 24.0;
+    public static double howManyDaysLeft(Date now, Date until) {
+        if (now == null || until == null){
+            return 0.0;
+        }
+        return (until.getTime() - now.getTime()) / 86400000.0;
     }
 }
