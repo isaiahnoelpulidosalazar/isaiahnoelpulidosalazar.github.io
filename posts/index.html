@@ -36,6 +36,14 @@
     <title>Posts</title>
     <script type="speculationrules">
         {
+            "prerender": [
+                {
+                    "source": "list",
+                    "urls": [
+                        "/newpost/"
+                    ]
+                }
+            ],
             "prefetch": [
                 {
                     "source": "list",
@@ -74,6 +82,11 @@
         <div class="post-link padding-20px border-1px_solid_var(--ec-border,_#dee2e6) borderRadius-12px background-#fff hover:boxShadow-0_4px_16px_rgba(0,0,0,0.08) transition-boxShadow_0.2s_ease"><h2 class="margin-0"><a href="what-is-glass-.html" class="color-var(--ec-text,_#212529) textDecoration-none hover:color-var(--ec-accent,_#1a73e8)">What is glass?</a></h2><p class="color-var(--ec-text-muted,_#6c757d) fontSize-14px marginTop-8px marginBottom-0">Published on April 24, 2026 at 10:50 PM by isaiahnoelpulidosalazar</p></div>
         </div>
     </div>
-    <script src="index.js"></script>
+    <script>
+        document.querySelectorAll(".separator").forEach(separator => {
+            let divider = new ECDivider();
+            separator.appendChild(divider.element);
+        });
+    </script>
 </body>
 </html>
