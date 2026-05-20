@@ -2,11 +2,16 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
+using System.Reflection;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.Emit;
 
-// current version - 1.3.1
+// current version - 1.4.0
 
 // changes:
-// - move chease.cs to chease folder
+// - test add new functions for code execution and compilation
 
 enum TokenType
 {
@@ -17,7 +22,8 @@ enum TokenType
     Greater, Less, GreaterEqual, LessEqual, Equal, NotEqual,
     LBracket, RBracket, Comma, Colon,
     EOF,
-    Set, File, Create, Read, Update, Delete
+    Set, File, Create, Read, Update, Delete,
+    Raw, Compile
 }
 
 class Token
@@ -86,6 +92,39 @@ class Lexer
                         while (_pos < _code.Length && _code[_pos] != '\n' && _code[_pos] != '\r') _pos++;
                     }
                     continue;
+                }
+
+                if (id == "raw" || id == "compile")
+                {
+                    int peek = _pos;
+                    while (peek < _code.Length && char.IsWhiteSpace(_code[peek])) peek++;
+
+                    if (peek < _code.Length && _code[peek] == '[')
+                    {
+                        peek++;
+                        string csharpCode = "";
+                        int depth = 1;
+                        bool inString = false;
+
+                        while (peek < _code.Length && depth > 0)
+                        {
+                            char cc = _code[peek];
+                            
+                            if (cc == '"') inString = !inString; 
+                            
+                            if (!inString) {
+                                if (cc == '[') depth++;
+                                else if (cc == ']') depth--;
+                            }
+                            
+                            if (depth > 0) csharpCode += cc;
+                            peek++;
+                        }
+                        
+                        _pos = peek; 
+                        tokens.Add(new Token(id == "raw" ? TokenType.Raw : TokenType.Compile, csharpCode.Trim()));
+                        continue;
+                    }
                 }
 
                 tokens.Add(id switch
@@ -173,11 +212,12 @@ class ArrayDeclStmt : Stmt { public TokenType Type; public string Name; public L
 class DictDeclStmt : Stmt { public string Name; public List<(string, Expr)> Pairs; }
 class ArraySetStmt : Stmt { public string ArrayName; public Expr Index; public Expr Value; }
 class DictSetStmt : Stmt { public string DictName; public bool IsKey; public Expr KeyOrIndex; public Expr Value; }
-
 class FileCreateStmt : Stmt { public Expr FileName; public Expr Content; }
 class FileUpdateStmt : Stmt { public Expr FileName; public Expr Content; }
 class FileDeleteStmt : Stmt { public Expr FileName; }
 class FileReadExpr : Expr { public Expr FileName; }
+class RawStmt : Stmt { public string CSharpCode; }
+class CompileStmt : Stmt { public string CSharpCode; }
 
 class BinaryExpr : Expr { public Expr Left; public TokenType Op; public Expr Right; }
 class LiteralExpr : Expr { public object Value; }
@@ -224,6 +264,14 @@ class Parser
 
     private Stmt ParseStmt()
     {
+        if (Peek().Type == TokenType.Raw)
+        {
+            return new RawStmt { CSharpCode = Consume(TokenType.Raw).Text };
+        }
+        if (Peek().Type == TokenType.Compile)
+        {
+            return new CompileStmt { CSharpCode = Consume(TokenType.Compile).Text };
+        }
         if (Peek().Type == TokenType.Var)
         {
             Consume(TokenType.Var);
@@ -603,9 +651,106 @@ class Evaluator
         return val;
     }
 
+    private void ExecuteCSharp(string code, bool buildExe)
+    {
+        SyntaxTree syntaxTree = CSharpSyntaxTree.ParseText(code);
+
+        var references = AppDomain.CurrentDomain.GetAssemblies()
+            .Where(a => !a.IsDynamic && !string.IsNullOrWhiteSpace(a.Location))
+            .Select(a => MetadataReference.CreateFromFile(a.Location))
+            .Cast<MetadataReference>()
+            .ToList();
+
+        string assemblyName = buildExe ? "CompiledOutput" : Path.GetRandomFileName();
+
+        var compilation = CSharpCompilation.Create(
+            assemblyName,
+            new[] { syntaxTree },
+            references,
+            new CSharpCompilationOptions(OutputKind.ConsoleApplication)
+        );
+
+        if (buildExe)
+        {
+            string outputExe = "CompiledOutput.exe";
+            string runtimeConfig = "CompiledOutput.runtimeconfig.json";
+
+            EmitResult result = compilation.Emit(outputExe);
+
+            if (!result.Success)
+            {
+                PrintCompilationErrors(result);
+                throw new Exception("Runtime Error: C# to EXE compilation failed.");
+            }
+
+            string configJson = @"{
+  ""runtimeOptions"": {
+    ""tfm"": ""net8.0"",
+    ""framework"": {
+      ""name"": ""Microsoft.NETCore.App"",
+      ""version"": ""8.0.0""
+    }
+  }
+}";
+            File.WriteAllText(runtimeConfig, configJson);
+            
+            Console.WriteLine($"Successfully compiled embedded C# to: {outputExe}");
+        }
+        else
+        {
+            using var ms = new MemoryStream();
+            EmitResult result = compilation.Emit(ms);
+
+            if (!result.Success)
+            {
+                PrintCompilationErrors(result);
+                throw new Exception("Runtime Error: Embedded C# code compilation failed.");
+            }
+
+            ms.Seek(0, SeekOrigin.Begin);
+            Assembly assembly = Assembly.Load(ms.ToArray());
+            MethodInfo entry = assembly.EntryPoint;
+            
+            if (entry != null)
+            {
+                object[] parameters = entry.GetParameters().Length == 0 ? null : new object[] { new string[0] };
+                try
+                {
+                    entry.Invoke(null, parameters);
+                }
+                catch (TargetInvocationException ex)
+                {
+                    throw ex.InnerException ?? ex;
+                }
+            }
+            else
+            {
+                throw new Exception("Runtime Error: No Main method found in raw C# code. Ensure you have a 'static void Main()'.");
+            }
+        }
+    }
+
+    private void PrintCompilationErrors(EmitResult result)
+    {
+        Console.WriteLine("--- C# Compilation Errors ---");
+        foreach (Diagnostic diagnostic in result.Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error))
+        {
+            var lineSpan = diagnostic.Location.GetLineSpan();
+            Console.WriteLine($"Line {lineSpan.StartLinePosition.Line + 1}: {diagnostic.GetMessage()}");
+        }
+    }
+
     private void ExecuteStmt(Stmt stmt, Environment env)
     {
-        if (stmt is VarStmt varStmt) {
+        if (stmt is RawStmt rawStmt)
+        {
+            ExecuteCSharp(rawStmt.CSharpCode, buildExe: false);
+        }
+        else if (stmt is CompileStmt compStmt)
+        {
+            ExecuteCSharp(compStmt.CSharpCode, buildExe: true);
+        }
+        else if (stmt is VarStmt varStmt) {
             object val = EvaluateExpr(varStmt.Value, env);
             if (varStmt.Type.HasValue) val = CastToType(val, varStmt.Type.Value);
             env.Define(varStmt.Name, val);
@@ -858,7 +1003,7 @@ internal class Program
     {
         if (args.Length != 1)
         {
-            Console.WriteLine("Usage: chease-v1.3.0.exe filename.chease");
+            Console.WriteLine("Usage: chease-v1.4.0.exe filename.chease");
             return;
         }
 
