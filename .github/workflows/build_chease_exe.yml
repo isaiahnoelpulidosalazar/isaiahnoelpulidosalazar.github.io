@@ -70,6 +70,9 @@ jobs:
 
       - name: Create project
         run: dotnet new console -n chease
+      
+      - name: Add Roslyn package
+        run: dotnet add chease package Microsoft.CodeAnalysis.CSharp
 
       - name: Replace Program.cs
         run: copy chease\chease.cs chease\Program.cs
