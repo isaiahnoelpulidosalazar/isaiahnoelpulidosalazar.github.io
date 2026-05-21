@@ -560,6 +560,11 @@ void exit(int status) {
 
 // ---------------------- HARDWARE KEYBOARD INPUT ----------------------
 
+char kbd_get_scancode(void) {
+    while ((inb(0x64) & 1) == 0); 
+    return inb(0x60);
+}
+
 const char kbd_us_map[128] = {
     0,  27, '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', '\b',
     '\t', 'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '[', ']', '\n',
@@ -836,14 +841,14 @@ void trim_inplace(char* str) {
 
 // ---------------------- MEMORY & DATA STRUCTURES ----------------------
 
-Value val_null() { Value v; v.type = VAL_NULL; return v; }
+Value val_null(void) { Value v; v.type = VAL_NULL; return v; }
 Value val_int(long long i) { Value v; v.type = VAL_INT; v.as.i = i; return v; }
 Value val_float(double f) { Value v; v.type = VAL_FLOAT; v.as.f = f; return v; }
 Value val_bool(bool b) { Value v; v.type = VAL_BOOL; v.as.b = b; return v; }
 Value val_string(const char* s) { Value v; v.type = VAL_STRING; v.as.s = my_strdup(s); return v; }
 Value val_job(ASTNode* n) { Value v; v.type = VAL_JOB; v.as.job = n; return v; }
 
-ValueList* new_list() {
+ValueList* new_list(void) {
     ValueList* l = malloc(sizeof(ValueList));
     l->count = 0; l->cap = 4;
     l->items = malloc(sizeof(Value) * l->cap);
@@ -855,7 +860,7 @@ void list_add(ValueList* l, Value v) {
     l->items[l->count++] = v;
 }
 
-ValueDict* new_dict() {
+ValueDict* new_dict(void) {
     ValueDict* d = malloc(sizeof(ValueDict));
     d->count = 0; d->cap = 4;
     d->pairs = malloc(sizeof(KeyValuePair) * d->cap);
@@ -1062,29 +1067,13 @@ void tokenize(const char* code) {
 
 // ---------------------- PARSER ----------------------
 
-Token peek() { return tokens[current_token]; }
-Token peek_next() { return current_token + 1 < token_count ? tokens[current_token+1] : tokens[token_count-1]; }
+Token peek(void);
+Token peek_next(void);
 
-Token consume(TokenType type) {
-    if (peek().type == type) return tokens[current_token++];
-    printf("Parse Error: Expected %d but got %d at '%s'\n", type, peek().type, peek().text); exit(1);
-    Token dummy = {TOKEN_EOF, NULL}; return dummy;
-}
+Token consume(TokenType type);
+Token consume_type(void);
 
-Token consume_type(void) {
-    TokenType t = peek().type;
-    if (t==TOKEN_BOOLEAN_TYPE || t==TOKEN_NUMBER_TYPE || t==TOKEN_DECIMAL_TYPE || t==TOKEN_STRING_TYPE)
-        return consume(t);
-    printf("Parse Error: Expected type but got %d\n", t); exit(1);
-    Token dummy = {TOKEN_EOF, NULL}; return dummy;
-}
-
-bool is_expr_start(TokenType type) {
-    return type == TOKEN_IDENTIFIER || type == TOKEN_NUMBER_VALUE ||
-           type == TOKEN_DECIMAL_VALUE || type == TOKEN_STRING_VALUE ||
-           type == TOKEN_GET || type == TOKEN_TRUE || type == TOKEN_FALSE ||
-           type == TOKEN_ARRAY || type == TOKEN_DICTIONARY || type == TOKEN_FILE;
-}
+bool is_expr_start(TokenType type);
 
 ASTNode* parse_expr(void);
 ASTNode* parse_stmt(void);
@@ -1615,7 +1604,7 @@ void exec_stmt(ASTNode* stmt, Env* env) {
         if (code) {
             run_easec(code);
         } else {
-            printf("Runtime Error: easec program '%s' not found.\n", fname);
+            printf("Runtime Error: Easec program '%s' not found.\n", fname);
         }
     }
     else if (stmt->type == NODE_SHUTDOWN) {
@@ -1802,7 +1791,8 @@ void parse_input_line(const char* input, char* cmd, char* arg1, char* arg2) {
     arg2[a2_idx] = '\0';
 }
 
-// ---------------------- KERNEL ENTRY POINT ----------------------
+Token peek(void) { return tokens[current_token]; }
+Token peek_next(void) { return current_token + 1 < token_count ? tokens[current_token+1] : tokens[token_count-1]; }
 
 #include "embedded_files.h"
 
@@ -1822,18 +1812,6 @@ void kernel_main(void) {
     printf("                        WELCOME TO inpsos!                          \n");
     printf("====================================================================\n\n");
     
-    // ---------------------- PRELOAD COMMAND SCRIPTS IN EASEC SYNTAX ----------------------
-    
-    // Extract filesystem structures out of header map and populate workspace memory
-    for (int i = 0; embedded_files[i].name != NULL; i++) {
-        char filename_buf[64];
-        sprintf(filename_buf, "%s.easec", embedded_files[i].name);
-        mock_file_create(filename_buf, embedded_files[i].code);
-    }
-    
-    printf("[System] Core commands loaded successfully into easec script layer.\n");
-
-    // ---------------------- AUTOMATIC BOOT AUTO-LOAD ----------------------
     printf("[System] Checking primary IDE/SATA channel status...\n");
     if (ata_present()) {
         printf("[System] Hardware Detected: Hard disk found.\n");
@@ -1842,6 +1820,13 @@ void kernel_main(void) {
         printf("[System] Drive not detected. Defaulting to standard session.\n");
     }
 
+    for (int i = 0; embedded_files[i].name != NULL; i++) {
+        char filename_buf[64];
+        sprintf(filename_buf, "%s.easec", embedded_files[i].name);
+        mock_file_create(filename_buf, embedded_files[i].code);
+    }
+    
+    printf("[System] Core commands loaded successfully into Easec script layer.\n");
     printf("[System] Loading interactive shell subsystem...\n\n");
     
     char input_buf[256];
