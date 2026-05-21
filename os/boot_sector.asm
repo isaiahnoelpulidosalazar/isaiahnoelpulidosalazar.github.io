@@ -12,6 +12,10 @@ mov al, 'n'
 int 0x10
 mov al, 'g'
 int 0x10
+mov al, '.'
+int 0x10
+int 0x10
+int 0x10
 
 jmp $
 
