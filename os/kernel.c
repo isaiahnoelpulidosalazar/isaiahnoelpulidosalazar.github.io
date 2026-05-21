@@ -99,83 +99,84 @@ static inline uint16_t inw(uint16_t port) {
 void printf(const char* format, ...);
 
 void ata_wait_bsy() {
-    while (inb(0x1F7) & 0x80); // Wait while BSY (bit 7) is active
+    while (inb(0x1F7) & 0x80); 
 }
 
 void ata_wait_drq() {
-    while (!(inb(0x1F7) & 0x08)); // Wait until DRQ (bit 3) is active
+    while (!(inb(0x1F7) & 0x08)); 
 }
 
 bool ata_present() {
     uint8_t status = inb(0x1F7);
-    if (status == 0xFF) return false; // Floating bus, no drive
+    if (status == 0xFF) return false; 
     return true;
 }
 
 void ata_read_sector(uint32_t lba, uint16_t* buffer) {
     ata_wait_bsy();
-    outb(0x1F6, 0xE0 | ((lba >> 24) & 0x0F)); // Select drive (LBA mode, primary)
-    outb(0x1F2, 1);                           // Read 1 sector
-    outb(0x1F3, (uint8_t)lba);                // Send LBA bits
+    outb(0x1F6, 0xE0 | ((lba >> 24) & 0x0F)); 
+    outb(0x1F2, 1);                           
+    outb(0x1F3, (uint8_t)lba);                
     outb(0x1F4, (uint8_t)(lba >> 8));
     outb(0x1F5, (uint8_t)(lba >> 16));
-    outb(0x1F7, 0x20);                        // Command 0x20: Read Sectors
+    outb(0x1F7, 0x20);                        
 
     ata_wait_bsy();
     ata_wait_drq();
 
     for (int i = 0; i < 256; i++) {
-        buffer[i] = inw(0x1F0);               // Pull 256 words (512 bytes)
+        buffer[i] = inw(0x1F0);               
     }
 }
 
 void ata_write_sector(uint32_t lba, uint16_t* buffer) {
     ata_wait_bsy();
     outb(0x1F6, 0xE0 | ((lba >> 24) & 0x0F));
-    outb(0x1F2, 1);                           // Write 1 sector
+    outb(0x1F2, 1);                           
     outb(0x1F3, (uint8_t)lba);
     outb(0x1F4, (uint8_t)(lba >> 8));
     outb(0x1F5, (uint8_t)(lba >> 16));
-    outb(0x1F7, 0x30);                        // Command 0x30: Write Sectors
+    outb(0x1F7, 0x30);                        
 
     ata_wait_bsy();
     ata_wait_drq();
 
     for (int i = 0; i < 256; i++) {
-        outw(0x1F0, buffer[i]);               // Push 256 words (512 bytes)
+        outw(0x1F0, buffer[i]);               
     }
     
-    outb(0x1F7, 0xE7);                        // Command 0xE7: Cache Flush
+    outb(0x1F7, 0xE7);                        
     ata_wait_bsy();
 }
 
 // ---------------------- HARDWARE SHUTDOWN & RESTART ACTIONS ----------------------
 
-void sys_shutdown(void) {
-    // Attempt standard QEMU/VirtualBox emulator poweroff ports
-    outw(0xB004, 0x2000); // Older QEMU / Bochs
-    outw(0x604, 0x2000);  // Newer QEMU
-    outw(0x4004, 0x3400); // VirtualBox ACPI
+void vfs_save_to_disk(void);
 
-    // Fallback if hardware ACPI system is absent
-    printf("\nPoweroff completed. It is safe to turn off your PC.\n");
+void sys_shutdown(void) {
+    vfs_save_to_disk(); // Auto-save triggered dynamically before poweroff
+
+    outw(0xB004, 0x2000); 
+    outw(0x604, 0x2000);  
+    outw(0x4004, 0x3400); 
+
+    printf("\nPoweroff complete. It is now safe to turn off your PC.\n");
     while (1) {
         __asm__ __volatile__("cli; hlt");
     }
 }
 
 void sys_restart(void) {
-    // 1. Send Reset command (0xFE) to PS/2 Keyboard Controller Port 0x64
+    vfs_save_to_disk(); // Auto-save triggered dynamically before reboot
+
     outb(0x64, 0xFE);
 
-    // 2. Fallback: Trigger standard CPU Triple Fault reset
     struct {
         uint16_t limit;
         uint32_t base;
     } __attribute__((packed)) idt = {0, 0};
     __asm__ __volatile__("lidt %0; int $3" : : "m"(idt));
 
-    // Fallback halt
     while (1) {
         __asm__ __volatile__("cli; hlt");
     }
@@ -461,7 +462,7 @@ void double_to_str(double val, char* buf) {
     llong_to_str(fpart_int, buf);
 }
 
-void sprintf(char* buf, const char* format, ...) {
+int sprintf(char* buf, const char* format, ...) {
     char* p_arg = (char*)&format + sizeof(format);
     const char* f = format;
     char* dest = buf;
@@ -499,6 +500,7 @@ void sprintf(char* buf, const char* format, ...) {
         }
     }
     *dest = '\0';
+    return dest - buf;
 }
 
 void printf(const char* format, ...) {
@@ -710,7 +712,7 @@ typedef enum {
     TOKEN_EQUAL, TOKEN_NOT_EQUAL, TOKEN_LBRACKET, TOKEN_RBRACKET, TOKEN_COMMA,
     TOKEN_COLON, TOKEN_EOF, TOKEN_SET, TOKEN_FILE, TOKEN_CREATE, TOKEN_READ,
     TOKEN_UPDATE, TOKEN_DELETE, TOKEN_RAW, TOKEN_COMPILE, TOKEN_RUN, 
-    TOKEN_CLEAR, TOKEN_SAVE, TOKEN_LOAD, TOKEN_SHUTDOWN, TOKEN_RESTART, TOKEN_NONE
+    TOKEN_SHUTDOWN, TOKEN_RESTART, TOKEN_NONE
 } TokenType;
 
 typedef struct {
@@ -760,7 +762,7 @@ typedef enum {
     NODE_ARRAY_SET, NODE_DICT_SET, NODE_FILE_CREATE, NODE_FILE_UPDATE, NODE_FILE_DELETE,
     NODE_RAW, NODE_COMPILE, NODE_BIN_EXPR, NODE_LITERAL, NODE_VAR_EXPR, NODE_GET,
     NODE_CALL, NODE_ARRAY_GET, NODE_ARRAY_LEN, NODE_DICT_GET, NODE_DICT_LEN, NODE_FILE_READ, 
-    NODE_RUN, NODE_CLEAR, NODE_SAVE, NODE_LOAD, NODE_SHUTDOWN, NODE_RESTART
+    NODE_RUN, NODE_SHUTDOWN, NODE_RESTART
 } NodeType;
 
 typedef struct DictPair {
@@ -952,9 +954,6 @@ TokenType get_keyword_type(const char* id) {
     if (!strcmp(id, "update")) return TOKEN_UPDATE;
     if (!strcmp(id, "delete")) return TOKEN_DELETE;
     if (!strcmp(id, "run")) return TOKEN_RUN;
-    if (!strcmp(id, "clear")) return TOKEN_CLEAR;
-    if (!strcmp(id, "save")) return TOKEN_SAVE;
-    if (!strcmp(id, "load")) return TOKEN_LOAD;
     if (!strcmp(id, "shutdown")) return TOKEN_SHUTDOWN;
     if (!strcmp(id, "restart")) return TOKEN_RESTART;
     return TOKEN_IDENTIFIER;
@@ -1072,7 +1071,7 @@ Token consume(TokenType type) {
     Token dummy = {TOKEN_EOF, NULL}; return dummy;
 }
 
-Token consume_type() {
+Token consume_type(void) {
     TokenType t = peek().type;
     if (t==TOKEN_BOOLEAN_TYPE || t==TOKEN_NUMBER_TYPE || t==TOKEN_DECIMAL_TYPE || t==TOKEN_STRING_TYPE)
         return consume(t);
@@ -1087,10 +1086,10 @@ bool is_expr_start(TokenType type) {
            type == TOKEN_ARRAY || type == TOKEN_DICTIONARY || type == TOKEN_FILE;
 }
 
-ASTNode* parse_expr();
-ASTNode* parse_stmt();
+ASTNode* parse_expr(void);
+ASTNode* parse_stmt(void);
 
-ASTNode* parse_primary() {
+ASTNode* parse_primary(void) {
     Token t = peek();
     ASTNode* n;
     if (t.type == TOKEN_NUMBER_VALUE) {
@@ -1156,7 +1155,7 @@ ASTNode* parse_primary() {
     return NULL;
 }
 
-ASTNode* parse_mult() {
+ASTNode* parse_mult(void) {
     ASTNode* left = parse_primary();
     while(peek().type == TOKEN_MULTIPLY || peek().type == TOKEN_DIVIDE || peek().type == TOKEN_MODULO) {
         Token op = consume(peek().type); ASTNode* bin = new_node(NODE_BIN_EXPR);
@@ -1165,7 +1164,7 @@ ASTNode* parse_mult() {
     return left;
 }
 
-ASTNode* parse_add() {
+ASTNode* parse_add(void) {
     ASTNode* left = parse_mult();
     while(peek().type == TOKEN_PLUS || peek().type == TOKEN_MINUS) {
         Token op = consume(peek().type); ASTNode* bin = new_node(NODE_BIN_EXPR);
@@ -1174,7 +1173,7 @@ ASTNode* parse_add() {
     return left;
 }
 
-ASTNode* parse_comparison() {
+ASTNode* parse_comparison(void) {
     ASTNode* left = parse_add();
     while(peek().type >= TOKEN_GREATER && peek().type <= TOKEN_NOT_EQUAL) {
         Token op = consume(peek().type); ASTNode* bin = new_node(NODE_BIN_EXPR);
@@ -1183,9 +1182,9 @@ ASTNode* parse_comparison() {
     return left;
 }
 
-ASTNode* parse_expr() { return parse_comparison(); }
+ASTNode* parse_expr(void) { return parse_comparison(); }
 
-ASTNode* parse_stmt() {
+ASTNode* parse_stmt(void) {
     Token t = peek();
     ASTNode* n;
     if (t.type == TOKEN_RAW) { n = new_node(NODE_RAW); n->c_code = my_strdup(consume(TOKEN_RAW).text); return n; }
@@ -1315,18 +1314,6 @@ ASTNode* parse_stmt() {
         n->left = parse_expr();
         return n;
     }
-    if (t.type == TOKEN_CLEAR) {
-        consume(TOKEN_CLEAR);
-        return new_node(NODE_CLEAR);
-    }
-    if (t.type == TOKEN_SAVE) {
-        consume(TOKEN_SAVE);
-        return new_node(NODE_SAVE);
-    }
-    if (t.type == TOKEN_LOAD) {
-        consume(TOKEN_LOAD);
-        return new_node(NODE_LOAD);
-    }
     if (t.type == TOKEN_SHUTDOWN) {
         consume(TOKEN_SHUTDOWN);
         return new_node(NODE_SHUTDOWN);
@@ -1338,7 +1325,7 @@ ASTNode* parse_stmt() {
     n = new_node(NODE_EXPR_STMT); n->left = parse_expr(); return n;
 }
 
-ASTNode* parse() {
+ASTNode* parse(void) {
     ASTNode* p = new_node(NODE_PROG); p->body = malloc(sizeof(ASTNode*)*1024); p->body_count = 0;
     while(peek().type != TOKEN_EOF) p->body[p->body_count++] = parse_stmt();
     return p;
@@ -1388,9 +1375,12 @@ Value eval_expr(ASTNode* expr, Env* env);
 void exec_stmt(ASTNode* stmt, Env* env);
 
 void exec_c_code(const char* code, bool build_exe) {
-    (void)code;
     (void)build_exe;
-    printf("[inpsos Bypass]: Dynamic C compilation (GCC execution) is unsupported in freestanding boot mode.\n");
+    if (strcmp(code, "terminal_clear();") == 0) {
+        terminal_clear();
+    } else {
+        printf("[inpsos Bypass]: Dynamic C compilation (GCC execution) is unsupported in freestanding boot mode.\n");
+    }
 }
 
 Value eval_expr(ASTNode* expr, Env* env) {
@@ -1528,8 +1518,6 @@ Value eval_expr(ASTNode* expr, Env* env) {
 }
 
 void run_easec(const char* code);
-void vfs_save_to_disk(void);
-void vfs_load_from_disk(void);
 
 void exec_stmt(ASTNode* stmt, Env* env) {
     if (!stmt) return;
@@ -1627,17 +1615,8 @@ void exec_stmt(ASTNode* stmt, Env* env) {
         if (code) {
             run_easec(code);
         } else {
-            printf("Runtime Error: Easec program '%s' not found.\n", fname);
+            printf("Runtime Error: easec program '%s' not found.\n", fname);
         }
-    }
-    else if (stmt->type == NODE_CLEAR) {
-        terminal_clear();
-    }
-    else if (stmt->type == NODE_SAVE) {
-        vfs_save_to_disk();
-    }
-    else if (stmt->type == NODE_LOAD) {
-        vfs_load_from_disk();
     }
     else if (stmt->type == NODE_SHUTDOWN) {
         sys_shutdown();
@@ -1825,6 +1804,17 @@ void parse_input_line(const char* input, char* cmd, char* arg1, char* arg2) {
 
 // ---------------------- KERNEL ENTRY POINT ----------------------
 
+#include "embedded_files.h"
+
+char* get_embedded_script(const char* name) {
+    for (int i = 0; embedded_files[i].name != NULL; i++) {
+        if (strcmp(embedded_files[i].name, name) == 0) {
+            return (char*)embedded_files[i].code;
+        }
+    }
+    return NULL;
+}
+
 void kernel_main(void) {
     terminal_clear();
     
@@ -1834,73 +1824,20 @@ void kernel_main(void) {
     
     // ---------------------- PRELOAD COMMAND SCRIPTS IN EASEC SYNTAX ----------------------
     
-    mock_file_create("list.easec", 
-        "say \"[Directory Listing]\"\n"
-        "var number len array length sys_files\n"
-        "var number i 0\n"
-        "repeat len [\n"
-        "    var string f array get sys_files, i\n"
-        "    say \"  - \" + f\n"
-        "    increment i 1\n"
-        "]\n"
-    );
+    // Extract filesystem structures out of header map and populate workspace memory
+    for (int i = 0; embedded_files[i].name != NULL; i++) {
+        char filename_buf[64];
+        sprintf(filename_buf, "%s.easec", embedded_files[i].name);
+        mock_file_create(filename_buf, embedded_files[i].code);
+    }
     
-    mock_file_create("create_file.easec",
-        "if arg1 == \"\" [\n"
-        "    say \"Usage: create_file <filename> \\\"<content>\\\"\"\n"
-        "] else [\n"
-        "    file create arg1 [ arg2 ]\n"
-        "    say \"File '\" + arg1 + \"' written successfully.\"\n"
-        "]\n"
-    );
-    
-    mock_file_create("delete_file.easec",
-        "if arg1 == \"\" [\n"
-        "    say \"Usage: delete_file <filename>\"\n"
-        "] else [\n"
-        "    file delete arg1\n"
-        "    say \"File '\" + arg1 + \"' removed from VFS.\"\n"
-        "]\n"
-    );
-    
-    mock_file_create("run.easec",
-        "if arg1 == \"\" [\n"
-        "    say \"Usage: run <filename.easec>\"\n"
-        "] else [\n"
-        "    run arg1\n"
-        "]\n"
-    );
-
-    // Easec implementations of clear, save, and load keywords
-    mock_file_create("clear.easec", "clear\n");
-    mock_file_create("save.easec", "save\n");
-    mock_file_create("load.easec", "load\n");
-
-    // Scripted shutdown.easec & restart.easec with persistent auto-saves on trigger
-    mock_file_create("shutdown.easec",
-        "say \"[System] Performing persistent VFS backup...\"\n"
-        "save\n"
-        "say \"[System] ACPI Poweroff triggered.\"\n"
-        "shutdown\n"
-    );
-
-    mock_file_create("restart.easec",
-        "say \"[System] Performing persistent VFS backup...\"\n"
-        "save\n"
-        "say \"[System] Sending keyboard controller reset interrupt...\"\n"
-        "restart\n"
-    );
-    
-    printf("[System] Core commands loaded successfully into Easec script layer.\n");
+    printf("[System] Core commands loaded successfully into easec script layer.\n");
 
     // ---------------------- AUTOMATIC BOOT AUTO-LOAD ----------------------
     printf("[System] Checking primary IDE/SATA channel status...\n");
     if (ata_present()) {
         printf("[System] Hardware Detected: Hard disk found.\n");
-        char* load_code = mock_file_read("load.easec");
-        if (load_code) {
-            run_easec(load_code);
-        }
+        vfs_load_from_disk();
     } else {
         printf("[System] Drive not detected. Defaulting to standard session.\n");
     }
@@ -1926,7 +1863,6 @@ void kernel_main(void) {
         
         parse_input_line(input_buf, cmd, arg1, arg2);
         
-        // Execute scripts directly out of the dynamic Easec VFS
         char cmd_file[128];
         sprintf(cmd_file, "%s.easec", cmd);
         

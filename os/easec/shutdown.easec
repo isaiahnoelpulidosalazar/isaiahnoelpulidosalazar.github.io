@@ -1,0 +1,2 @@
+say "[System] Shutting down..."
+shutdown

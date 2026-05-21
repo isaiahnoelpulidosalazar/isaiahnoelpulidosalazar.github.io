@@ -1,0 +1,8 @@
+say "[Directory Listing]"
+var number len array length sys_files
+var number i 0
+repeat len [
+    var string f array get sys_files, i
+    say "  - " + f
+    increment i 1
+]
