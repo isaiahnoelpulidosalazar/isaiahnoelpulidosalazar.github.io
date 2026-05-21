@@ -1,7 +1,7 @@
 CC = gcc
 AS = gcc
 
-CFLAGS = -m32 -ffreestanding -O2 -Wall -Wextra -fno-exceptions -fno-pie
+CFLAGS = -m32 -ffreestanding -O2 -Wall -Wextra -fno-exceptions -fno-pie -mno-sse -mno-sse2
 ASFLAGS = -m32
 LDFLAGS = -m32 -T linker.ld -ffreestanding -O2 -nostdlib -no-pie
 
@@ -19,11 +19,9 @@ inpsos.bin: $(OBJS)
 	$(CC) $(LDFLAGS) -o $@ $(OBJS)
 
 inpsos.iso: inpsos.bin
-	# Build the ISO directory structure
 	mkdir -p isodir/boot/grub
 	cp inpsos.bin isodir/boot/inpsos.bin
 	cp grub.cfg isodir/boot/grub/grub.cfg
-	# Generate the bootable ISO
 	grub-mkrescue -o inpsos.iso isodir
 
 clean:
