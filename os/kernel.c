@@ -585,11 +585,6 @@ const char kbd_us_shift_map[128] = {
 
 bool shift_active = false;
 
-char kbd_get_scancode(void) {
-    while ((inb(0x64) & 1) == 0); 
-    return inb(0x60);
-}
-
 char kbd_getchar(void) {
     while (1) {
         char code = kbd_get_scancode();
@@ -1284,11 +1279,7 @@ ASTNode* parse_stmt(void) {
             if (peek().type == TOKEN_COMMA) {
                 consume(TOKEN_COMMA);
             }
-            n->left = parse_expr();
-            if (peek().type == TOKEN_COMMA) {
-                consume(TOKEN_COMMA);
-            }
-            n->right = parse_expr(); return n;
+            n->left = parse_expr(); return n;
         }
         if (next_type == TOKEN_IDENTIFIER) {
             consume(TOKEN_DICTIONARY); n = new_node(NODE_DICT_DECL); n->name = my_strdup(consume(TOKEN_IDENTIFIER).text);
