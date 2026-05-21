@@ -585,6 +585,11 @@ const char kbd_us_shift_map[128] = {
 
 bool shift_active = false;
 
+char kbd_get_scancode(void) {
+    while ((inb(0x64) & 1) == 0); 
+    return inb(0x60);
+}
+
 char kbd_getchar(void) {
     while (1) {
         char code = kbd_get_scancode();
@@ -1065,18 +1070,46 @@ void tokenize(const char* code) {
     add_token(TOKEN_EOF, "");
 }
 
-// ---------------------- PARSER ----------------------
-
-Token peek(void);
-Token peek_next(void);
-
-Token consume(TokenType type);
-Token consume_type(void);
-
-bool is_expr_start(TokenType type);
-
+// Forward declarations for parsing
 ASTNode* parse_expr(void);
 ASTNode* parse_stmt(void);
+
+// ---------------------- TOKEN GETTERS & PARSERS ----------------------
+
+Token peek(void) { 
+    return tokens[current_token]; 
+}
+
+Token peek_next(void) { 
+    return current_token + 1 < token_count ? tokens[current_token+1] : tokens[token_count-1]; 
+}
+
+Token consume(TokenType type) {
+    if (peek().type == type) return tokens[current_token++];
+    printf("Parse Error: Expected %d but got %d at '%s'\n", type, peek().type, peek().text);
+    exit(1);
+    Token dummy = {TOKEN_EOF, NULL}; 
+    return dummy;
+}
+
+Token consume_type(void) {
+    TokenType t = peek().type;
+    if (t==TOKEN_BOOLEAN_TYPE || t==TOKEN_NUMBER_TYPE || t==TOKEN_DECIMAL_TYPE || t==TOKEN_STRING_TYPE)
+        return consume(t);
+    printf("Parse Error: Expected type but got %d\n", t); 
+    exit(1);
+    Token dummy = {TOKEN_EOF, NULL}; 
+    return dummy;
+}
+
+bool is_expr_start(TokenType type) {
+    return type == TOKEN_IDENTIFIER || type == TOKEN_NUMBER_VALUE ||
+           type == TOKEN_DECIMAL_VALUE || type == TOKEN_STRING_VALUE ||
+           type == TOKEN_GET || type == TOKEN_TRUE || type == TOKEN_FALSE ||
+           type == TOKEN_ARRAY || type == TOKEN_DICTIONARY || type == TOKEN_FILE;
+}
+
+// ---------------------- PARSER IMPLEMENTATIONS ----------------------
 
 ASTNode* parse_primary(void) {
     Token t = peek();
@@ -1791,8 +1824,7 @@ void parse_input_line(const char* input, char* cmd, char* arg1, char* arg2) {
     arg2[a2_idx] = '\0';
 }
 
-Token peek(void) { return tokens[current_token]; }
-Token peek_next(void) { return current_token + 1 < token_count ? tokens[current_token+1] : tokens[token_count-1]; }
+// ---------------------- KERNEL ENTRY POINT ----------------------
 
 #include "embedded_files.h"
 
