@@ -16,7 +16,7 @@ typedef _Bool bool;
 
 // ---------------------- FREESTANDING MEMORY ALLOCATOR ----------------------
 
-#define HEAP_SIZE (2 * 1024 * 1024) // 2 Megabyte heap pool
+#define HEAP_SIZE (2 * 1024 * 1024) 
 static uint8_t heap[HEAP_SIZE];
 static size_t heap_index = 0;
 
@@ -32,9 +32,9 @@ void* memcpy(void* dest, const void* src, size_t n) {
 }
 
 void* kmalloc(size_t size) {
-    size = (size + 3) & ~3; // 4-byte align
+    size = (size + 3) & ~3; 
     if (heap_index + sizeof(AllocHeader) + size > HEAP_SIZE) {
-        return NULL; // Out of memory
+        return NULL; 
     }
     AllocHeader* h = (AllocHeader*)&heap[heap_index];
     h->size = size;
@@ -45,7 +45,7 @@ void* kmalloc(size_t size) {
 void* krealloc(void* ptr, size_t new_size) {
     if (!ptr) return kmalloc(new_size);
     AllocHeader* h = (AllocHeader*)ptr - 1;
-    if (h->size >= new_size) return ptr; // Re-use block if big enough
+    if (h->size >= new_size) return ptr; 
     void* new_ptr = kmalloc(new_size);
     if (!new_ptr) return NULL;
     memcpy(new_ptr, ptr, h->size);
@@ -53,7 +53,7 @@ void* krealloc(void* ptr, size_t new_size) {
 }
 
 void kfree(void* ptr) {
-    (void)ptr; // Bump allocator has no-op free
+    (void)ptr; 
 }
 
 void* calloc(size_t num, size_t size) {
@@ -72,9 +72,85 @@ void* calloc(size_t num, size_t size) {
 #define realloc krealloc
 #define free kfree
 
+// ---------------------- HARDWARE INLINE ASSEMBLY IO PORT OPERATIONS ----------------------
+
+static inline uint8_t inb(uint16_t port) {
+    uint8_t ret;
+    __asm__ __volatile__("inb %1, %0" : "=a"(ret) : "Nd"(port));
+    return ret;
+}
+
+static inline void outb(uint16_t port, uint8_t val) {
+    __asm__ __volatile__("outb %0, %1" : : "a"(val), "Nd"(port));
+}
+
+static inline void outw(uint16_t port, uint16_t val) {
+    __asm__ __volatile__("outw %0, %1" : : "a"(val), "Nd"(port));
+}
+
+static inline uint16_t inw(uint16_t port) {
+    uint16_t ret;
+    __asm__ __volatile__("inw %1, %0" : "=a"(ret) : "Nd"(port));
+    return ret;
+}
+
+// ---------------------- PHYSICAL ATA PIO HARD DISK DRIVER ----------------------
+
+void printf(const char* format, ...);
+
+void ata_wait_bsy() {
+    while (inb(0x1F7) & 0x80); // Wait while BSY (bit 7) is active
+}
+
+void ata_wait_drq() {
+    while (!(inb(0x1F7) & 0x08)); // Wait until DRQ (bit 3) is active
+}
+
+bool ata_present() {
+    uint8_t status = inb(0x1F7);
+    if (status == 0xFF) return false; // Floating bus, no drive
+    return true;
+}
+
+void ata_read_sector(uint32_t lba, uint16_t* buffer) {
+    ata_wait_bsy();
+    outb(0x1F6, 0xE0 | ((lba >> 24) & 0x0F)); // Select drive (LBA mode, primary)
+    outb(0x1F2, 1);                           // Read 1 sector
+    outb(0x1F3, (uint8_t)lba);                // Send LBA bits
+    outb(0x1F4, (uint8_t)(lba >> 8));
+    outb(0x1F5, (uint8_t)(lba >> 16));
+    outb(0x1F7, 0x20);                        // Command 0x20: Read Sectors with retry
+
+    ata_wait_bsy();
+    ata_wait_drq();
+
+    for (int i = 0; i < 256; i++) {
+        buffer[i] = inw(0x1F0);               // Pull 256 words (512 bytes)
+    }
+}
+
+void ata_write_sector(uint32_t lba, uint16_t* buffer) {
+    ata_wait_bsy();
+    outb(0x1F6, 0xE0 | ((lba >> 24) & 0x0F));
+    outb(0x1F2, 1);                           // Write 1 sector
+    outb(0x1F3, (uint8_t)lba);
+    outb(0x1F4, (uint8_t)(lba >> 8));
+    outb(0x1F5, (uint8_t)(lba >> 16));
+    outb(0x1F7, 0x30);                        // Command 0x30: Write Sectors
+
+    ata_wait_bsy();
+    ata_wait_drq();
+
+    for (int i = 0; i < 256; i++) {
+        outw(0x1F0, buffer[i]);               // Push 256 words (512 bytes)
+    }
+    
+    outb(0x1F7, 0xE7);                        // Command 0xE7: Cache Flush
+    ata_wait_bsy();
+}
+
 // ---------------------- FREESTANDING 64-BIT MATH HELPERS ----------------------
 
-/* Custom software division and modulo helpers to satisfy compiler constraints in -m32 */
 unsigned long long __udivmoddi4(unsigned long long num, unsigned long long den, unsigned long long *rem) {
     unsigned long long quot = 0, qbit = 1;
     if (den == 0) {
@@ -99,9 +175,9 @@ unsigned long long __udivmoddi4(unsigned long long num, unsigned long long den, 
 
 long long __moddi3(long long a, long long b) {
     long long s_b = b >> 63;
-    b = (b ^ s_b) - s_b; // negate if b < 0
+    b = (b ^ s_b) - s_b; 
     long long s_a = a >> 63;
-    a = (a ^ s_a) - s_a; // negate if a < 0
+    a = (a ^ s_a) - s_a; 
     unsigned long long r;
     __udivmoddi4(a, b, &r);
     return ((long long)r ^ s_a) - s_a;
@@ -439,17 +515,6 @@ void exit(int status) {
 
 // ---------------------- HARDWARE KEYBOARD INPUT ----------------------
 
-static inline uint8_t inb(uint16_t port) {
-    uint8_t ret;
-    __asm__ __volatile__("inb %1, %0" : "=a"(ret) : "Nd"(port));
-    return ret;
-}
-
-char kbd_get_scancode(void) {
-    while ((inb(0x64) & 1) == 0); // Wait for key event
-    return inb(0x60);
-}
-
 const char kbd_us_map[128] = {
     0,  27, '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', '\b',
     '\t', 'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '[', ']', '\n',
@@ -513,62 +578,6 @@ void kbd_gets(char* buf, size_t max_len) {
         buf[idx++] = c;
     }
     buf[idx] = '\0';
-}
-
-// ---------------------- VIRTUAL RAM FILE SYSTEM ----------------------
-
-#define MAX_MOCK_FILES 8
-#define MAX_FILE_NAME 32
-#define MAX_FILE_CONTENT 1024
-
-typedef struct {
-    char name[MAX_FILE_NAME];
-    char content[MAX_FILE_CONTENT];
-    bool active;
-} MockFile;
-
-MockFile vfs[MAX_MOCK_FILES];
-
-void mock_file_create(const char* name, const char* content) {
-    for (int i=0; i<MAX_MOCK_FILES; i++) {
-        if (!vfs[i].active || strcmp(vfs[i].name, name) == 0) {
-            strncpy(vfs[i].name, name, MAX_FILE_NAME - 1);
-            strncpy(vfs[i].content, content, MAX_FILE_CONTENT - 1);
-            vfs[i].active = true;
-            return;
-        }
-    }
-    printf("VFS Error: Virtual disk storage full.\n");
-}
-
-void mock_file_update(const char* name, const char* content) {
-    for (int i=0; i<MAX_MOCK_FILES; i++) {
-        if (vfs[i].active && strcmp(vfs[i].name, name) == 0) {
-            size_t cur_len = strlen(vfs[i].content);
-            strncpy(vfs[i].content + cur_len, content, MAX_FILE_CONTENT - cur_len - 1);
-            return;
-        }
-    }
-    mock_file_create(name, content);
-}
-
-char* mock_file_read(const char* name) {
-    for (int i=0; i<MAX_MOCK_FILES; i++) {
-        if (vfs[i].active && strcmp(vfs[i].name, name) == 0) {
-            return vfs[i].content;
-        }
-    }
-    return NULL;
-}
-
-void mock_file_delete(const char* name) {
-    for (int i=0; i<MAX_MOCK_FILES; i++) {
-        if (vfs[i].active && strcmp(vfs[i].name, name) == 0) {
-            vfs[i].active = false;
-            return;
-        }
-    }
-    printf("VFS Error: Mock file '%s' not found.\n", name);
 }
 
 // ---------------------- ENUMS & TYPES ----------------------
@@ -1459,6 +1468,54 @@ void exec_stmt(ASTNode* stmt, Env* env) {
     else if (stmt->type == NODE_EXPR_STMT) eval_expr(stmt->left, env);
 }
 
+// ---------------------- HARD DISK VFS PERSISTENCE ----------------------
+
+void vfs_save_to_disk() {
+    if (!ata_present()) {
+        printf("[VFS] Save Failed: No physical ATA hard disk detected on Primary Master.\n");
+        return;
+    }
+    printf("[VFS] Committing RAM storage state to raw sectors on physical hard drive...\n");
+    
+    uint16_t* buffer = (uint16_t*)vfs;
+    size_t total_words = (sizeof(vfs) + 1) / 2;
+    size_t total_sectors = (sizeof(vfs) + 511) / 512;
+    
+    /* We write persistent data starting at LBA 100 to avoid conflicting with bootloaders */
+    for (size_t s = 0; s < total_sectors; s++) {
+        uint16_t sector_buffer[256];
+        for (int w = 0; w < 256; w++) {
+            size_t idx = s * 256 + w;
+            sector_buffer[w] = (idx < total_words) ? buffer[idx] : 0;
+        }
+        ata_write_sector(100 + s, sector_buffer);
+    }
+    printf("[VFS] Commit complete. Virtual files written safely to disk sectors 100-%d.\n", 100 + total_sectors - 1);
+}
+
+void vfs_load_from_disk() {
+    if (!ata_present()) {
+        printf("[VFS] Load Failed: No physical ATA hard disk detected on Primary Master.\n");
+        return;
+    }
+    printf("[VFS] Restoring storage state from sectors on physical hard drive...\n");
+    
+    uint16_t* buffer = (uint16_t*)vfs;
+    size_t total_sectors = (sizeof(vfs) + 511) / 512;
+    
+    for (size_t s = 0; s < total_sectors; s++) {
+        uint16_t sector_buffer[256];
+        ata_read_sector(100 + s, sector_buffer);
+        for (int w = 0; w < 256; w++) {
+            size_t idx = s * 256 + w;
+            if (idx < (sizeof(vfs) / 2)) {
+                buffer[idx] = sector_buffer[w];
+            }
+        }
+    }
+    printf("[VFS] Restore complete. State recovered from drive storage.\n");
+}
+
 // ---------------------- RUNTIME EXECUTION GATEWAY ----------------------
 
 void run_easec(const char* code) {
@@ -1486,6 +1543,14 @@ void kernel_main(void) {
     printf("                        WELCOME TO inpsos!                          \n");
     printf("====================================================================\n\n");
     
+    printf("[System] Checking primary IDE/SATA channel status...\n");
+    if (ata_present()) {
+        printf("[System] Hardware Detected: Physical hard disk present.\n");
+        printf("         Use commands 'save' and 'load' to persist files on bare metal.\n\n");
+    } else {
+        printf("[System] Hardware Bypass: Running in virtualized RAM-only storage mode.\n\n");
+    }
+    
     printf("[System] Executing boot script...\n\n");
     
     const char* boot_script = 
@@ -1505,7 +1570,8 @@ void kernel_main(void) {
     
     printf("\n[System] Initial boot sequence complete.\n");
     printf("Entering interactive shell. Type statements below:\n");
-    printf("Type 'clear' to clear, 'demo' to rerun the startup routine.\n\n");
+    printf("Commands: 'clear' to clear, 'demo' to run demo script.\n");
+    printf("          'save' to commit VFS files to drive, 'load' to read from drive.\n\n");
     
     char input_buf[256];
     while (1) {
@@ -1526,6 +1592,14 @@ void kernel_main(void) {
         }
         if (!strcmp(input_buf, "demo")) {
             run_easec(boot_script);
+            continue;
+        }
+        if (!strcmp(input_buf, "save")) {
+            vfs_save_to_disk();
+            continue;
+        }
+        if (!strcmp(input_buf, "load")) {
+            vfs_load_from_disk();
             continue;
         }
         
