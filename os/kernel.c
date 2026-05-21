@@ -119,7 +119,7 @@ void ata_read_sector(uint32_t lba, uint16_t* buffer) {
     outb(0x1F3, (uint8_t)lba);                // Send LBA bits
     outb(0x1F4, (uint8_t)(lba >> 8));
     outb(0x1F5, (uint8_t)(lba >> 16));
-    outb(0x1F7, 0x20);                        // Command 0x20: Read Sectors with retry
+    outb(0x1F7, 0x20);                        // Command 0x20: Read Sectors
 
     ata_wait_bsy();
     ata_wait_drq();
@@ -149,6 +149,38 @@ void ata_write_sector(uint32_t lba, uint16_t* buffer) {
     ata_wait_bsy();
 }
 
+// ---------------------- HARDWARE SHUTDOWN & RESTART ACTIONS ----------------------
+
+void sys_shutdown(void) {
+    // Attempt standard QEMU/VirtualBox emulator poweroff ports
+    outw(0xB004, 0x2000); // Older QEMU / Bochs
+    outw(0x604, 0x2000);  // Newer QEMU
+    outw(0x4004, 0x3400); // VirtualBox ACPI
+
+    // Fallback if hardware ACPI system is absent
+    printf("\nPoweroff completed. It is safe to turn off your PC.\n");
+    while (1) {
+        __asm__ __volatile__("cli; hlt");
+    }
+}
+
+void sys_restart(void) {
+    // 1. Send Reset command (0xFE) to PS/2 Keyboard Controller Port 0x64
+    outb(0x64, 0xFE);
+
+    // 2. Fallback: Trigger standard CPU Triple Fault reset
+    struct {
+        uint16_t limit;
+        uint32_t base;
+    } __attribute__((packed)) idt = {0, 0};
+    __asm__ __volatile__("lidt %0; int $3" : : "m"(idt));
+
+    // Fallback halt
+    while (1) {
+        __asm__ __volatile__("cli; hlt");
+    }
+}
+
 // ---------------------- FREESTANDING 64-BIT MATH HELPERS ----------------------
 
 unsigned long long __udivmoddi4(unsigned long long num, unsigned long long den, unsigned long long *rem) {
@@ -171,6 +203,17 @@ unsigned long long __udivmoddi4(unsigned long long num, unsigned long long den, 
     }
     if (rem) *rem = num;
     return quot;
+}
+
+unsigned long long __udivdi3(unsigned long long a, unsigned long long b) {
+    unsigned long long r;
+    return __udivmoddi4(a, b, &r);
+}
+
+unsigned long long __umoddi3(unsigned long long a, unsigned long long b) {
+    unsigned long long r;
+    __udivmoddi4(a, b, &r);
+    return r;
 }
 
 long long __moddi3(long long a, long long b) {
@@ -546,7 +589,7 @@ char kbd_getchar(void) {
             shift_active = false;
             continue;
         }
-        if (code & 0x80) continue; // Ignore other releases
+        if (code & 0x80) continue; 
         
         char ascii = shift_active ? kbd_us_shift_map[(int)code] : kbd_us_map[(int)code];
         if (ascii != 0) return ascii;
@@ -580,6 +623,81 @@ void kbd_gets(char* buf, size_t max_len) {
     buf[idx] = '\0';
 }
 
+// ---------------------- VIRTUAL RAM FILE SYSTEM ----------------------
+
+#define MAX_MOCK_FILES 16
+#define MAX_FILE_NAME 32
+#define MAX_FILE_CONTENT 2048
+#define VFS_SIGNATURE "INPSOS_VFS_V01"
+
+typedef struct {
+    char name[MAX_FILE_NAME];
+    char content[MAX_FILE_CONTENT];
+    bool active;
+} MockFile;
+
+typedef struct {
+    char signature[16];
+    MockFile files[MAX_MOCK_FILES];
+} VfsStorage;
+
+static VfsStorage vfs_data;
+#define vfs vfs_data.files
+
+void mock_file_create(const char* name, const char* content) {
+    for (int i = 0; i < MAX_MOCK_FILES; i++) {
+        if (vfs[i].active && strcmp(vfs[i].name, name) == 0) {
+            strncpy(vfs[i].content, content, MAX_FILE_CONTENT - 1);
+            vfs[i].content[MAX_FILE_CONTENT - 1] = '\0';
+            return;
+        }
+    }
+    for (int i = 0; i < MAX_MOCK_FILES; i++) {
+        if (!vfs[i].active) {
+            strncpy(vfs[i].name, name, MAX_FILE_NAME - 1);
+            vfs[i].name[MAX_FILE_NAME - 1] = '\0';
+            strncpy(vfs[i].content, content, MAX_FILE_CONTENT - 1);
+            vfs[i].content[MAX_FILE_CONTENT - 1] = '\0';
+            vfs[i].active = true;
+            return;
+        }
+    }
+    printf("VFS Error: Virtual disk storage full.\n");
+}
+
+void mock_file_update(const char* name, const char* content) {
+    for (int i = 0; i < MAX_MOCK_FILES; i++) {
+        if (vfs[i].active && strcmp(vfs[i].name, name) == 0) {
+            size_t cur_len = strlen(vfs[i].content);
+            if (cur_len < MAX_FILE_CONTENT - 1) {
+                strncpy(vfs[i].content + cur_len, content, MAX_FILE_CONTENT - cur_len - 1);
+                vfs[i].content[MAX_FILE_CONTENT - 1] = '\0';
+            }
+            return;
+        }
+    }
+    mock_file_create(name, content);
+}
+
+char* mock_file_read(const char* name) {
+    for (int i = 0; i < MAX_MOCK_FILES; i++) {
+        if (vfs[i].active && strcmp(vfs[i].name, name) == 0) {
+            return vfs[i].content;
+        }
+    }
+    return NULL;
+}
+
+void mock_file_delete(const char* name) {
+    for (int i = 0; i < MAX_MOCK_FILES; i++) {
+        if (vfs[i].active && strcmp(vfs[i].name, name) == 0) {
+            vfs[i].active = false;
+            return;
+        }
+    }
+    printf("VFS Error: Mock file '%s' not found.\n", name);
+}
+
 // ---------------------- ENUMS & TYPES ----------------------
 
 typedef enum {
@@ -591,7 +709,8 @@ typedef enum {
     TOKEN_MODULO, TOKEN_GREATER, TOKEN_LESS, TOKEN_GREATER_EQUAL, TOKEN_LESS_EQUAL,
     TOKEN_EQUAL, TOKEN_NOT_EQUAL, TOKEN_LBRACKET, TOKEN_RBRACKET, TOKEN_COMMA,
     TOKEN_COLON, TOKEN_EOF, TOKEN_SET, TOKEN_FILE, TOKEN_CREATE, TOKEN_READ,
-    TOKEN_UPDATE, TOKEN_DELETE, TOKEN_RAW, TOKEN_COMPILE, TOKEN_NONE
+    TOKEN_UPDATE, TOKEN_DELETE, TOKEN_RAW, TOKEN_COMPILE, TOKEN_RUN, 
+    TOKEN_CLEAR, TOKEN_SAVE, TOKEN_LOAD, TOKEN_SHUTDOWN, TOKEN_RESTART, TOKEN_NONE
 } TokenType;
 
 typedef struct {
@@ -640,7 +759,8 @@ typedef enum {
     NODE_INCDEC, NODE_REPEAT, NODE_IF, NODE_ARRAY_DECL, NODE_DICT_DECL,
     NODE_ARRAY_SET, NODE_DICT_SET, NODE_FILE_CREATE, NODE_FILE_UPDATE, NODE_FILE_DELETE,
     NODE_RAW, NODE_COMPILE, NODE_BIN_EXPR, NODE_LITERAL, NODE_VAR_EXPR, NODE_GET,
-    NODE_CALL, NODE_ARRAY_GET, NODE_ARRAY_LEN, NODE_DICT_GET, NODE_DICT_LEN, NODE_FILE_READ
+    NODE_CALL, NODE_ARRAY_GET, NODE_ARRAY_LEN, NODE_DICT_GET, NODE_DICT_LEN, NODE_FILE_READ, 
+    NODE_RUN, NODE_CLEAR, NODE_SAVE, NODE_LOAD, NODE_SHUTDOWN, NODE_RESTART
 } NodeType;
 
 typedef struct DictPair {
@@ -831,6 +951,12 @@ TokenType get_keyword_type(const char* id) {
     if (!strcmp(id, "read")) return TOKEN_READ;
     if (!strcmp(id, "update")) return TOKEN_UPDATE;
     if (!strcmp(id, "delete")) return TOKEN_DELETE;
+    if (!strcmp(id, "run")) return TOKEN_RUN;
+    if (!strcmp(id, "clear")) return TOKEN_CLEAR;
+    if (!strcmp(id, "save")) return TOKEN_SAVE;
+    if (!strcmp(id, "load")) return TOKEN_LOAD;
+    if (!strcmp(id, "shutdown")) return TOKEN_SHUTDOWN;
+    if (!strcmp(id, "restart")) return TOKEN_RESTART;
     return TOKEN_IDENTIFIER;
 }
 
@@ -1183,6 +1309,32 @@ ASTNode* parse_stmt() {
         while(peek().type != TOKEN_RBRACKET && peek().type != TOKEN_EOF) n->body[n->body_count++] = parse_stmt();
         consume(TOKEN_RBRACKET); return n;
     }
+    if (t.type == TOKEN_RUN) {
+        consume(TOKEN_RUN);
+        n = new_node(NODE_RUN);
+        n->left = parse_expr();
+        return n;
+    }
+    if (t.type == TOKEN_CLEAR) {
+        consume(TOKEN_CLEAR);
+        return new_node(NODE_CLEAR);
+    }
+    if (t.type == TOKEN_SAVE) {
+        consume(TOKEN_SAVE);
+        return new_node(NODE_SAVE);
+    }
+    if (t.type == TOKEN_LOAD) {
+        consume(TOKEN_LOAD);
+        return new_node(NODE_LOAD);
+    }
+    if (t.type == TOKEN_SHUTDOWN) {
+        consume(TOKEN_SHUTDOWN);
+        return new_node(NODE_SHUTDOWN);
+    }
+    if (t.type == TOKEN_RESTART) {
+        consume(TOKEN_RESTART);
+        return new_node(NODE_RESTART);
+    }
     n = new_node(NODE_EXPR_STMT); n->left = parse_expr(); return n;
 }
 
@@ -1375,6 +1527,10 @@ Value eval_expr(ASTNode* expr, Env* env) {
     return val_null();
 }
 
+void run_easec(const char* code);
+void vfs_save_to_disk(void);
+void vfs_load_from_disk(void);
+
 void exec_stmt(ASTNode* stmt, Env* env) {
     if (!stmt) return;
     if (stmt->type == NODE_RAW) exec_c_code(stmt->c_code, false);
@@ -1465,23 +1621,52 @@ void exec_stmt(ASTNode* stmt, Env* env) {
         mock_file_delete(fname);
     }
     else if (stmt->type == NODE_JOB) env_define(env, stmt->name, val_job(stmt));
+    else if (stmt->type == NODE_RUN) {
+        char* fname = value_to_string(eval_expr(stmt->left, env));
+        char* code = mock_file_read(fname);
+        if (code) {
+            run_easec(code);
+        } else {
+            printf("Runtime Error: Easec program '%s' not found.\n", fname);
+        }
+    }
+    else if (stmt->type == NODE_CLEAR) {
+        terminal_clear();
+    }
+    else if (stmt->type == NODE_SAVE) {
+        vfs_save_to_disk();
+    }
+    else if (stmt->type == NODE_LOAD) {
+        vfs_load_from_disk();
+    }
+    else if (stmt->type == NODE_SHUTDOWN) {
+        sys_shutdown();
+    }
+    else if (stmt->type == NODE_RESTART) {
+        sys_restart();
+    }
     else if (stmt->type == NODE_EXPR_STMT) eval_expr(stmt->left, env);
 }
 
 // ---------------------- HARD DISK VFS PERSISTENCE ----------------------
 
-void vfs_save_to_disk() {
+void vfs_save_to_disk(void) {
     if (!ata_present()) {
         printf("[VFS] Save Failed: No physical ATA hard disk detected on Primary Master.\n");
         return;
     }
     printf("[VFS] Committing RAM storage state to raw sectors on physical hard drive...\n");
     
-    uint16_t* buffer = (uint16_t*)vfs;
-    size_t total_words = (sizeof(vfs) + 1) / 2;
-    size_t total_sectors = (sizeof(vfs) + 511) / 512;
+    // Set validation signature prior to serializing VFS blocks
+    for (int i = 0; i < 15; i++) {
+        vfs_data.signature[i] = VFS_SIGNATURE[i];
+    }
+    vfs_data.signature[15] = '\0';
     
-    /* We write persistent data starting at LBA 100 to avoid conflicting with bootloaders */
+    uint16_t* buffer = (uint16_t*)&vfs_data;
+    size_t total_words = (sizeof(vfs_data) + 1) / 2;
+    size_t total_sectors = (sizeof(vfs_data) + 511) / 512;
+    
     for (size_t s = 0; s < total_sectors; s++) {
         uint16_t sector_buffer[256];
         for (int w = 0; w < 256; w++) {
@@ -1493,32 +1678,51 @@ void vfs_save_to_disk() {
     printf("[VFS] Commit complete. Virtual files written safely to disk sectors 100-%d.\n", 100 + total_sectors - 1);
 }
 
-void vfs_load_from_disk() {
+void vfs_load_from_disk(void) {
     if (!ata_present()) {
         printf("[VFS] Load Failed: No physical ATA hard disk detected on Primary Master.\n");
         return;
     }
-    printf("[VFS] Restoring storage state from sectors on physical hard drive...\n");
     
-    uint16_t* buffer = (uint16_t*)vfs;
-    size_t total_sectors = (sizeof(vfs) + 511) / 512;
+    // Safety check: verify persistent signature inside the initial storage block
+    uint16_t validation_sector[256];
+    ata_read_sector(100, validation_sector);
+    char* drive_signature = (char*)validation_sector;
+    
+    bool signature_match = true;
+    for (int i = 0; i < 14; i++) {
+        if (drive_signature[i] != VFS_SIGNATURE[i]) {
+            signature_match = false;
+            break;
+        }
+    }
+    
+    if (!signature_match) {
+        printf("[VFS] Storage Bypass: Drive is blank or uninitialized. Keeping system default files.\n");
+        return;
+    }
+    
+    printf("[VFS] Restoring storage state from physical sectors on hard drive...\n");
+    
+    uint16_t* buffer = (uint16_t*)&vfs_data;
+    size_t total_sectors = (sizeof(vfs_data) + 511) / 512;
     
     for (size_t s = 0; s < total_sectors; s++) {
         uint16_t sector_buffer[256];
         ata_read_sector(100 + s, sector_buffer);
         for (int w = 0; w < 256; w++) {
             size_t idx = s * 256 + w;
-            if (idx < (sizeof(vfs) / 2)) {
+            if (idx < (sizeof(vfs_data) / 2)) {
                 buffer[idx] = sector_buffer[w];
             }
         }
     }
-    printf("[VFS] Restore complete. State recovered from drive storage.\n");
+    printf("[VFS] Restore complete. State recovered from disk.\n");
 }
 
 // ---------------------- RUNTIME EXECUTION GATEWAY ----------------------
 
-void run_easec(const char* code) {
+void run_easec_with_args(const char* code, const char* arg1, const char* arg2) {
     tokens = NULL;
     token_count = 0;
     token_cap = 0;
@@ -1529,9 +1733,94 @@ void run_easec(const char* code) {
     tokenize(code);
     ASTNode* ast = parse();
     Env* global_env = new_env(NULL);
+    
+    if (arg1) {
+        env_define(global_env, "arg1", val_string(arg1));
+    } else {
+        env_define(global_env, "arg1", val_string(""));
+    }
+    if (arg2) {
+        env_define(global_env, "arg2", val_string(arg2));
+    } else {
+        env_define(global_env, "arg2", val_string(""));
+    }
+    
+    ValueList* list = new_list();
+    for (int i = 0; i < MAX_MOCK_FILES; i++) {
+        if (vfs[i].active) {
+            list_add(list, val_string(vfs[i].name));
+        }
+    }
+    Value v;
+    v.type = VAL_ARRAY;
+    v.as.arr = list;
+    env_define(global_env, "sys_files", v);
+    
     for(int i=0; i<ast->body_count; i++) {
         exec_stmt(ast->body[i], global_env);
     }
+}
+
+void run_easec(const char* code) {
+    run_easec_with_args(code, NULL, NULL);
+}
+
+// ---------------------- COMMAND LINE STRING PARSER ----------------------
+
+void parse_input_line(const char* input, char* cmd, char* arg1, char* arg2) {
+    cmd[0] = '\0';
+    arg1[0] = '\0';
+    arg2[0] = '\0';
+    
+    size_t len = strlen(input);
+    size_t i = 0;
+    
+    while (i < len && isspace(input[i])) i++;
+    if (i >= len) return;
+    
+    size_t c_idx = 0;
+    while (i < len && !isspace(input[i])) {
+        cmd[c_idx++] = input[i++];
+    }
+    cmd[c_idx] = '\0';
+    
+    while (i < len && isspace(input[i])) i++;
+    if (i >= len) return;
+    
+    size_t a1_idx = 0;
+    if (input[i] == '"') {
+        i++; 
+        while (i < len && input[i] != '"') {
+            arg1[a1_idx++] = input[i++];
+        }
+        if (i < len) i++; 
+    } else {
+        while (i < len && !isspace(input[i])) {
+            arg1[a1_idx++] = input[i++];
+        }
+    }
+    arg1[a1_idx] = '\0';
+    
+    while (i < len && isspace(input[i])) i++;
+    if (i >= len) return;
+    
+    size_t a2_idx = 0;
+    if (input[i] == '"') {
+        i++; 
+        while (i < len && input[i] != '"') {
+            if (input[i] == '\\' && i + 1 < len && input[i+1] == '"') {
+                arg2[a2_idx++] = '"';
+                i += 2;
+            } else {
+                arg2[a2_idx++] = input[i++];
+            }
+        }
+    } else {
+        while (i < len) {
+            arg2[a2_idx++] = input[i++];
+        }
+    }
+    arg2[a2_idx] = '\0';
 }
 
 // ---------------------- KERNEL ENTRY POINT ----------------------
@@ -1543,37 +1832,86 @@ void kernel_main(void) {
     printf("                        WELCOME TO inpsos!                          \n");
     printf("====================================================================\n\n");
     
-    printf("[System] Checking primary IDE/SATA channel status...\n");
-    if (ata_present()) {
-        printf("[System] Hardware Detected: Physical hard disk present.\n");
-        printf("         Use commands 'save' and 'load' to persist files on bare metal.\n\n");
-    } else {
-        printf("[System] Hardware Bypass: Running in virtualized RAM-only storage mode.\n\n");
-    }
+    // ---------------------- PRELOAD COMMAND SCRIPTS IN EASEC SYNTAX ----------------------
     
-    printf("[System] Executing boot script...\n\n");
-    
-    const char* boot_script = 
-        "var string os \"inpsos Core\"\n"
-        "say \"[OS] Activating runtime subsystem: \" + os\n"
-        "var number i 1\n"
-        "repeat 3 [\n"
-        "    say \"[OS] Loop Cycle: \" + i\n"
+    mock_file_create("list.easec", 
+        "say \"[Directory Listing]\"\n"
+        "var number len array length sys_files\n"
+        "var number i 0\n"
+        "repeat len [\n"
+        "    var string f array get sys_files, i\n"
+        "    say \"  - \" + f\n"
         "    increment i 1\n"
         "]\n"
-        "job system_greet message [\n"
-        "    say \"[OS] \" + message + \"! Language engine is running!\"\n"
-        "]\n"
-        "system_greet \"Done\"\n";
-        
-    run_easec(boot_script);
+    );
     
-    printf("\n[System] Initial boot sequence complete.\n");
-    printf("Entering interactive shell. Type statements below:\n");
-    printf("Commands: 'clear' to clear, 'demo' to run demo script.\n");
-    printf("          'save' to commit VFS files to drive, 'load' to read from drive.\n\n");
+    mock_file_create("create_file.easec",
+        "if arg1 == \"\" [\n"
+        "    say \"Usage: create_file <filename> \\\"<content>\\\"\"\n"
+        "] else [\n"
+        "    file create arg1 [ arg2 ]\n"
+        "    say \"File '\" + arg1 + \"' written successfully.\"\n"
+        "]\n"
+    );
+    
+    mock_file_create("delete_file.easec",
+        "if arg1 == \"\" [\n"
+        "    say \"Usage: delete_file <filename>\"\n"
+        "] else [\n"
+        "    file delete arg1\n"
+        "    say \"File '\" + arg1 + \"' removed from VFS.\"\n"
+        "]\n"
+    );
+    
+    mock_file_create("run.easec",
+        "if arg1 == \"\" [\n"
+        "    say \"Usage: run <filename.easec>\"\n"
+        "] else [\n"
+        "    run arg1\n"
+        "]\n"
+    );
+
+    // Easec implementations of clear, save, and load keywords
+    mock_file_create("clear.easec", "clear\n");
+    mock_file_create("save.easec", "save\n");
+    mock_file_create("load.easec", "load\n");
+
+    // Scripted shutdown.easec & restart.easec with persistent auto-saves on trigger
+    mock_file_create("shutdown.easec",
+        "say \"[System] Performing persistent VFS backup...\"\n"
+        "save\n"
+        "say \"[System] ACPI Poweroff triggered.\"\n"
+        "shutdown\n"
+    );
+
+    mock_file_create("restart.easec",
+        "say \"[System] Performing persistent VFS backup...\"\n"
+        "save\n"
+        "say \"[System] Sending keyboard controller reset interrupt...\"\n"
+        "restart\n"
+    );
+    
+    printf("[System] Core commands loaded successfully into Easec script layer.\n");
+
+    // ---------------------- AUTOMATIC BOOT AUTO-LOAD ----------------------
+    printf("[System] Checking primary IDE/SATA channel status...\n");
+    if (ata_present()) {
+        printf("[System] Hardware Detected: Hard disk found.\n");
+        char* load_code = mock_file_read("load.easec");
+        if (load_code) {
+            run_easec(load_code);
+        }
+    } else {
+        printf("[System] Drive not detected. Defaulting to standard session.\n");
+    }
+
+    printf("[System] Loading interactive shell subsystem...\n\n");
     
     char input_buf[256];
+    char cmd[64];
+    char arg1[128];
+    char arg2[1024];
+    
     while (1) {
         printf("inpsos> ");
         kbd_gets(input_buf, 256);
@@ -1586,25 +1924,23 @@ void kernel_main(void) {
         
         if (strlen(input_buf) == 0) continue;
         
-        if (!strcmp(input_buf, "clear")) {
-            terminal_clear();
-            continue;
-        }
-        if (!strcmp(input_buf, "demo")) {
-            run_easec(boot_script);
-            continue;
-        }
-        if (!strcmp(input_buf, "save")) {
-            vfs_save_to_disk();
-            continue;
-        }
-        if (!strcmp(input_buf, "load")) {
-            vfs_load_from_disk();
-            continue;
-        }
+        parse_input_line(input_buf, cmd, arg1, arg2);
         
-        printf("[Result]:\n");
-        run_easec(input_buf);
+        // Execute scripts directly out of the dynamic Easec VFS
+        char cmd_file[128];
+        sprintf(cmd_file, "%s.easec", cmd);
+        
+        char* script_code = mock_file_read(cmd_file);
+        if (script_code) {
+            run_easec_with_args(script_code, arg1, arg2);
+        } else {
+            char* direct_code = mock_file_read(cmd);
+            if (direct_code) {
+                run_easec_with_args(direct_code, arg1, arg2);
+            } else {
+                printf("Error: Command or script '%s' not found.\n", cmd);
+            }
+        }
         printf("\n");
     }
 }
