@@ -56,9 +56,67 @@ void kfree(void* ptr) {
     (void)ptr; // Bump allocator has no-op free
 }
 
+void* calloc(size_t num, size_t size) {
+    size_t total = num * size;
+    void* ptr = kmalloc(total);
+    if (ptr) {
+        char* p = (char*)ptr;
+        for (size_t i = 0; i < total; i++) {
+            p[i] = 0;
+        }
+    }
+    return ptr;
+}
+
 #define malloc kmalloc
 #define realloc krealloc
 #define free kfree
+
+// ---------------------- FREESTANDING 64-BIT MATH HELPERS ----------------------
+
+/* Custom software division and modulo helpers to satisfy compiler constraints in -m32 */
+unsigned long long __udivmoddi4(unsigned long long num, unsigned long long den, unsigned long long *rem) {
+    unsigned long long quot = 0, qbit = 1;
+    if (den == 0) {
+        if (rem) *rem = 0;
+        return 0;
+    }
+    while ((den << 1) > den && (den << 1) < num) {
+        den <<= 1;
+        qbit <<= 1;
+    }
+    while (qbit > 0) {
+        if (num >= den) {
+            num -= den;
+            quot |= qbit;
+        }
+        den >>= 1;
+        qbit >>= 1;
+    }
+    if (rem) *rem = num;
+    return quot;
+}
+
+long long __moddi3(long long a, long long b) {
+    long long s_b = b >> 63;
+    b = (b ^ s_b) - s_b; // negate if b < 0
+    long long s_a = a >> 63;
+    a = (a ^ s_a) - s_a; // negate if a < 0
+    unsigned long long r;
+    __udivmoddi4(a, b, &r);
+    return ((long long)r ^ s_a) - s_a;
+}
+
+long long __divdi3(long long a, long long b) {
+    long long s_b = b >> 63;
+    b = (b ^ s_b) - s_b;
+    long long s_a = a >> 63;
+    a = (a ^ s_a) - s_a;
+    unsigned long long r;
+    unsigned long long q = __udivmoddi4(a, b, &r);
+    long long s_q = s_a ^ s_b;
+    return ((long long)q ^ s_q) - s_q;
+}
 
 // ---------------------- STRING LIBRARY HELPERS ----------------------
 
@@ -70,6 +128,13 @@ size_t strlen(const char* s) {
 
 char* strcpy(char* dest, const char* src) {
     char* d = dest;
+    while ((*d++ = *src++));
+    return dest;
+}
+
+char* strcat(char* dest, const char* src) {
+    char* d = dest;
+    while (*d) d++;
     while ((*d++ = *src++));
     return dest;
 }
@@ -618,13 +683,13 @@ bool is_break = false, is_return = false;
 Value return_value;
 
 char* my_strdup(const char* s) {
-    char* d = malloc(strlen(s) + 1);
+    char* d = kmalloc(strlen(s) + 1);
     if(d) strcpy(d, s);
     return d;
 }
 
 char* my_strndup(const char* s, size_t n) {
-    char* d = malloc(n + 1);
+    char* d = kmalloc(n + 1);
     if(d) { strncpy(d, s, n); d[n] = '\0'; }
     return d;
 }
@@ -733,18 +798,30 @@ void add_token(TokenType type, const char* text) {
 }
 
 TokenType get_keyword_type(const char* id) {
-    if (!strcmp(id, "var")) return TOKEN_VAR; if (!strcmp(id, "say")) return TOKEN_SAY;
-    if (!strcmp(id, "get")) return TOKEN_GET; if (!strcmp(id, "out")) return TOKEN_OUT;
-    if (!strcmp(id, "job")) return TOKEN_JOB; if (!strcmp(id, "if")) return TOKEN_IF;
-    if (!strcmp(id, "else")) return TOKEN_ELSE; if (!strcmp(id, "repeat")) return TOKEN_REPEAT;
-    if (!strcmp(id, "increment")) return TOKEN_INCREMENT; if (!strcmp(id, "decrement")) return TOKEN_DECREMENT;
-    if (!strcmp(id, "array")) return TOKEN_ARRAY; if (!strcmp(id, "dictionary")) return TOKEN_DICTIONARY;
-    if (!strcmp(id, "boolean")) return TOKEN_BOOLEAN_TYPE; if (!strcmp(id, "number")) return TOKEN_NUMBER_TYPE;
-    if (!strcmp(id, "decimal")) return TOKEN_DECIMAL_TYPE; if (!strcmp(id, "string")) return TOKEN_STRING_TYPE;
-    if (!strcmp(id, "true")) return TOKEN_TRUE; if (!strcmp(id, "false")) return TOKEN_FALSE;
-    if (!strcmp(id, "set")) return TOKEN_SET; if (!strcmp(id, "file")) return TOKEN_FILE;
-    if (!strcmp(id, "create")) return TOKEN_CREATE; if (!strcmp(id, "read")) return TOKEN_READ;
-    if (!strcmp(id, "update")) return TOKEN_UPDATE; if (!strcmp(id, "delete")) return TOKEN_DELETE;
+    if (!strcmp(id, "var")) return TOKEN_VAR;
+    if (!strcmp(id, "say")) return TOKEN_SAY;
+    if (!strcmp(id, "get")) return TOKEN_GET;
+    if (!strcmp(id, "out")) return TOKEN_OUT;
+    if (!strcmp(id, "job")) return TOKEN_JOB;
+    if (!strcmp(id, "if")) return TOKEN_IF;
+    if (!strcmp(id, "else")) return TOKEN_ELSE;
+    if (!strcmp(id, "repeat")) return TOKEN_REPEAT;
+    if (!strcmp(id, "increment")) return TOKEN_INCREMENT;
+    if (!strcmp(id, "decrement")) return TOKEN_DECREMENT;
+    if (!strcmp(id, "array")) return TOKEN_ARRAY;
+    if (!strcmp(id, "dictionary")) return TOKEN_DICTIONARY;
+    if (!strcmp(id, "boolean")) return TOKEN_BOOLEAN_TYPE;
+    if (!strcmp(id, "number")) return TOKEN_NUMBER_TYPE;
+    if (!strcmp(id, "decimal")) return TOKEN_DECIMAL_TYPE;
+    if (!strcmp(id, "string")) return TOKEN_STRING_TYPE;
+    if (!strcmp(id, "true")) return TOKEN_TRUE;
+    if (!strcmp(id, "false")) return TOKEN_FALSE;
+    if (!strcmp(id, "set")) return TOKEN_SET;
+    if (!strcmp(id, "file")) return TOKEN_FILE;
+    if (!strcmp(id, "create")) return TOKEN_CREATE;
+    if (!strcmp(id, "read")) return TOKEN_READ;
+    if (!strcmp(id, "update")) return TOKEN_UPDATE;
+    if (!strcmp(id, "delete")) return TOKEN_DELETE;
     return TOKEN_IDENTIFIER;
 }
 
@@ -766,7 +843,10 @@ void tokenize(const char* code) {
         if (isdigit((unsigned char)c)) {
             int start = pos; bool is_dec = false;
             while(pos < len && (isdigit((unsigned char)code[pos]) || code[pos] == '.')) {
-                if (code[pos] == '.') is_dec = true; pos++;
+                if (code[pos] == '.') {
+                    is_dec = true;
+                }
+                pos++;
             }
             char* num = my_strndup(&code[start], pos - start);
             add_token(is_dec ? TOKEN_DECIMAL_VALUE : TOKEN_NUMBER_VALUE, num);
@@ -798,7 +878,13 @@ void tokenize(const char* code) {
                     while(peek_idx < len && depth > 0) {
                         char cc = code[peek_idx];
                         if (cc == '"') in_str = !in_str;
-                        if (!in_str) { if (cc == '[') depth++; else if (cc == ']') depth--; }
+                        if (!in_str) { 
+                            if (cc == '[') {
+                                depth++; 
+                            } else if (cc == ']') {
+                                depth--; 
+                            }
+                        }
                         if (depth > 0) peek_idx++;
                     }
                     char* raw_c_code = my_strndup(&code[r_start], peek_idx - r_start);
@@ -892,7 +978,9 @@ ASTNode* parse_primary() {
         consume(TOKEN_ARRAY);
         if (peek().type == TOKEN_GET) {
             consume(TOKEN_GET); n = new_node(NODE_ARRAY_GET); n->name = my_strdup(consume(TOKEN_IDENTIFIER).text);
-            if (peek().type == TOKEN_COMMA) consume(TOKEN_COMMA);
+            if (peek().type == TOKEN_COMMA) {
+                consume(TOKEN_COMMA);
+            }
             n->left = parse_expr(); return n;
         }
         if (peek().type == TOKEN_IDENTIFIER && !strcmp(peek().text, "length")) {
@@ -908,7 +996,9 @@ ASTNode* parse_primary() {
             else if (peek().type == TOKEN_IDENTIFIER && !strcmp(peek().text, "index")) { consume(TOKEN_IDENTIFIER); }
             else { printf("Expected key or index\n"); exit(1); }
             n->name = my_strdup(consume(TOKEN_IDENTIFIER).text);
-            if (peek().type == TOKEN_COMMA) consume(TOKEN_COMMA);
+            if (peek().type == TOKEN_COMMA) {
+                consume(TOKEN_COMMA);
+            }
             n->left = parse_expr(); return n;
         }
         if (peek().type == TOKEN_IDENTIFIER && !strcmp(peek().text, "length")) {
@@ -1007,8 +1097,14 @@ ASTNode* parse_stmt() {
         if (next_type == TOKEN_SET) {
             consume(TOKEN_ARRAY); consume(TOKEN_SET); n = new_node(NODE_ARRAY_SET);
             n->name = my_strdup(consume(TOKEN_IDENTIFIER).text);
-            if (peek().type == TOKEN_COMMA) consume(TOKEN_COMMA); n->left = parse_expr();
-            if (peek().type == TOKEN_COMMA) consume(TOKEN_COMMA); n->right = parse_expr(); return n;
+            if (peek().type == TOKEN_COMMA) {
+                consume(TOKEN_COMMA);
+            }
+            n->left = parse_expr();
+            if (peek().type == TOKEN_COMMA) {
+                consume(TOKEN_COMMA);
+            }
+            n->right = parse_expr(); return n;
         }
         if (next_type >= TOKEN_BOOLEAN_TYPE && next_type <= TOKEN_STRING_TYPE) {
             consume(TOKEN_ARRAY); n = new_node(NODE_ARRAY_DECL); n->var_type = consume_type().type;
@@ -1029,8 +1125,14 @@ ASTNode* parse_stmt() {
             else if (peek().type == TOKEN_IDENTIFIER && !strcmp(peek().text, "index")) { consume(TOKEN_IDENTIFIER); }
             else { printf("Expected key or index\n"); exit(1); }
             n->name = my_strdup(consume(TOKEN_IDENTIFIER).text);
-            if (peek().type == TOKEN_COMMA) consume(TOKEN_COMMA); n->left = parse_expr();
-            if (peek().type == TOKEN_COMMA) consume(TOKEN_COMMA); n->right = parse_expr(); return n;
+            if (peek().type == TOKEN_COMMA) {
+                consume(TOKEN_COMMA);
+            }
+            n->left = parse_expr();
+            if (peek().type == TOKEN_COMMA) {
+                consume(TOKEN_COMMA);
+            }
+            n->right = parse_expr(); return n;
         }
         if (next_type == TOKEN_IDENTIFIER) {
             consume(TOKEN_DICTIONARY); n = new_node(NODE_DICT_DECL); n->name = my_strdup(consume(TOKEN_IDENTIFIER).text);
@@ -1381,12 +1483,11 @@ void kernel_main(void) {
     terminal_clear();
     
     printf("====================================================================\n");
-    printf("                         WELCOME TO inpsos!                         \n");
+    printf("                        WELCOME TO inpsos!                          \n");
     printf("====================================================================\n\n");
     
     printf("[System] Executing boot script...\n\n");
     
-    // Automatically load and verify a comprehensive multi-statement program on startup
     const char* boot_script = 
         "var string os \"inpsos Core\"\n"
         "say \"[OS] Activating runtime subsystem: \" + os\n"
@@ -1395,10 +1496,10 @@ void kernel_main(void) {
         "    say \"[OS] Loop Cycle: \" + i\n"
         "    increment i 1\n"
         "]\n"
-        "job system_greet developer [\n"
-        "    say \"[OS] Hello, \" + developer + \"! Your language engine works!\"\n"
+        "job system_greet message [\n"
+        "    say \"[OS] \" + message + \"! Language engine is running!\"\n"
         "]\n"
-        "system_greet \"Kernel Architect\"\n";
+        "system_greet \"Done\"\n";
         
     run_easec(boot_script);
     
