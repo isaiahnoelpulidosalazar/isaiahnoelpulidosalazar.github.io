@@ -1,6 +1,6 @@
 #include "kernel.h"
 
-// --- SETJMP / LONGJMP (Exception handling for easec parser) ---
+// --- SETJMP / LONGJMP ---
 __attribute__((naked)) int setjmp(jmp_buf buf) {
     asm volatile (
         "mov 4(%esp), %eax\n"
@@ -24,19 +24,19 @@ __attribute__((naked)) void longjmp(jmp_buf buf, int val) {
 }
 
 // --- MEMORY ALLOCATOR ---
-extern char end; // defined in linker script
+extern char end; 
 uint32_t heap_ptr = 0;
 
 void* malloc(size_t size) {
     if (!heap_ptr) heap_ptr = (uint32_t)&end;
-    if (size % 4) size += 4 - (size % 4); // 4-byte alignment
+    if (size % 4) size += 4 - (size % 4); 
     uint32_t tmp = heap_ptr;
     *(size_t*)tmp = size;
     heap_ptr += size + sizeof(size_t);
     return (void*)(tmp + sizeof(size_t));
 }
 
-void free(void* p) { (void)p; } // Bump allocator ignores free
+void free(void* p) { (void)p; } 
 
 void* calloc(size_t n, size_t size) {
     void* p = malloc(n * size);
@@ -63,7 +63,8 @@ int strncmp(const char* s1, const char* s2, size_t n) { while(n--) { if(*s1!=*s2
 int strcasecmp(const char* s1, const char* s2) {
     while(*s1) {
         char c1 = (*s1>='A'&&*s1<='Z')?*s1+32:*s1; char c2 = (*s2>='A'&&*s2<='Z')?*s2+32:*s2;
-        if (c1 != c2) return c1 - c2; s1++; s2++;
+        if (c1 != c2) return c1 - c2; 
+        s1++; s2++;
     } return *s2 == 0 ? 0 : -1;
 }
 void* memset(void* s, int c, size_t n) { unsigned char* p=s; while(n--) *p++=(unsigned char)c; return s; }
@@ -85,7 +86,10 @@ int isalnum(int c) { return isalpha(c)||isdigit(c); }
 long long atoll(const char* str) {
     long long res=0; int sign=1; while(isspace(*str)) str++;
     if(*str=='-') { sign=-1; str++; } else if(*str=='+') str++;
-    while(isdigit(*str)) res = res*10 + (*str++ - '0'); return res*sign;
+    while(isdigit(*str)) {
+        res = res*10 + (*str++ - '0');
+    }
+    return res*sign;
 }
 double atof(const char* str) {
     double res=0, frac=1; int sign=1; while(isspace(*str)) str++;
@@ -112,7 +116,7 @@ void ftoa(double n, char* res) {
     long long ipart = (long long)n; double fpart = n - (double)ipart;
     if(n < 0 && ipart == 0) { *res++ = '-'; fpart = -fpart; } else if (n < 0) fpart = -fpart;
     itoa(ipart, res); int len = strlen(res); res[len] = '.';
-    long long frac = (long long)(fpart * 1000000); // 6 precision points
+    long long frac = (long long)(fpart * 1000000); 
     itoa(frac, res + len + 1);
 }
 
@@ -165,9 +169,7 @@ void vga_clear() {
 }
 
 void os_printf(const char* fmt, ...) {
-    char buf[1024]; va_list args; va_start(args, fmt);
-    // Reuse custom string formatter
-    int i=0;
+    va_list args; va_start(args, fmt);
     while(*fmt) {
         if (*fmt == '%') {
             fmt++;
@@ -180,7 +182,9 @@ void os_printf(const char* fmt, ...) {
             } else if (*fmt == 's') {
                 char* str = va_arg(args, char*);
                 for(int k=0; str[k]; k++) vga_putchar(str[k]);
-            } else if (*fmt == 'c') { vga_putchar((char)va_arg(args, int)); }
+            } else if (*fmt == 'c') { 
+                vga_putchar((char)va_arg(args, int)); 
+            }
         } else { vga_putchar(*fmt); } fmt++;
     }
     va_end(args);
@@ -253,8 +257,8 @@ void kernel_main(void) {
     vfs_write("/easec/shutdown.easec", "var tmp = sys_shutdown");
     vfs_write("/easec/restart.easec", "var tmp = sys_restart");
     vfs_write("/easec/install.easec", "var tmp = sys_install");
-    vfs_write("/easec/create_file.easec", "say \"Enter filename:\"\nvar fname = get\nsay \"Enter content:\"\nvar fcontent = get\nfile create fname [ fcontent ]");
-    vfs_write("/easec/delete_file.easec", "say \"Enter filename to delete:\"\nvar fname = get\nfile delete fname");
+    vfs_write("/easec/create_file.easec", "say \"Enter filename:\"\nvar fname = get\nsay \"Enter content:\"\nvar fcontent = get\nfile create fname [ fcontent ]\nsay \"File created successfully!\"");
+    vfs_write("/easec/delete_file.easec", "say \"Enter filename to delete:\"\nvar fname = get\nfile delete fname\nsay \"File deleted successfully!\"");
 
     os_printf("Welcome to inpsos powered by Easec OS Shell!\n");
     os_printf("Available commands: clear, shutdown, restart, install, create_file, delete_file\n");
