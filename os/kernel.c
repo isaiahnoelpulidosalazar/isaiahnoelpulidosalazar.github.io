@@ -158,7 +158,7 @@ void sys_format_os() {
     inodes[1].used = 1; inodes[1].is_dir = 1; inodes[1].parent = 0; strcpy(inodes[1].name, "boot");
     inodes[2].used = 1; inodes[2].is_dir = 1; inodes[2].parent = 0; strcpy(inodes[2].name, "easec");
     fs_flush_nodes();
-    load_easec_scripts();
+    load_easec_scripts(); 
     os_printf("System Formatted successfully.\n");
 }
 

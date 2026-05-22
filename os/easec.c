@@ -40,8 +40,10 @@ void tokenize(const char* code) {
         char c = code[pos]; if (isspace((unsigned char)c)) { pos++; continue; }
         if (c == '"') { pos++; int start = pos; while(pos < len && code[pos] != '"') pos++; char* str = my_strndup(&code[start], pos - start); if(pos < len) pos++; add_token(TOKEN_STRING_VALUE, str); free(str); continue; }
         if (isdigit((unsigned char)c)) { int start = pos; bool is_dec = false; while(pos < len && (isdigit((unsigned char)code[pos]) || code[pos] == '.')) { if (code[pos] == '.') is_dec = true; pos++; } char* num = my_strndup(&code[start], pos - start); add_token(is_dec ? TOKEN_DECIMAL_VALUE : TOKEN_NUMBER_VALUE, num); free(num); continue; }
-        if (isalpha((unsigned char)c)) {
-            int start = pos; while(pos < len && isalnum((unsigned char)code[pos])) pos++; char* id = my_strndup(&code[start], pos - start);
+        
+        // FIXED: Added underscore '_' support to variable tokenization!
+        if (isalpha((unsigned char)c) || c == '_') {
+            int start = pos; while(pos < len && (isalnum((unsigned char)code[pos]) || code[pos] == '_')) pos++; char* id = my_strndup(&code[start], pos - start);
             if (!strcmp(id, "note")) { int peek = pos; while(peek < len && isspace((unsigned char)code[peek])) peek++; if (peek < len && code[peek] == '[') { pos = peek + 1; while(pos < len && code[pos] != ']') pos++; if(pos < len) pos++; } else { while(pos < len && code[pos] != '\n' && code[pos] != '\r') pos++; } free(id); continue; }
             if (!strcmp(id, "raw") || !strcmp(id, "compile")) { int peek = pos; while(peek < len && isspace((unsigned char)code[peek])) peek++; if (peek < len && code[peek] == '[') { peek++; int depth = 1; bool in_str = false; int r_start = peek; while(peek < len && depth > 0) { char cc = code[peek]; if (cc == '"') in_str = !in_str; if (!in_str) { if (cc == '[') depth++; else if (cc == ']') depth--; } if (depth > 0) peek++; } char* raw_c_code = my_strndup(&code[r_start], peek - r_start); trim_inplace(raw_c_code); add_token(!strcmp(id, "raw") ? TOKEN_RAW : TOKEN_COMPILE, raw_c_code); free(raw_c_code); pos = peek + 1; free(id); continue; } }
             add_token(get_keyword_type(id), id); free(id); continue;
@@ -90,6 +92,7 @@ Value eval_expr(ASTNode* expr, Env* env); void exec_stmt(ASTNode* stmt, Env* env
 Value eval_expr(ASTNode* expr, Env* env) {
     if (!expr) return val_null(); if (expr->type == NODE_LITERAL) return expr->literal_val;
     if (expr->type == NODE_VAR_EXPR) {
+        // OS Special System Hooks
         if (!strcmp(expr->name, "sys_clear")) { vga_clear(); return val_null(); }
         if (!strcmp(expr->name, "sys_shutdown")) { outw(0x604, 0x2000); outw(0xB004, 0x2000); return val_null(); }
         if (!strcmp(expr->name, "sys_restart")) { outb(0x64, 0xFE); return val_null(); }
@@ -98,6 +101,7 @@ Value eval_expr(ASTNode* expr, Env* env) {
         if (!strcmp(expr->name, "sys_ls")) { fs_ls(value_to_string(env_get(env, "sys_arg"))); return val_null(); }
         if (!strcmp(expr->name, "sys_mkdir")) { fs_mkdir(value_to_string(env_get(env, "sys_arg"))); return val_null(); }
         if (!strcmp(expr->name, "sys_rmdir")) { fs_rmdir(value_to_string(env_get(env, "sys_arg"))); return val_null(); }
+        if (!strcmp(expr->name, "sys_install")) { sys_install_os(); return val_null(); }
 
         Value val = env_get(env, expr->name);
         if (val.type == VAL_JOB) { Env* local_env = new_env(env); for (int i=0; i < val.as.job->body_count; i++) { exec_stmt(val.as.job->body[i], local_env); if (is_return) { is_return = false; return return_value; } if (is_break) { is_break = false; return val_null(); } } return val_null(); } return val;
