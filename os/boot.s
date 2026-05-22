@@ -1,14 +1,16 @@
-.set ALIGN,    1<<0
-.set MEMINFO,  1<<1
-.set FLAGS,    ALIGN | MEMINFO
-.set MAGIC,    0x1BADB002
-.set CHECKSUM, -(MAGIC + FLAGS)
-
 .section .multiboot
-.align 4
-.long MAGIC
-.long FLAGS
-.long CHECKSUM
+.align 8
+multiboot2_header:
+    .long 0xE85250D6
+    .long 0
+    .long header_end - multiboot2_header
+    .long -(0xE85250D6 + 0 + (header_end - multiboot2_header))
+
+    .align 8
+    .short 0
+    .short 0
+    .long 8
+header_end:
 
 .section .bss
 .align 16

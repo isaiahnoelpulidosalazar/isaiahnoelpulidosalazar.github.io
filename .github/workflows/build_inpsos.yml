@@ -18,7 +18,7 @@ jobs:
     - name: Install Build Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y build-essential gcc-multilib xorriso mtools grub-pc-bin grub-common
+        sudo apt-get install -y build-essential gcc-multilib xorriso mtools grub-pc-bin grub-efi-amd64-bin grub-common
 
     - name: Compile and Build ISO
       run: make
