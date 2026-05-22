@@ -1,0 +1,29 @@
+say "--- EASEC DEMO ---"
+say "Variables:"
+var number mynum = 42
+say mynum
+
+say "Arrays:"
+array number arr [10, 20]
+say arr[1]
+
+say "Conditionals:"
+if mynum == 42 [
+say "Number is 42!"
+] else [
+say "No"
+]
+
+say "Loops:"
+var i = 0
+repeat 3 [
+say i
+increment i 1
+]
+
+say "Jobs (Functions):"
+job greet x [
+say "Hello " + x
+]
+greet "User!"
+say "Demo Complete."
