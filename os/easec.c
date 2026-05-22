@@ -1,82 +1,29 @@
 #include "kernel.h"
 
-// ---------------------- ENUMS & TYPES ----------------------
-typedef enum {
-    TOKEN_VAR, TOKEN_SAY, TOKEN_GET, TOKEN_OUT, TOKEN_JOB, TOKEN_IF, TOKEN_ELSE,
-    TOKEN_REPEAT, TOKEN_INCREMENT, TOKEN_DECREMENT, TOKEN_ARRAY, TOKEN_DICTIONARY,
-    TOKEN_BOOLEAN_TYPE, TOKEN_NUMBER_TYPE, TOKEN_DECIMAL_TYPE, TOKEN_STRING_TYPE,
-    TOKEN_TRUE, TOKEN_FALSE, TOKEN_IDENTIFIER, TOKEN_STRING_VALUE, TOKEN_NUMBER_VALUE,
-    TOKEN_DECIMAL_VALUE, TOKEN_PLUS, TOKEN_MINUS, TOKEN_MULTIPLY, TOKEN_DIVIDE,
-    TOKEN_MODULO, TOKEN_GREATER, TOKEN_LESS, TOKEN_GREATER_EQUAL, TOKEN_LESS_EQUAL,
-    TOKEN_EQUAL, TOKEN_NOT_EQUAL, TOKEN_LBRACKET, TOKEN_RBRACKET, TOKEN_COMMA,
-    TOKEN_COLON, TOKEN_EOF, TOKEN_SET, TOKEN_FILE, TOKEN_CREATE, TOKEN_READ,
-    TOKEN_UPDATE, TOKEN_DELETE, TOKEN_RAW, TOKEN_COMPILE, TOKEN_NONE
-} TokenType;
-
+typedef enum { TOKEN_VAR, TOKEN_SAY, TOKEN_GET, TOKEN_OUT, TOKEN_JOB, TOKEN_IF, TOKEN_ELSE, TOKEN_REPEAT, TOKEN_INCREMENT, TOKEN_DECREMENT, TOKEN_ARRAY, TOKEN_DICTIONARY, TOKEN_BOOLEAN_TYPE, TOKEN_NUMBER_TYPE, TOKEN_DECIMAL_TYPE, TOKEN_STRING_TYPE, TOKEN_TRUE, TOKEN_FALSE, TOKEN_IDENTIFIER, TOKEN_STRING_VALUE, TOKEN_NUMBER_VALUE, TOKEN_DECIMAL_VALUE, TOKEN_PLUS, TOKEN_MINUS, TOKEN_MULTIPLY, TOKEN_DIVIDE, TOKEN_MODULO, TOKEN_GREATER, TOKEN_LESS, TOKEN_GREATER_EQUAL, TOKEN_LESS_EQUAL, TOKEN_EQUAL, TOKEN_NOT_EQUAL, TOKEN_LBRACKET, TOKEN_RBRACKET, TOKEN_COMMA, TOKEN_COLON, TOKEN_EOF, TOKEN_SET, TOKEN_FILE, TOKEN_CREATE, TOKEN_READ, TOKEN_UPDATE, TOKEN_DELETE, TOKEN_RAW, TOKEN_COMPILE, TOKEN_NONE } TokenType;
 typedef struct { TokenType type; char* text; } Token;
 typedef enum { VAL_NULL, VAL_INT, VAL_FLOAT, VAL_BOOL, VAL_STRING, VAL_ARRAY, VAL_DICT, VAL_JOB } ValueType;
-
-struct ASTNode;
-typedef struct { ValueType type; union { long long i; double f; bool b; char* s; struct ValueList* arr; struct ValueDict* dict; struct ASTNode* job; } as; } Value;
-typedef struct ValueList { Value* items; int count; int cap; } ValueList;
-typedef struct { char* key; Value value; } KeyValuePair;
-typedef struct ValueDict { KeyValuePair* pairs; int count; int cap; } ValueDict;
-typedef enum {
-    NODE_PROG, NODE_VAR_STMT, NODE_SAY, NODE_OUT, NODE_JOB, NODE_EXPR_STMT, NODE_INCDEC, NODE_REPEAT, NODE_IF, NODE_ARRAY_DECL, NODE_DICT_DECL,
-    NODE_ARRAY_SET, NODE_DICT_SET, NODE_FILE_CREATE, NODE_FILE_UPDATE, NODE_FILE_DELETE, NODE_RAW, NODE_COMPILE, NODE_BIN_EXPR, NODE_LITERAL, NODE_VAR_EXPR, NODE_GET,
-    NODE_CALL, NODE_ARRAY_GET, NODE_ARRAY_LEN, NODE_DICT_GET, NODE_DICT_LEN, NODE_FILE_READ
-} NodeType;
-
+struct ASTNode; typedef struct { ValueType type; union { long long i; double f; bool b; char* s; struct ValueList* arr; struct ValueDict* dict; struct ASTNode* job; } as; } Value;
+typedef struct ValueList { Value* items; int count; int cap; } ValueList; typedef struct { char* key; Value value; } KeyValuePair; typedef struct ValueDict { KeyValuePair* pairs; int count; int cap; } ValueDict;
+typedef enum { NODE_PROG, NODE_VAR_STMT, NODE_SAY, NODE_OUT, NODE_JOB, NODE_EXPR_STMT, NODE_INCDEC, NODE_REPEAT, NODE_IF, NODE_ARRAY_DECL, NODE_DICT_DECL, NODE_ARRAY_SET, NODE_DICT_SET, NODE_FILE_CREATE, NODE_FILE_UPDATE, NODE_FILE_DELETE, NODE_RAW, NODE_COMPILE, NODE_BIN_EXPR, NODE_LITERAL, NODE_VAR_EXPR, NODE_GET, NODE_CALL, NODE_ARRAY_GET, NODE_ARRAY_LEN, NODE_DICT_GET, NODE_DICT_LEN, NODE_FILE_READ } NodeType;
 typedef struct DictPair { char* key; struct ASTNode* val; } DictPair;
-typedef struct ASTNode {
-    NodeType type; char* name; struct ASTNode* left; struct ASTNode* right; struct ASTNode* cond; struct ASTNode** body; int body_count;
-    struct ASTNode** false_body; int false_body_count; Value literal_val; TokenType op_type; TokenType var_type; bool is_increment; bool is_forever; bool is_key;
-    struct ASTNode** args; int arg_count; char** param_names; int param_count; DictPair* dict_pairs; int pair_count; char* c_code;
-} ASTNode;
+typedef struct ASTNode { NodeType type; char* name; struct ASTNode* left; struct ASTNode* right; struct ASTNode* cond; struct ASTNode** body; int body_count; struct ASTNode** false_body; int false_body_count; Value literal_val; TokenType op_type; TokenType var_type; bool is_increment; bool is_forever; bool is_key; struct ASTNode** args; int arg_count; char** param_names; int param_count; DictPair* dict_pairs; int pair_count; char* c_code; } ASTNode;
+typedef struct EnvNode { char* name; Value value; struct EnvNode* next; } EnvNode; typedef struct Env { EnvNode* head; struct Env* parent; } Env;
 
-typedef struct EnvNode { char* name; Value value; struct EnvNode* next; } EnvNode;
-typedef struct Env { EnvNode* head; struct Env* parent; } Env;
-
-Token* tokens = NULL; int token_count = 0, token_cap = 0, current_token = 0;
-bool is_break = false, is_return = false; Value return_value;
+Token* tokens = NULL; int token_count = 0, token_cap = 0, current_token = 0; bool is_break = false, is_return = false; Value return_value;
 
 char* my_strdup(const char* s) { char* d = malloc(strlen(s) + 1); if(d) strcpy(d, s); return d; }
 char* my_strndup(const char* s, size_t n) { char* d = malloc(n + 1); if(d) { strncpy(d, s, n); d[n] = '\0'; } return d; }
+void trim_inplace(char* str) { char* start = str; while(isspace((unsigned char)*start)) start++; char* end = start + strlen(start) - 1; while(end > start && isspace((unsigned char)*end)) end--; *(end + 1) = '\0'; memmove(str, start, end - start + 2); }
 
-void trim_inplace(char* str) {
-    char* start = str; while(isspace((unsigned char)*start)) start++;
-    char* end = start + strlen(start) - 1; while(end > start && isspace((unsigned char)*end)) end--;
-    *(end + 1) = '\0'; memmove(str, start, end - start + 2);
-}
-
-Value val_null() { Value v; v.type = VAL_NULL; return v; }
-Value val_int(long long i) { Value v; v.type = VAL_INT; v.as.i = i; return v; }
-Value val_float(double f) { Value v; v.type = VAL_FLOAT; v.as.f = f; return v; }
-Value val_bool(bool b) { Value v; v.type = VAL_BOOL; v.as.b = b; return v; }
-Value val_string(const char* s) { Value v; v.type = VAL_STRING; v.as.s = my_strdup(s); return v; }
-Value val_job(ASTNode* n) { Value v; v.type = VAL_JOB; v.as.job = n; return v; }
-
-ValueList* new_list() { ValueList* l = malloc(sizeof(ValueList)); l->count = 0; l->cap = 4; l->items = malloc(sizeof(Value) * l->cap); return l; }
-void list_add(ValueList* l, Value v) { if (l->count >= l->cap) { l->cap *= 2; l->items = realloc(l->items, sizeof(Value)*l->cap); } l->items[l->count++] = v; }
-ValueDict* new_dict() { ValueDict* d = malloc(sizeof(ValueDict)); d->count = 0; d->cap = 4; d->pairs = malloc(sizeof(KeyValuePair) * d->cap); return d; }
-void dict_set(ValueDict* d, const char* key, Value v) {
-    for(int i=0; i<d->count; i++) { if(!strcmp(d->pairs[i].key, key)) { d->pairs[i].value = v; return; } }
-    if (d->count >= d->cap) { d->cap *= 2; d->pairs = realloc(d->pairs, sizeof(KeyValuePair)*d->cap); }
-    d->pairs[d->count].key = my_strdup(key); d->pairs[d->count].value = v; d->count++;
-}
+Value val_null() { Value v; v.type = VAL_NULL; return v; } Value val_int(long long i) { Value v; v.type = VAL_INT; v.as.i = i; return v; } Value val_float(double f) { Value v; v.type = VAL_FLOAT; v.as.f = f; return v; } Value val_bool(bool b) { Value v; v.type = VAL_BOOL; v.as.b = b; return v; } Value val_string(const char* s) { Value v; v.type = VAL_STRING; v.as.s = my_strdup(s); return v; } Value val_job(ASTNode* n) { Value v; v.type = VAL_JOB; v.as.job = n; return v; }
+ValueList* new_list() { ValueList* l = malloc(sizeof(ValueList)); l->count = 0; l->cap = 4; l->items = malloc(sizeof(Value) * l->cap); return l; } void list_add(ValueList* l, Value v) { if (l->count >= l->cap) { l->cap *= 2; l->items = realloc(l->items, sizeof(Value)*l->cap); } l->items[l->count++] = v; }
+ValueDict* new_dict() { ValueDict* d = malloc(sizeof(ValueDict)); d->count = 0; d->cap = 4; d->pairs = malloc(sizeof(KeyValuePair) * d->cap); return d; } void dict_set(ValueDict* d, const char* key, Value v) { for(int i=0; i<d->count; i++) { if(!strcmp(d->pairs[i].key, key)) { d->pairs[i].value = v; return; } } if (d->count >= d->cap) { d->cap *= 2; d->pairs = realloc(d->pairs, sizeof(KeyValuePair)*d->cap); } d->pairs[d->count].key = my_strdup(key); d->pairs[d->count].value = v; d->count++; }
 
 ASTNode* new_node(NodeType type) { ASTNode* n = calloc(1, sizeof(ASTNode)); n->type = type; return n; }
-Env* new_env(Env* parent) { Env* e = malloc(sizeof(Env)); e->head = NULL; e->parent = parent; return e; }
-Env* find_env(Env* e, const char* name) { while (e) { EnvNode* n = e->head; while(n) { if(!strcmp(n->name, name)) return e; n = n->next; } e = e->parent; } return NULL; }
-void env_define(Env* e, const char* name, Value val) { EnvNode* n = malloc(sizeof(EnvNode)); n->name = my_strdup(name); n->value = val; n->next = e->head; e->head = n; }
-void env_set(Env* e, const char* name, Value val) { Env* target = find_env(e, name); if (!target) { env_define(e, name, val); return; } EnvNode* n = target->head; while(n) { if(!strcmp(n->name, name)) { n->value = val; return; } n = n->next; } }
-Value env_get(Env* e, const char* name) { Env* target = find_env(e, name); if (target) { EnvNode* n = target->head; while(n) { if(!strcmp(n->name, name)) return n->value; n = n->next; } } os_printf("Runtime Error: Variable '%s' not found.\n", name); longjmp(easec_env, 1); return val_null(); }
+Env* new_env(Env* parent) { Env* e = malloc(sizeof(Env)); e->head = NULL; e->parent = parent; return e; } Env* find_env(Env* e, const char* name) { while (e) { EnvNode* n = e->head; while(n) { if(!strcmp(n->name, name)) return e; n = n->next; } e = e->parent; } return NULL; } void env_define(Env* e, const char* name, Value val) { EnvNode* n = malloc(sizeof(EnvNode)); n->name = my_strdup(name); n->value = val; n->next = e->head; e->head = n; } void env_set(Env* e, const char* name, Value val) { Env* target = find_env(e, name); if (!target) { env_define(e, name, val); return; } EnvNode* n = target->head; while(n) { if(!strcmp(n->name, name)) { n->value = val; return; } n = n->next; } } Value env_get(Env* e, const char* name) { Env* target = find_env(e, name); if (target) { EnvNode* n = target->head; while(n) { if(!strcmp(n->name, name)) return n->value; n = n->next; } } os_printf("Runtime Error: Variable '%s' not found.\n", name); longjmp(easec_env, 1); return val_null(); }
 
-void add_token(TokenType type, const char* text) {
-    if(token_count >= token_cap) { token_cap = token_cap == 0 ? 128 : token_cap * 2; tokens = realloc(tokens, token_cap * sizeof(Token)); }
-    tokens[token_count].type = type; tokens[token_count].text = text ? my_strdup(text) : my_strdup(""); token_count++;
-}
-
+void add_token(TokenType type, const char* text) { if(token_count >= token_cap) { token_cap = token_cap == 0 ? 128 : token_cap * 2; tokens = realloc(tokens, token_cap * sizeof(Token)); } tokens[token_count].type = type; tokens[token_count].text = text ? my_strdup(text) : my_strdup(""); token_count++; }
 TokenType get_keyword_type(const char* id) {
     if (!strcmp(id, "var")) return TOKEN_VAR; if (!strcmp(id, "say")) return TOKEN_SAY; if (!strcmp(id, "get")) return TOKEN_GET; if (!strcmp(id, "out")) return TOKEN_OUT;
     if (!strcmp(id, "job")) return TOKEN_JOB; if (!strcmp(id, "if")) return TOKEN_IF; if (!strcmp(id, "else")) return TOKEN_ELSE; if (!strcmp(id, "repeat")) return TOKEN_REPEAT;
@@ -90,26 +37,13 @@ TokenType get_keyword_type(const char* id) {
 void tokenize(const char* code) {
     int pos = 0, len = strlen(code);
     while (pos < len) {
-        char c = code[pos];
-        if (isspace((unsigned char)c)) { pos++; continue; }
+        char c = code[pos]; if (isspace((unsigned char)c)) { pos++; continue; }
         if (c == '"') { pos++; int start = pos; while(pos < len && code[pos] != '"') pos++; char* str = my_strndup(&code[start], pos - start); if(pos < len) pos++; add_token(TOKEN_STRING_VALUE, str); free(str); continue; }
         if (isdigit((unsigned char)c)) { int start = pos; bool is_dec = false; while(pos < len && (isdigit((unsigned char)code[pos]) || code[pos] == '.')) { if (code[pos] == '.') is_dec = true; pos++; } char* num = my_strndup(&code[start], pos - start); add_token(is_dec ? TOKEN_DECIMAL_VALUE : TOKEN_NUMBER_VALUE, num); free(num); continue; }
         if (isalpha((unsigned char)c)) {
             int start = pos; while(pos < len && isalnum((unsigned char)code[pos])) pos++; char* id = my_strndup(&code[start], pos - start);
-            if (!strcmp(id, "note")) {
-                int peek = pos; while(peek < len && isspace((unsigned char)code[peek])) peek++;
-                if (peek < len && code[peek] == '[') { pos = peek + 1; while(pos < len && code[pos] != ']') pos++; if(pos < len) pos++; } else { while(pos < len && code[pos] != '\n' && code[pos] != '\r') pos++; }
-                free(id); continue;
-            }
-            if (!strcmp(id, "raw") || !strcmp(id, "compile")) {
-                int peek = pos; while(peek < len && isspace((unsigned char)code[peek])) peek++;
-                if (peek < len && code[peek] == '[') {
-                    peek++; int depth = 1; bool in_str = false; int r_start = peek;
-                    while(peek < len && depth > 0) { char cc = code[peek]; if (cc == '"') in_str = !in_str; if (!in_str) { if (cc == '[') depth++; else if (cc == ']') depth--; } if (depth > 0) peek++; }
-                    char* raw_c_code = my_strndup(&code[r_start], peek - r_start); trim_inplace(raw_c_code);
-                    add_token(!strcmp(id, "raw") ? TOKEN_RAW : TOKEN_COMPILE, raw_c_code); free(raw_c_code); pos = peek + 1; free(id); continue;
-                }
-            }
+            if (!strcmp(id, "note")) { int peek = pos; while(peek < len && isspace((unsigned char)code[peek])) peek++; if (peek < len && code[peek] == '[') { pos = peek + 1; while(pos < len && code[pos] != ']') pos++; if(pos < len) pos++; } else { while(pos < len && code[pos] != '\n' && code[pos] != '\r') pos++; } free(id); continue; }
+            if (!strcmp(id, "raw") || !strcmp(id, "compile")) { int peek = pos; while(peek < len && isspace((unsigned char)code[peek])) peek++; if (peek < len && code[peek] == '[') { peek++; int depth = 1; bool in_str = false; int r_start = peek; while(peek < len && depth > 0) { char cc = code[peek]; if (cc == '"') in_str = !in_str; if (!in_str) { if (cc == '[') depth++; else if (cc == ']') depth--; } if (depth > 0) peek++; } char* raw_c_code = my_strndup(&code[r_start], peek - r_start); trim_inplace(raw_c_code); add_token(!strcmp(id, "raw") ? TOKEN_RAW : TOKEN_COMPILE, raw_c_code); free(raw_c_code); pos = peek + 1; free(id); continue; } }
             add_token(get_keyword_type(id), id); free(id); continue;
         }
         if (c == '>') { if (pos+1 < len && code[pos+1] == '=') { add_token(TOKEN_GREATER_EQUAL, ">="); pos+=2; continue; } add_token(TOKEN_GREATER, ">"); pos++; continue; }
@@ -117,185 +51,78 @@ void tokenize(const char* code) {
         if (c == '=') { if (pos+1 < len && code[pos+1] == '=') { add_token(TOKEN_EQUAL, "=="); pos+=2; continue; } os_printf("Syntax Error\n"); longjmp(easec_env, 1); }
         if (c == '!') { if (pos+1 < len && code[pos+1] == '=') { add_token(TOKEN_NOT_EQUAL, "!="); pos+=2; continue; } os_printf("Syntax Error\n"); longjmp(easec_env, 1); }
         if (c == ':') { add_token(TOKEN_COLON, ":"); pos++; continue; }
-        switch(c) {
-            case '+': add_token(TOKEN_PLUS, "+"); break; case '-': add_token(TOKEN_MINUS, "-"); break; case '*': add_token(TOKEN_MULTIPLY, "*"); break; case '/': add_token(TOKEN_DIVIDE, "/"); break;
-            case '%': add_token(TOKEN_MODULO, "%"); break; case '[': add_token(TOKEN_LBRACKET, "["); break; case ']': add_token(TOKEN_RBRACKET, "]"); break; case ',': add_token(TOKEN_COMMA, ","); break;
-            default: os_printf("Syntax Error: Unknown '%c'\n", c); longjmp(easec_env, 1);
-        } pos++;
+        switch(c) { case '+': add_token(TOKEN_PLUS, "+"); break; case '-': add_token(TOKEN_MINUS, "-"); break; case '*': add_token(TOKEN_MULTIPLY, "*"); break; case '/': add_token(TOKEN_DIVIDE, "/"); break; case '%': add_token(TOKEN_MODULO, "%"); break; case '[': add_token(TOKEN_LBRACKET, "["); break; case ']': add_token(TOKEN_RBRACKET, "]"); break; case ',': add_token(TOKEN_COMMA, ","); break; default: os_printf("Syntax Error: Unknown '%c'\n", c); longjmp(easec_env, 1); } pos++;
     } add_token(TOKEN_EOF, "");
 }
 
-Token peek() { return tokens[current_token]; }
-Token peek_next() { return current_token + 1 < token_count ? tokens[current_token+1] : tokens[token_count-1]; }
-Token consume(TokenType type) { if (peek().type == type) return tokens[current_token++]; os_printf("Parse Error: '%s'\n", peek().text); longjmp(easec_env, 1); return tokens[0]; }
-Token consume_type() { TokenType t = peek().type; if (t==TOKEN_BOOLEAN_TYPE || t==TOKEN_NUMBER_TYPE || t==TOKEN_DECIMAL_TYPE || t==TOKEN_STRING_TYPE) return consume(t); os_printf("Expected type\n"); longjmp(easec_env, 1); return tokens[0]; }
-
-bool is_expr_start(TokenType type) { return type == TOKEN_IDENTIFIER || type == TOKEN_NUMBER_VALUE || type == TOKEN_DECIMAL_VALUE || type == TOKEN_STRING_VALUE || type == TOKEN_GET || type == TOKEN_TRUE || type == TOKEN_FALSE || type == TOKEN_ARRAY || type == TOKEN_DICTIONARY || type == TOKEN_FILE; }
+Token peek() { return tokens[current_token]; } Token peek_next() { return current_token + 1 < token_count ? tokens[current_token+1] : tokens[token_count-1]; } Token consume(TokenType type) { if (peek().type == type) return tokens[current_token++]; os_printf("Parse Error: '%s'\n", peek().text); longjmp(easec_env, 1); return tokens[0]; } Token consume_type() { TokenType t = peek().type; if (t==TOKEN_BOOLEAN_TYPE || t==TOKEN_NUMBER_TYPE || t==TOKEN_DECIMAL_TYPE || t==TOKEN_STRING_TYPE) return consume(t); os_printf("Expected type\n"); longjmp(easec_env, 1); return tokens[0]; } bool is_expr_start(TokenType type) { return type == TOKEN_IDENTIFIER || type == TOKEN_NUMBER_VALUE || type == TOKEN_DECIMAL_VALUE || type == TOKEN_STRING_VALUE || type == TOKEN_GET || type == TOKEN_TRUE || type == TOKEN_FALSE || type == TOKEN_ARRAY || type == TOKEN_DICTIONARY || type == TOKEN_FILE; }
 
 ASTNode* parse_expr(); ASTNode* parse_stmt();
-ASTNode* parse_primary() {
-    Token t = peek(); ASTNode* n;
-    if (t.type == TOKEN_NUMBER_VALUE) { n = new_node(NODE_LITERAL); n->literal_val = val_int(atoll(consume(TOKEN_NUMBER_VALUE).text)); return n; }
-    if (t.type == TOKEN_DECIMAL_VALUE) { n = new_node(NODE_LITERAL); n->literal_val = val_float(atof(consume(TOKEN_DECIMAL_VALUE).text)); return n; }
-    if (t.type == TOKEN_STRING_VALUE) { n = new_node(NODE_LITERAL); n->literal_val = val_string(consume(TOKEN_STRING_VALUE).text); return n; }
-    if (t.type == TOKEN_TRUE) { consume(TOKEN_TRUE); n = new_node(NODE_LITERAL); n->literal_val = val_bool(true); return n; }
-    if (t.type == TOKEN_FALSE) { consume(TOKEN_FALSE); n = new_node(NODE_LITERAL); n->literal_val = val_bool(false); return n; }
-    if (t.type == TOKEN_GET) { consume(TOKEN_GET); return new_node(NODE_GET); }
-    if (t.type == TOKEN_FILE) { consume(TOKEN_FILE); consume(TOKEN_READ); n = new_node(NODE_FILE_READ); n->left = parse_expr(); return n; }
-    if (t.type == TOKEN_ARRAY) {
-        consume(TOKEN_ARRAY);
-        if (peek().type == TOKEN_GET) { consume(TOKEN_GET); n = new_node(NODE_ARRAY_GET); n->name = my_strdup(consume(TOKEN_IDENTIFIER).text); if (peek().type == TOKEN_COMMA) consume(TOKEN_COMMA); n->left = parse_expr(); return n; }
-        if (peek().type == TOKEN_IDENTIFIER && !strcmp(peek().text, "length")) { consume(TOKEN_IDENTIFIER); n = new_node(NODE_ARRAY_LEN); n->name = my_strdup(consume(TOKEN_IDENTIFIER).text); return n; }
-        os_printf("Invalid array expr\n"); longjmp(easec_env, 1);
-    }
-    if (t.type == TOKEN_DICTIONARY) {
-        consume(TOKEN_DICTIONARY);
-        if (peek().type == TOKEN_GET) {
-            consume(TOKEN_GET); n = new_node(NODE_DICT_GET); n->is_key = false;
-            if (peek().type == TOKEN_IDENTIFIER && !strcmp(peek().text, "key")) { consume(TOKEN_IDENTIFIER); n->is_key = true; } else if (peek().type == TOKEN_IDENTIFIER && !strcmp(peek().text, "index")) { consume(TOKEN_IDENTIFIER); } else { os_printf("Expected key\n"); longjmp(easec_env, 1); }
-            n->name = my_strdup(consume(TOKEN_IDENTIFIER).text); if (peek().type == TOKEN_COMMA) consume(TOKEN_COMMA); n->left = parse_expr(); return n;
-        }
-        if (peek().type == TOKEN_IDENTIFIER && !strcmp(peek().text, "length")) { consume(TOKEN_IDENTIFIER); n = new_node(NODE_DICT_LEN); n->name = my_strdup(consume(TOKEN_IDENTIFIER).text); return n; }
-        os_printf("Invalid dict expr\n"); longjmp(easec_env, 1);
-    }
-    if (t.type == TOKEN_IDENTIFIER) {
-        char* name = consume(TOKEN_IDENTIFIER).text;
-        if (is_expr_start(peek().type)) {
-            n = new_node(NODE_CALL); n->name = my_strdup(name); n->args = malloc(sizeof(ASTNode*)*32); n->arg_count = 0; n->args[n->arg_count++] = parse_expr();
-            while(peek().type == TOKEN_COMMA) { consume(TOKEN_COMMA); n->args[n->arg_count++] = parse_expr(); } return n;
-        } n = new_node(NODE_VAR_EXPR); n->name = my_strdup(name); return n;
-    } os_printf("Parse Error: Unexpected %s\n", peek().text); longjmp(easec_env, 1); return NULL;
-}
-ASTNode* parse_mult() { ASTNode* left = parse_primary(); while(peek().type == TOKEN_MULTIPLY || peek().type == TOKEN_DIVIDE || peek().type == TOKEN_MODULO) { Token op = consume(peek().type); ASTNode* bin = new_node(NODE_BIN_EXPR); bin->left = left; bin->op_type = op.type; bin->right = parse_primary(); left = bin; } return left; }
-ASTNode* parse_add() { ASTNode* left = parse_mult(); while(peek().type == TOKEN_PLUS || peek().type == TOKEN_MINUS) { Token op = consume(peek().type); ASTNode* bin = new_node(NODE_BIN_EXPR); bin->left = left; bin->op_type = op.type; bin->right = parse_mult(); left = bin; } return left; }
-ASTNode* parse_comparison() { ASTNode* left = parse_add(); while(peek().type >= TOKEN_GREATER && peek().type <= TOKEN_NOT_EQUAL) { Token op = consume(peek().type); ASTNode* bin = new_node(NODE_BIN_EXPR); bin->left = left; bin->op_type = op.type; bin->right = parse_add(); left = bin; } return left; }
-ASTNode* parse_expr() { return parse_comparison(); }
+ASTNode* parse_primary() { Token t = peek(); ASTNode* n; if (t.type == TOKEN_NUMBER_VALUE) { n = new_node(NODE_LITERAL); n->literal_val = val_int(atoll(consume(TOKEN_NUMBER_VALUE).text)); return n; } if (t.type == TOKEN_DECIMAL_VALUE) { n = new_node(NODE_LITERAL); n->literal_val = val_float(atof(consume(TOKEN_DECIMAL_VALUE).text)); return n; } if (t.type == TOKEN_STRING_VALUE) { n = new_node(NODE_LITERAL); n->literal_val = val_string(consume(TOKEN_STRING_VALUE).text); return n; } if (t.type == TOKEN_TRUE) { consume(TOKEN_TRUE); n = new_node(NODE_LITERAL); n->literal_val = val_bool(true); return n; } if (t.type == TOKEN_FALSE) { consume(TOKEN_FALSE); n = new_node(NODE_LITERAL); n->literal_val = val_bool(false); return n; } if (t.type == TOKEN_GET) { consume(TOKEN_GET); return new_node(NODE_GET); } if (t.type == TOKEN_FILE) { consume(TOKEN_FILE); consume(TOKEN_READ); n = new_node(NODE_FILE_READ); n->left = parse_expr(); return n; }
+    if (t.type == TOKEN_ARRAY) { consume(TOKEN_ARRAY); if (peek().type == TOKEN_GET) { consume(TOKEN_GET); n = new_node(NODE_ARRAY_GET); n->name = my_strdup(consume(TOKEN_IDENTIFIER).text); if (peek().type == TOKEN_COMMA) consume(TOKEN_COMMA); n->left = parse_expr(); return n; } if (peek().type == TOKEN_IDENTIFIER && !strcmp(peek().text, "length")) { consume(TOKEN_IDENTIFIER); n = new_node(NODE_ARRAY_LEN); n->name = my_strdup(consume(TOKEN_IDENTIFIER).text); return n; } os_printf("Invalid array expr\n"); longjmp(easec_env, 1); }
+    if (t.type == TOKEN_DICTIONARY) { consume(TOKEN_DICTIONARY); if (peek().type == TOKEN_GET) { consume(TOKEN_GET); n = new_node(NODE_DICT_GET); n->is_key = false; if (peek().type == TOKEN_IDENTIFIER && !strcmp(peek().text, "key")) { consume(TOKEN_IDENTIFIER); n->is_key = true; } else if (peek().type == TOKEN_IDENTIFIER && !strcmp(peek().text, "index")) { consume(TOKEN_IDENTIFIER); } else { os_printf("Expected key\n"); longjmp(easec_env, 1); } n->name = my_strdup(consume(TOKEN_IDENTIFIER).text); if (peek().type == TOKEN_COMMA) consume(TOKEN_COMMA); n->left = parse_expr(); return n; } if (peek().type == TOKEN_IDENTIFIER && !strcmp(peek().text, "length")) { consume(TOKEN_IDENTIFIER); n = new_node(NODE_DICT_LEN); n->name = my_strdup(consume(TOKEN_IDENTIFIER).text); return n; } os_printf("Invalid dict expr\n"); longjmp(easec_env, 1); }
+    if (t.type == TOKEN_IDENTIFIER) { char* name = consume(TOKEN_IDENTIFIER).text; if (is_expr_start(peek().type)) { n = new_node(NODE_CALL); n->name = my_strdup(name); n->args = malloc(sizeof(ASTNode*)*32); n->arg_count = 0; n->args[n->arg_count++] = parse_expr(); while(peek().type == TOKEN_COMMA) { consume(TOKEN_COMMA); n->args[n->arg_count++] = parse_expr(); } return n; } n = new_node(NODE_VAR_EXPR); n->name = my_strdup(name); return n; } os_printf("Parse Error\n"); longjmp(easec_env, 1); return NULL; }
+ASTNode* parse_mult() { ASTNode* left = parse_primary(); while(peek().type == TOKEN_MULTIPLY || peek().type == TOKEN_DIVIDE || peek().type == TOKEN_MODULO) { Token op = consume(peek().type); ASTNode* bin = new_node(NODE_BIN_EXPR); bin->left = left; bin->op_type = op.type; bin->right = parse_primary(); left = bin; } return left; } ASTNode* parse_add() { ASTNode* left = parse_mult(); while(peek().type == TOKEN_PLUS || peek().type == TOKEN_MINUS) { Token op = consume(peek().type); ASTNode* bin = new_node(NODE_BIN_EXPR); bin->left = left; bin->op_type = op.type; bin->right = parse_mult(); left = bin; } return left; } ASTNode* parse_comparison() { ASTNode* left = parse_add(); while(peek().type >= TOKEN_GREATER && peek().type <= TOKEN_NOT_EQUAL) { Token op = consume(peek().type); ASTNode* bin = new_node(NODE_BIN_EXPR); bin->left = left; bin->op_type = op.type; bin->right = parse_add(); left = bin; } return left; } ASTNode* parse_expr() { return parse_comparison(); }
 
 ASTNode* parse_stmt() {
     Token t = peek(); ASTNode* n;
-    if (t.type == TOKEN_RAW || t.type == TOKEN_COMPILE) { consume(t.type); os_printf("Compiler commands not supported in OS mode.\n"); n = new_node(NODE_EXPR_STMT); return n; }
+    if (t.type == TOKEN_RAW || t.type == TOKEN_COMPILE) { consume(t.type); os_printf("Compiler command not supported in baremetal OS.\n"); return new_node(NODE_EXPR_STMT); }
     if (t.type == TOKEN_VAR) { consume(TOKEN_VAR); n = new_node(NODE_VAR_STMT); n->var_type = TOKEN_NONE; if (peek().type >= TOKEN_BOOLEAN_TYPE && peek().type <= TOKEN_STRING_TYPE) n->var_type = consume_type().type; n->name = my_strdup(consume(TOKEN_IDENTIFIER).text); n->left = parse_expr(); return n; }
     if (t.type == TOKEN_SAY) { consume(TOKEN_SAY); n = new_node(NODE_SAY); n->left = parse_expr(); return n; }
     if (t.type == TOKEN_OUT) { consume(TOKEN_OUT); n = new_node(NODE_OUT); if (peek().type != TOKEN_EOF && peek().type != TOKEN_RBRACKET && peek().type != TOKEN_ELSE && is_expr_start(peek().type)) n->left = parse_expr(); return n; }
     if (t.type == TOKEN_INCREMENT || t.type == TOKEN_DECREMENT) { n = new_node(NODE_INCDEC); n->is_increment = consume(t.type).type == TOKEN_INCREMENT; n->name = my_strdup(consume(TOKEN_IDENTIFIER).text); n->left = parse_expr(); return n; }
-    if (t.type == TOKEN_IF) {
-        consume(TOKEN_IF); n = new_node(NODE_IF); n->cond = parse_expr(); consume(TOKEN_LBRACKET); n->body = malloc(sizeof(ASTNode*)*128); n->body_count = 0;
-        while(peek().type != TOKEN_RBRACKET && peek().type != TOKEN_EOF) n->body[n->body_count++] = parse_stmt(); consume(TOKEN_RBRACKET);
-        if (peek().type == TOKEN_ELSE) { consume(TOKEN_ELSE); consume(TOKEN_LBRACKET); n->false_body = malloc(sizeof(ASTNode*)*128); n->false_body_count = 0; while(peek().type != TOKEN_RBRACKET && peek().type != TOKEN_EOF) n->false_body[n->false_body_count++] = parse_stmt(); consume(TOKEN_RBRACKET); } return n;
-    }
-    if (t.type == TOKEN_REPEAT) {
-        consume(TOKEN_REPEAT); n = new_node(NODE_REPEAT); n->is_forever = false;
-        if (peek().type == TOKEN_IDENTIFIER && !strcmp(peek().text, "forever")) { consume(TOKEN_IDENTIFIER); n->is_forever = true; } else n->cond = parse_expr();
-        consume(TOKEN_LBRACKET); n->body = malloc(sizeof(ASTNode*)*128); n->body_count = 0;
-        while(peek().type != TOKEN_RBRACKET && peek().type != TOKEN_EOF) n->body[n->body_count++] = parse_stmt(); consume(TOKEN_RBRACKET); return n;
-    }
-    if (t.type == TOKEN_ARRAY) {
-        TokenType nt = peek_next().type;
-        if (nt == TOKEN_SET) { consume(TOKEN_ARRAY); consume(TOKEN_SET); n = new_node(NODE_ARRAY_SET); n->name = my_strdup(consume(TOKEN_IDENTIFIER).text); if (peek().type == TOKEN_COMMA) consume(TOKEN_COMMA); n->left = parse_expr(); if (peek().type == TOKEN_COMMA) consume(TOKEN_COMMA); n->right = parse_expr(); return n; }
-        if (nt >= TOKEN_BOOLEAN_TYPE && nt <= TOKEN_STRING_TYPE) { consume(TOKEN_ARRAY); n = new_node(NODE_ARRAY_DECL); n->var_type = consume_type().type; n->name = my_strdup(consume(TOKEN_IDENTIFIER).text); n->args = malloc(sizeof(ASTNode*)*128); n->arg_count = 0; if (peek().type != TOKEN_EOF && is_expr_start(peek().type)) { n->args[n->arg_count++] = parse_expr(); while(peek().type == TOKEN_COMMA) { consume(TOKEN_COMMA); n->args[n->arg_count++] = parse_expr(); } } return n; }
-    }
-    if (t.type == TOKEN_DICTIONARY) {
-        TokenType nt = peek_next().type;
-        if (nt == TOKEN_SET) { consume(TOKEN_DICTIONARY); consume(TOKEN_SET); n = new_node(NODE_DICT_SET); n->is_key = false; if (peek().type == TOKEN_IDENTIFIER && !strcmp(peek().text, "key")) { consume(TOKEN_IDENTIFIER); n->is_key = true; } else if (peek().type == TOKEN_IDENTIFIER && !strcmp(peek().text, "index")) { consume(TOKEN_IDENTIFIER); } else { os_printf("Expected key\n"); longjmp(easec_env, 1); } n->name = my_strdup(consume(TOKEN_IDENTIFIER).text); if (peek().type == TOKEN_COMMA) consume(TOKEN_COMMA); n->left = parse_expr(); if (peek().type == TOKEN_COMMA) consume(TOKEN_COMMA); n->right = parse_expr(); return n; }
-        if (nt == TOKEN_IDENTIFIER) { consume(TOKEN_DICTIONARY); n = new_node(NODE_DICT_DECL); n->name = my_strdup(consume(TOKEN_IDENTIFIER).text); n->dict_pairs = malloc(sizeof(DictPair)*128); n->pair_count = 0; if (peek().type == TOKEN_IDENTIFIER || peek().type == TOKEN_STRING_VALUE) { n->dict_pairs[n->pair_count].key = my_strdup(consume(peek().type).text); consume(TOKEN_COLON); n->dict_pairs[n->pair_count++].val = parse_expr(); while(peek().type == TOKEN_COMMA) { consume(TOKEN_COMMA); n->dict_pairs[n->pair_count].key = my_strdup(consume(peek().type).text); consume(TOKEN_COLON); n->dict_pairs[n->pair_count++].val = parse_expr(); } } return n; }
-    }
-    if (t.type == TOKEN_FILE) {
-        TokenType nt = peek_next().type;
-        if (nt == TOKEN_CREATE || nt == TOKEN_UPDATE || nt == TOKEN_DELETE) {
-            consume(TOKEN_FILE);
-            if (peek().type == TOKEN_CREATE) { consume(TOKEN_CREATE); n = new_node(NODE_FILE_CREATE); n->left = parse_expr(); consume(TOKEN_LBRACKET); n->right = parse_expr(); consume(TOKEN_RBRACKET); return n; }
-            if (peek().type == TOKEN_UPDATE) { consume(TOKEN_UPDATE); n = new_node(NODE_FILE_UPDATE); n->left = parse_expr(); consume(TOKEN_LBRACKET); n->right = parse_expr(); consume(TOKEN_RBRACKET); return n; }
-            if (peek().type == TOKEN_DELETE) { consume(TOKEN_DELETE); n = new_node(NODE_FILE_DELETE); n->left = parse_expr(); return n; }
-        }
-    }
-    if (t.type == TOKEN_JOB) {
-        consume(TOKEN_JOB); n = new_node(NODE_JOB); n->name = my_strdup(consume(TOKEN_IDENTIFIER).text); n->param_names = malloc(sizeof(char*)*32); n->param_count = 0;
-        while(peek().type == TOKEN_IDENTIFIER) n->param_names[n->param_count++] = my_strdup(consume(TOKEN_IDENTIFIER).text);
-        consume(TOKEN_LBRACKET); n->body = malloc(sizeof(ASTNode*)*128); n->body_count = 0;
-        while(peek().type != TOKEN_RBRACKET && peek().type != TOKEN_EOF) n->body[n->body_count++] = parse_stmt(); consume(TOKEN_RBRACKET); return n;
-    }
+    if (t.type == TOKEN_IF) { consume(TOKEN_IF); n = new_node(NODE_IF); n->cond = parse_expr(); consume(TOKEN_LBRACKET); n->body = malloc(sizeof(ASTNode*)*128); n->body_count = 0; while(peek().type != TOKEN_RBRACKET && peek().type != TOKEN_EOF) n->body[n->body_count++] = parse_stmt(); consume(TOKEN_RBRACKET); if (peek().type == TOKEN_ELSE) { consume(TOKEN_ELSE); consume(TOKEN_LBRACKET); n->false_body = malloc(sizeof(ASTNode*)*128); n->false_body_count = 0; while(peek().type != TOKEN_RBRACKET && peek().type != TOKEN_EOF) n->false_body[n->false_body_count++] = parse_stmt(); consume(TOKEN_RBRACKET); } return n; }
+    if (t.type == TOKEN_REPEAT) { consume(TOKEN_REPEAT); n = new_node(NODE_REPEAT); n->is_forever = false; if (peek().type == TOKEN_IDENTIFIER && !strcmp(peek().text, "forever")) { consume(TOKEN_IDENTIFIER); n->is_forever = true; } else n->cond = parse_expr(); consume(TOKEN_LBRACKET); n->body = malloc(sizeof(ASTNode*)*128); n->body_count = 0; while(peek().type != TOKEN_RBRACKET && peek().type != TOKEN_EOF) n->body[n->body_count++] = parse_stmt(); consume(TOKEN_RBRACKET); return n; }
+    if (t.type == TOKEN_ARRAY) { TokenType nt = peek_next().type; if (nt == TOKEN_SET) { consume(TOKEN_ARRAY); consume(TOKEN_SET); n = new_node(NODE_ARRAY_SET); n->name = my_strdup(consume(TOKEN_IDENTIFIER).text); if (peek().type == TOKEN_COMMA) consume(TOKEN_COMMA); n->left = parse_expr(); if (peek().type == TOKEN_COMMA) consume(TOKEN_COMMA); n->right = parse_expr(); return n; } if (nt >= TOKEN_BOOLEAN_TYPE && nt <= TOKEN_STRING_TYPE) { consume(TOKEN_ARRAY); n = new_node(NODE_ARRAY_DECL); n->var_type = consume_type().type; n->name = my_strdup(consume(TOKEN_IDENTIFIER).text); n->args = malloc(sizeof(ASTNode*)*128); n->arg_count = 0; if (peek().type != TOKEN_EOF && is_expr_start(peek().type)) { n->args[n->arg_count++] = parse_expr(); while(peek().type == TOKEN_COMMA) { consume(TOKEN_COMMA); n->args[n->arg_count++] = parse_expr(); } } return n; } }
+    if (t.type == TOKEN_DICTIONARY) { TokenType nt = peek_next().type; if (nt == TOKEN_SET) { consume(TOKEN_DICTIONARY); consume(TOKEN_SET); n = new_node(NODE_DICT_SET); n->is_key = false; if (peek().type == TOKEN_IDENTIFIER && !strcmp(peek().text, "key")) { consume(TOKEN_IDENTIFIER); n->is_key = true; } else if (peek().type == TOKEN_IDENTIFIER && !strcmp(peek().text, "index")) { consume(TOKEN_IDENTIFIER); } else { os_printf("Expected key\n"); longjmp(easec_env, 1); } n->name = my_strdup(consume(TOKEN_IDENTIFIER).text); if (peek().type == TOKEN_COMMA) consume(TOKEN_COMMA); n->left = parse_expr(); if (peek().type == TOKEN_COMMA) consume(TOKEN_COMMA); n->right = parse_expr(); return n; } if (nt == TOKEN_IDENTIFIER) { consume(TOKEN_DICTIONARY); n = new_node(NODE_DICT_DECL); n->name = my_strdup(consume(TOKEN_IDENTIFIER).text); n->dict_pairs = malloc(sizeof(DictPair)*128); n->pair_count = 0; if (peek().type == TOKEN_IDENTIFIER || peek().type == TOKEN_STRING_VALUE) { n->dict_pairs[n->pair_count].key = my_strdup(consume(peek().type).text); consume(TOKEN_COLON); n->dict_pairs[n->pair_count++].val = parse_expr(); while(peek().type == TOKEN_COMMA) { consume(TOKEN_COMMA); n->dict_pairs[n->pair_count].key = my_strdup(consume(peek().type).text); consume(TOKEN_COLON); n->dict_pairs[n->pair_count++].val = parse_expr(); } } return n; } }
+    if (t.type == TOKEN_FILE) { TokenType nt = peek_next().type; if (nt == TOKEN_CREATE || nt == TOKEN_UPDATE || nt == TOKEN_DELETE) { consume(TOKEN_FILE); if (peek().type == TOKEN_CREATE) { consume(TOKEN_CREATE); n = new_node(NODE_FILE_CREATE); n->left = parse_expr(); consume(TOKEN_LBRACKET); n->right = parse_expr(); consume(TOKEN_RBRACKET); return n; } if (peek().type == TOKEN_UPDATE) { consume(TOKEN_UPDATE); n = new_node(NODE_FILE_UPDATE); n->left = parse_expr(); consume(TOKEN_LBRACKET); n->right = parse_expr(); consume(TOKEN_RBRACKET); return n; } if (peek().type == TOKEN_DELETE) { consume(TOKEN_DELETE); n = new_node(NODE_FILE_DELETE); n->left = parse_expr(); return n; } } }
+    if (t.type == TOKEN_JOB) { consume(TOKEN_JOB); n = new_node(NODE_JOB); n->name = my_strdup(consume(TOKEN_IDENTIFIER).text); n->param_names = malloc(sizeof(char*)*32); n->param_count = 0; while(peek().type == TOKEN_IDENTIFIER) n->param_names[n->param_count++] = my_strdup(consume(TOKEN_IDENTIFIER).text); consume(TOKEN_LBRACKET); n->body = malloc(sizeof(ASTNode*)*128); n->body_count = 0; while(peek().type != TOKEN_RBRACKET && peek().type != TOKEN_EOF) n->body[n->body_count++] = parse_stmt(); consume(TOKEN_RBRACKET); return n; }
     n = new_node(NODE_EXPR_STMT); n->left = parse_expr(); return n;
 }
-
 ASTNode* parse() { ASTNode* p = new_node(NODE_PROG); p->body = malloc(sizeof(ASTNode*)*1024); p->body_count = 0; while(peek().type != TOKEN_EOF) p->body[p->body_count++] = parse_stmt(); return p; }
 
-char* value_to_string(Value v) {
-    char buf[256];
-    if (v.type == VAL_INT) os_sprintf(buf, "%lld", v.as.i); else if (v.type == VAL_FLOAT) os_sprintf(buf, "%g", v.as.f);
-    else if (v.type == VAL_BOOL) strcpy(buf, v.as.b ? "True" : "False"); else if (v.type == VAL_STRING) return my_strdup(v.as.s);
-    else strcpy(buf, "Object"); return my_strdup(buf);
-}
-Value cast_to_type(Value val, TokenType t) {
-    if (t == TOKEN_NUMBER_TYPE) { if (val.type == VAL_FLOAT) return val_int((long long)val.as.f); if (val.type == VAL_STRING) return val_int(atoll(val.as.s)); if (val.type == VAL_BOOL) return val_int(val.as.b ? 1 : 0); }
-    if (t == TOKEN_DECIMAL_TYPE) { if (val.type == VAL_INT) return val_float((double)val.as.i); if (val.type == VAL_STRING) return val_float(atof(val.as.s)); if (val.type == VAL_BOOL) return val_float(val.as.b ? 1.0 : 0.0); }
-    if (t == TOKEN_BOOLEAN_TYPE) { if (val.type == VAL_INT) return val_bool(val.as.i != 0); if (val.type == VAL_STRING) return val_bool(strlen(val.as.s) > 0); }
-    if (t == TOKEN_STRING_TYPE) return val_string(value_to_string(val)); return val;
-}
+char* value_to_string(Value v) { char buf[256]; if (v.type == VAL_INT) os_sprintf(buf, "%lld", v.as.i); else if (v.type == VAL_FLOAT) os_sprintf(buf, "%g", v.as.f); else if (v.type == VAL_BOOL) strcpy(buf, v.as.b ? "True" : "False"); else if (v.type == VAL_STRING) return my_strdup(v.as.s); else strcpy(buf, "Object"); return my_strdup(buf); }
+Value cast_to_type(Value val, TokenType t) { if (t == TOKEN_NUMBER_TYPE) { if (val.type == VAL_FLOAT) return val_int((long long)val.as.f); if (val.type == VAL_STRING) return val_int(atoll(val.as.s)); if (val.type == VAL_BOOL) return val_int(val.as.b ? 1 : 0); } if (t == TOKEN_DECIMAL_TYPE) { if (val.type == VAL_INT) return val_float((double)val.as.i); if (val.type == VAL_STRING) return val_float(atof(val.as.s)); if (val.type == VAL_BOOL) return val_float(val.as.b ? 1.0 : 0.0); } if (t == TOKEN_BOOLEAN_TYPE) { if (val.type == VAL_INT) return val_bool(val.as.i != 0); if (val.type == VAL_STRING) return val_bool(strlen(val.as.s) > 0); } if (t == TOKEN_STRING_TYPE) return val_string(value_to_string(val)); return val; }
 bool vals_equal(Value a, Value b) { if (a.type != b.type) return false; if (a.type == VAL_INT) return a.as.i == b.as.i; if (a.type == VAL_FLOAT) return a.as.f == b.as.f; if (a.type == VAL_BOOL) return a.as.b == b.as.b; if (a.type == VAL_STRING) return !strcmp(a.as.s, b.as.s); return false; }
 
 Value eval_expr(ASTNode* expr, Env* env); void exec_stmt(ASTNode* stmt, Env* env);
 
 Value eval_expr(ASTNode* expr, Env* env) {
-    if (!expr) return val_null();
-    if (expr->type == NODE_LITERAL) return expr->literal_val;
+    if (!expr) return val_null(); if (expr->type == NODE_LITERAL) return expr->literal_val;
     if (expr->type == NODE_VAR_EXPR) {
-        // Embed special built-in OS commands here
+        // OS Special System Hooks
         if (!strcmp(expr->name, "sys_clear")) { vga_clear(); return val_null(); }
         if (!strcmp(expr->name, "sys_shutdown")) { outw(0x604, 0x2000); outw(0xB004, 0x2000); return val_null(); }
         if (!strcmp(expr->name, "sys_restart")) { outb(0x64, 0xFE); return val_null(); }
-        if (!strcmp(expr->name, "sys_install")) { os_printf("Easec OS installation successfully mapped to Disk (Simulated).\n"); return val_null(); }
+        if (!strcmp(expr->name, "sys_install")) { sys_install_os(); return val_null(); }
+        if (!strcmp(expr->name, "sys_cd")) { vfs_cd(value_to_string(env_get(env, "sys_arg"))); return val_null(); }
+        if (!strcmp(expr->name, "sys_ls")) { vfs_ls(value_to_string(env_get(env, "sys_arg"))); return val_null(); }
+        if (!strcmp(expr->name, "sys_mkdir")) { vfs_mkdir(value_to_string(env_get(env, "sys_arg"))); return val_null(); }
+        if (!strcmp(expr->name, "sys_rmdir")) { vfs_rmdir(value_to_string(env_get(env, "sys_arg"))); return val_null(); }
 
         Value val = env_get(env, expr->name);
-        if (val.type == VAL_JOB) {
-            Env* local_env = new_env(env);
-            for (int i=0; i < val.as.job->body_count; i++) { exec_stmt(val.as.job->body[i], local_env); if (is_return) { is_return = false; return return_value; } if (is_break) { is_break = false; return val_null(); } }
-            return val_null();
-        } return val;
+        if (val.type == VAL_JOB) { Env* local_env = new_env(env); for (int i=0; i < val.as.job->body_count; i++) { exec_stmt(val.as.job->body[i], local_env); if (is_return) { is_return = false; return return_value; } if (is_break) { is_break = false; return val_null(); } } return val_null(); } return val;
     }
-    if (expr->type == NODE_GET) {
-        char buf[1024]; os_getline(buf, 1024);
-        char* end; long long l = strtoll(buf, &end, 10); if(*end == '\0') return val_int(l);
-        double d = strtod(buf, &end); if(*end == '\0') return val_float(d);
-        if(!strcasecmp(buf, "true")) return val_bool(true); if(!strcasecmp(buf, "false")) return val_bool(false); return val_string(buf);
-    }
-    if (expr->type == NODE_FILE_READ) {
-        char* fname = value_to_string(eval_expr(expr->left, env));
-        char* buf = vfs_read(fname); if(buf) return val_string(buf);
-        os_printf("Runtime Error: File not found.\n"); longjmp(easec_env, 1);
-    }
+    if (expr->type == NODE_GET) { char buf[1024]; os_getline(buf, 1024); char* end; long long l = strtoll(buf, &end, 10); if(*end == '\0') return val_int(l); double d = strtod(buf, &end); if(*end == '\0') return val_float(d); if(!strcasecmp(buf, "true")) return val_bool(true); if(!strcasecmp(buf, "false")) return val_bool(false); return val_string(buf); }
+    if (expr->type == NODE_FILE_READ) { char* fname = value_to_string(eval_expr(expr->left, env)); char* buf = vfs_read(fname); if(buf) return val_string(buf); os_printf("File not found.\n"); longjmp(easec_env, 1); }
     if (expr->type == NODE_ARRAY_GET) { Value obj = env_get(env, expr->name); if (obj.type == VAL_ARRAY) { int idx = (int)eval_expr(expr->left, env).as.i; return obj.as.arr->items[idx]; } os_printf("Not an array.\n"); longjmp(easec_env, 1); }
     if (expr->type == NODE_ARRAY_LEN) { Value obj = env_get(env, expr->name); if (obj.type == VAL_ARRAY) return val_int(obj.as.arr->count); os_printf("Not an array.\n"); longjmp(easec_env, 1); }
-    if (expr->type == NODE_DICT_GET) {
-        Value obj = env_get(env, expr->name); if (obj.type == VAL_DICT) {
-            if (expr->is_key) { char* key = value_to_string(eval_expr(expr->left, env)); for(int i=0; i<obj.as.dict->count; i++) { if(!strcmp(obj.as.dict->pairs[i].key, key)) return obj.as.dict->pairs[i].value; } os_printf("Key not found.\n"); longjmp(easec_env, 1); }
-            else { int idx = (int)eval_expr(expr->left, env).as.i; return obj.as.dict->pairs[idx].value; }
-        } os_printf("Not a dictionary.\n"); longjmp(easec_env, 1);
-    }
+    if (expr->type == NODE_DICT_GET) { Value obj = env_get(env, expr->name); if (obj.type == VAL_DICT) { if (expr->is_key) { char* key = value_to_string(eval_expr(expr->left, env)); for(int i=0; i<obj.as.dict->count; i++) { if(!strcmp(obj.as.dict->pairs[i].key, key)) return obj.as.dict->pairs[i].value; } os_printf("Key not found.\n"); longjmp(easec_env, 1); } else { int idx = (int)eval_expr(expr->left, env).as.i; return obj.as.dict->pairs[idx].value; } } os_printf("Not a dict.\n"); longjmp(easec_env, 1); }
     if (expr->type == NODE_DICT_LEN) { Value obj = env_get(env, expr->name); if (obj.type == VAL_DICT) return val_int(obj.as.dict->count); os_printf("Not a dict.\n"); longjmp(easec_env, 1); }
     if (expr->type == NODE_BIN_EXPR) {
         Value l = eval_expr(expr->left, env); Value r = eval_expr(expr->right, env);
         if (expr->op_type == TOKEN_EQUAL) return val_bool(vals_equal(l, r)); if (expr->op_type == TOKEN_NOT_EQUAL) return val_bool(!vals_equal(l, r));
         if (l.type == VAL_BOOL || r.type == VAL_BOOL) { if (expr->op_type == TOKEN_PLUS && (l.type == VAL_STRING || r.type == VAL_STRING)) { char *ls = value_to_string(l), *rs = value_to_string(r); char *res = malloc(strlen(ls) + strlen(rs) + 1); strcpy(res, ls); strcat(res, rs); return val_string(res); } os_printf("Invalid boolean OP.\n"); longjmp(easec_env, 1); }
         bool is_l_int = l.type == VAL_INT, is_r_int = r.type == VAL_INT;
-        if ((is_l_int || l.type == VAL_FLOAT) && (is_r_int || r.type == VAL_FLOAT)) {
-            double l_val = is_l_int ? (double)l.as.i : l.as.f; double r_val = is_r_int ? (double)r.as.i : r.as.f;
-            switch(expr->op_type) { case TOKEN_PLUS: return (is_l_int && is_r_int) ? val_int(l.as.i + r.as.i) : val_float(l_val + r_val); case TOKEN_MINUS: return (is_l_int && is_r_int) ? val_int(l.as.i - r.as.i) : val_float(l_val - r_val); case TOKEN_MULTIPLY: return (is_l_int && is_r_int) ? val_int(l.as.i * r.as.i) : val_float(l_val * r_val); case TOKEN_DIVIDE: return val_float(l_val / r_val); case TOKEN_MODULO: return (is_l_int && is_r_int) ? val_int(l.as.i % r.as.i) : val_float((long long)l_val % (long long)r_val); case TOKEN_GREATER: return val_bool(l_val > r_val); case TOKEN_LESS: return val_bool(l_val < r_val); case TOKEN_GREATER_EQUAL: return val_bool(l_val >= r_val); case TOKEN_LESS_EQUAL: return val_bool(l_val <= r_val); default: longjmp(easec_env, 1); }
-        }
-        if (expr->op_type == TOKEN_PLUS) { char *ls = value_to_string(l), *rs = value_to_string(r); char *res = malloc(strlen(ls) + strlen(rs) + 1); strcpy(res, ls); strcat(res, rs); return val_string(res); }
-        os_printf("Invalid binop.\n"); longjmp(easec_env, 1);
+        if ((is_l_int || l.type == VAL_FLOAT) && (is_r_int || r.type == VAL_FLOAT)) { double l_val = is_l_int ? (double)l.as.i : l.as.f; double r_val = is_r_int ? (double)r.as.i : r.as.f; switch(expr->op_type) { case TOKEN_PLUS: return (is_l_int && is_r_int) ? val_int(l.as.i + r.as.i) : val_float(l_val + r_val); case TOKEN_MINUS: return (is_l_int && is_r_int) ? val_int(l.as.i - r.as.i) : val_float(l_val - r_val); case TOKEN_MULTIPLY: return (is_l_int && is_r_int) ? val_int(l.as.i * r.as.i) : val_float(l_val * r_val); case TOKEN_DIVIDE: return val_float(l_val / r_val); case TOKEN_MODULO: return (is_l_int && is_r_int) ? val_int(l.as.i % r.as.i) : val_float((long long)l_val % (long long)r_val); case TOKEN_GREATER: return val_bool(l_val > r_val); case TOKEN_LESS: return val_bool(l_val < r_val); case TOKEN_GREATER_EQUAL: return val_bool(l_val >= r_val); case TOKEN_LESS_EQUAL: return val_bool(l_val <= r_val); default: longjmp(easec_env, 1); } }
+        if (expr->op_type == TOKEN_PLUS) { char *ls = value_to_string(l), *rs = value_to_string(r); char *res = malloc(strlen(ls) + strlen(rs) + 1); strcpy(res, ls); strcat(res, rs); return val_string(res); } os_printf("Invalid binop.\n"); longjmp(easec_env, 1);
     }
-    if (expr->type == NODE_CALL) {
-        Value f = env_get(env, expr->name);
-        if (f.type == VAL_JOB) {
-            Env* loc = new_env(env); for(int i=0; i < f.as.job->param_count; i++) env_define(loc, f.as.job->param_names[i], i < expr->arg_count ? eval_expr(expr->args[i], env) : val_null());
-            for(int i=0; i < f.as.job->body_count; i++) { exec_stmt(f.as.job->body[i], loc); if (is_return) { is_return = false; return return_value; } if (is_break) { is_break = false; return val_null(); } } return val_null();
-        } os_printf("Not a func.\n"); longjmp(easec_env, 1);
-    } return val_null();
+    if (expr->type == NODE_CALL) { Value f = env_get(env, expr->name); if (f.type == VAL_JOB) { Env* loc = new_env(env); for(int i=0; i < f.as.job->param_count; i++) env_define(loc, f.as.job->param_names[i], i < expr->arg_count ? eval_expr(expr->args[i], env) : val_null()); for(int i=0; i < f.as.job->body_count; i++) { exec_stmt(f.as.job->body[i], loc); if (is_return) { is_return = false; return return_value; } if (is_break) { is_break = false; return val_null(); } } return val_null(); } os_printf("Not a func.\n"); longjmp(easec_env, 1); } return val_null();
 }
 
 void exec_stmt(ASTNode* stmt, Env* env) {
     if (!stmt) return;
-    if (stmt->type == NODE_RAW || stmt->type == NODE_COMPILE) os_printf("C extensions not supported in baremetal environment.\n");
+    if (stmt->type == NODE_RAW || stmt->type == NODE_COMPILE) os_printf("C extensions not supported.\n");
     else if (stmt->type == NODE_VAR_STMT) { Value val = eval_expr(stmt->left, env); if (stmt->var_type != TOKEN_NONE) val = cast_to_type(val, stmt->var_type); env_define(env, stmt->name, val); }
     else if (stmt->type == NODE_SAY) os_printf("%s\n", value_to_string(eval_expr(stmt->left, env)));
     else if (stmt->type == NODE_OUT) { if (stmt->left) { return_value = eval_expr(stmt->left, env); is_return = true; } else is_break = true; }
@@ -308,15 +135,15 @@ void exec_stmt(ASTNode* stmt, Env* env) {
     else if (stmt->type == NODE_DICT_SET) { Value d = env_get(env, stmt->name); if (d.type == VAL_DICT) { Value val = eval_expr(stmt->right, env); if (stmt->is_key) { char* k = value_to_string(eval_expr(stmt->left, env)); dict_set(d.as.dict, k, val); } else { int idx = (int)eval_expr(stmt->left, env).as.i; if(idx >= 0 && idx < d.as.dict->count) d.as.dict->pairs[idx].value = val; else { os_printf("Index error\n"); longjmp(easec_env, 1); } } } else { os_printf("Not dict\n"); longjmp(easec_env, 1); } }
     else if (stmt->type == NODE_FILE_CREATE) { char* fname = value_to_string(eval_expr(stmt->left, env)); char* cnt = value_to_string(eval_expr(stmt->right, env)); vfs_write(fname, cnt); }
     else if (stmt->type == NODE_FILE_UPDATE) { char* fname = value_to_string(eval_expr(stmt->left, env)); char* cnt = value_to_string(eval_expr(stmt->right, env)); vfs_append(fname, cnt); }
-    else if (stmt->type == NODE_FILE_DELETE) { char* fname = value_to_string(eval_expr(stmt->left, env)); if (vfs_delete(fname) != 0) { os_printf("File delete failed.\n"); longjmp(easec_env, 1); } }
+    else if (stmt->type == NODE_FILE_DELETE) { char* fname = value_to_string(eval_expr(stmt->left, env)); if (vfs_delete(fname) != 0) { os_printf("File delete fail.\n"); longjmp(easec_env, 1); } }
     else if (stmt->type == NODE_JOB) env_define(env, stmt->name, val_job(stmt));
     else if (stmt->type == NODE_EXPR_STMT) eval_expr(stmt->left, env);
 }
 
-void run_easec(const char* code) {
+void run_easec(const char* code, const char* arg) {
     token_count = 0; current_token = 0; is_break = false; is_return = false;
-    tokenize(code);
-    ASTNode* ast = parse();
+    tokenize(code); ASTNode* ast = parse();
     Env* global_env = new_env(NULL);
+    env_define(global_env, "sys_arg", val_string(arg ? arg : "")); // Pass CLI args to script!
     for(int i=0; i<ast->body_count; i++) exec_stmt(ast->body[i], global_env);
 }
