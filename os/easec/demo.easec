@@ -1,6 +1,6 @@
 say "--- EASEC DEMO ---"
 say "Variables:"
-var number mynum = 42
+var number mynum 42
 say mynum
 
 say "Arrays:"
@@ -15,13 +15,13 @@ say "No"
 ]
 
 say "Loops:"
-var i = 0
+var i 0
 repeat 3 [
 say i
 increment i 1
 ]
 
-say "Jobs (Functions):"
+say "Jobs:"
 job greet x [
 say "Hello " + x
 ]

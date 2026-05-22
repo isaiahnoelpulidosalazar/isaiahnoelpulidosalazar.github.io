@@ -1,1 +1,1 @@
-var tmp = sys_shutdown
+var tmp sys_shutdown

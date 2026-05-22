@@ -1,4 +1,3 @@
-say "Enter filename to delete:"
-var fname = get
+say "Delete target:"
+var fname get
 file delete fname
-say "File deleted successfully!"

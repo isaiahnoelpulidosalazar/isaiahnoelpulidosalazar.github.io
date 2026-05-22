@@ -1,5 +1,5 @@
 #include "kernel.h"
-#include "scripts.h"
+#include "scripts.h" // AUTO-GENERATED BUNDLE FROM MAKEFILE
 
 // --- SETJMP / LONGJMP ---
 __attribute__((naked)) int setjmp(jmp_buf buf) { asm volatile ("mov 4(%esp), %eax\n mov %ebx, 0(%eax)\n mov %esi, 4(%eax)\n mov %edi, 8(%eax)\n mov %ebp, 12(%eax)\n mov %esp, 16(%eax)\n mov 0(%esp), %edx\n mov %edx, 20(%eax)\n xor %eax, %eax\n ret\n"); }
@@ -38,11 +38,10 @@ ata_drive_t drives[4];
 
 typedef struct { uint8_t status; uint8_t chs_first[3]; uint8_t type; uint8_t chs_last[3]; uint32_t lba_start; uint32_t num_sectors; } __attribute__((packed)) mbr_entry_t;
 
-// Added timeouts to prevent infinite freeze when drives are missing!
 bool ata_wait_bsy(uint16_t io) { 
     for(int i=0; i<100000; i++) { 
         uint8_t status = inb(io + 7);
-        if (status == 0xFF) return false; // Missing hardware detected
+        if (status == 0xFF) return false; 
         if (!(status & 0x80)) return true; 
     } 
     return false; 
@@ -54,12 +53,10 @@ bool ata_wait_drq(uint16_t io) {
 
 void ata_identify(int idx, uint16_t io_base, uint8_t drive_sel) {
     drives[idx].present = false; drives[idx].io_base = io_base; drives[idx].drive_sel = drive_sel;
-    
-    // Check for floating bus BEFORE doing anything
     if (inb(io_base + 7) == 0xFF) return; 
 
     outb(io_base + 6, drive_sel); outb(io_base + 2, 0); outb(io_base + 3, 0); outb(io_base + 4, 0); outb(io_base + 5, 0);
-    outb(io_base + 7, 0xEC); // IDENTIFY
+    outb(io_base + 7, 0xEC); 
     
     uint8_t status = inb(io_base + 7);
     if (status == 0 || status == 0xFF) return; 
@@ -68,8 +65,8 @@ void ata_identify(int idx, uint16_t io_base, uint8_t drive_sel) {
     
     while (1) {
         status = inb(io_base + 7);
-        if (status & 0x01) return; // ERR
-        if (status & 0x08) break;  // DRQ
+        if (status & 0x01) return; 
+        if (status & 0x08) break;  
     }
     
     uint16_t buf[256]; for (int i=0; i<256; i++) buf[i] = inw(io_base + 0);
@@ -78,8 +75,8 @@ void ata_identify(int idx, uint16_t io_base, uint8_t drive_sel) {
 }
 
 void ata_init() {
-    ata_identify(0, 0x1F0, 0xA0); ata_identify(1, 0x1F0, 0xB0); // Primary Controller
-    ata_identify(2, 0x170, 0xA0); ata_identify(3, 0x170, 0xB0); // Secondary Controller
+    ata_identify(0, 0x1F0, 0xA0); ata_identify(1, 0x1F0, 0xB0); 
+    ata_identify(2, 0x170, 0xA0); ata_identify(3, 0x170, 0xB0); 
 }
 
 void raw_ata_write_sector(int idx, uint32_t lba, uint8_t* buffer) {
@@ -87,7 +84,7 @@ void raw_ata_write_sector(int idx, uint32_t lba, uint8_t* buffer) {
     if (!ata_wait_bsy(io)) return;
     outb(io + 6, (sel | 0x40) | ((lba >> 24) & 0x0F));
     outb(io + 2, 1); outb(io + 3, (uint8_t)lba); outb(io + 4, (uint8_t)(lba >> 8)); outb(io + 5, (uint8_t)(lba >> 16));
-    outb(io + 7, 0x30); // WRITE
+    outb(io + 7, 0x30); 
     if (!ata_wait_bsy(io) || !ata_wait_drq(io)) return;
     for(int i=0; i<256; i++) outw(io + 0, ((uint16_t*)buffer)[i]);
 }
@@ -97,17 +94,16 @@ void raw_ata_read_sector(int idx, uint32_t lba, uint8_t* buffer) {
     if (!ata_wait_bsy(io)) { memset(buffer, 0, 512); return; }
     outb(io + 6, (sel | 0x40) | ((lba >> 24) & 0x0F));
     outb(io + 2, 1); outb(io + 3, (uint8_t)lba); outb(io + 4, (uint8_t)(lba >> 8)); outb(io + 5, (uint8_t)(lba >> 16));
-    outb(io + 7, 0x20); // READ
+    outb(io + 7, 0x20); 
     if (!ata_wait_bsy(io)) { memset(buffer, 0, 512); return; }
-    if(inb(io + 7) & 0x01) { memset(buffer, 0, 512); return; } // ERR
+    if(inb(io + 7) & 0x01) { memset(buffer, 0, 512); return; } 
     if (!ata_wait_drq(io)) { memset(buffer, 0, 512); return; }
     for(int i=0; i<256; i++) ((uint16_t*)buffer)[i] = inw(io + 0);
 }
 
-// OS Boot Management & Live RAM Disk
-int boot_drive_idx = -1; // -1 = Live CD/RAM Disk mode
+int boot_drive_idx = -1; 
 uint32_t fs_lba_offset = 0; 
-uint8_t ram_disk[1024 * 1024]; // 1MB RAM Disk
+uint8_t ram_disk[1024 * 1024]; 
 
 void ata_write_sector(uint32_t lba, uint8_t* buffer) {
     if (boot_drive_idx == -1) { if(lba < 2048) memcpy(&ram_disk[lba * 512], buffer, 512); return; }
@@ -162,7 +158,7 @@ void sys_format_os() {
     inodes[1].used = 1; inodes[1].is_dir = 1; inodes[1].parent = 0; strcpy(inodes[1].name, "boot");
     inodes[2].used = 1; inodes[2].is_dir = 1; inodes[2].parent = 0; strcpy(inodes[2].name, "easec");
     fs_flush_nodes();
-    load_easec_scripts(); // Loads dynamic files bundled from Python!
+    load_easec_scripts();
     os_printf("System Formatted successfully.\n");
 }
 

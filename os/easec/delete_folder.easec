@@ -1,1 +1,1 @@
-var tmp = sys_rmdir
+var tmp sys_rmdir

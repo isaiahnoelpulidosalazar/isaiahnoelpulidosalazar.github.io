@@ -1,6 +1,5 @@
-say "Enter filename:"
-var fname = get
-say "Enter content:"
-var fcontent = get
+say "Filename:"
+var fname get
+say "Content:"
+var fcontent get
 file create fname [ fcontent ]
-say "File created successfully!"
