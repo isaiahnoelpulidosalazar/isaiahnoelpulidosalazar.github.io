@@ -1,6 +1,6 @@
-if arg1 == "" [
-    say "Usage: create_file <filename> \"<content>\""
-] else [
-    file create arg1 [ arg2 ]
-    say "File '" + arg1 + "' written successfully."
-]
+say "Enter filename:"
+var fname = get
+say "Enter content:"
+var fcontent = get
+file create fname [ fcontent ]
+say "File created successfully!"

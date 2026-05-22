@@ -1,6 +1,4 @@
-if arg1 == "" [
-    say "Usage: delete_file <filename>"
-] else [
-    file delete arg1
-    say "File '" + arg1 + "' removed from VFS."
-]
+say "Enter filename to delete:"
+var fname = get
+file delete fname
+say "File deleted successfully!"

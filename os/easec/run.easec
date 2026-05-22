@@ -1,5 +1,0 @@
-if arg1 == "" [
-    say "Usage: run <filename.easec>"
-] else [
-    run arg1
-]

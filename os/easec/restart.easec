@@ -1,2 +1,1 @@
-say "[System] Restarting..."
-restart
+var tmp = sys_restart

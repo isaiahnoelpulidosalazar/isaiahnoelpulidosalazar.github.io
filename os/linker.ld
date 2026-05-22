@@ -4,25 +4,26 @@ SECTIONS
 {
     . = 1M;
 
-    .text :
+    .text BLOCK(4K) : ALIGN(4K)
     {
         *(.multiboot)
         *(.text)
     }
 
-    .rodata :
+    .rodata BLOCK(4K) : ALIGN(4K)
     {
         *(.rodata)
     }
 
-    .data :
+    .data BLOCK(4K) : ALIGN(4K)
     {
         *(.data)
     }
 
-    .bss :
+    .bss BLOCK(4K) : ALIGN(4K)
     {
         *(COMMON)
         *(.bss)
+        PROVIDE(end = .);
     }
 }

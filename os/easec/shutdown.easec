@@ -1,2 +1,1 @@
-say "[System] Shutting down..."
-shutdown
+var tmp = sys_shutdown
