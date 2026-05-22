@@ -15,7 +15,6 @@ void* realloc(void* p, size_t size) { if(!p) return malloc(size); if(size == 0) 
 // --- LIBC STRING & CTYPE ---
 size_t strlen(const char* s) { size_t i=0; while(s[i]) i++; return i; } char* strcpy(char* d, const char* s) { int i=0; while((d[i]=s[i])) i++; return d; } char* strncpy(char* d, const char* s, size_t n) { size_t i=0; while(i<n && s[i]) {d[i]=s[i]; i++;} while(i<n) d[i++]='\0'; return d; } int strcmp(const char* s1, const char* s2) { while(*s1 && (*s1==*s2)) { s1++; s2++; } return *(const unsigned char*)s1 - *(const unsigned char*)s2; } int strncmp(const char* s1, const char* s2, size_t n) { while(n--) { if(*s1!=*s2) return *(const unsigned char*)s1 - *(const unsigned char*)s2; s1++; s2++; } return 0; } int strcasecmp(const char* s1, const char* s2) { while(*s1) { char c1 = (*s1>='A'&&*s1<='Z')?*s1+32:*s1; char c2 = (*s2>='A'&&*s2<='Z')?*s2+32:*s2; if (c1 != c2) return c1 - c2; s1++; s2++; } return *s2 == 0 ? 0 : -1; } char* strrchr(const char* s, int c) { const char* last = NULL; while(*s) { if (*s == (char)c) last = s; s++; } return (char*)last; } void* memset(void* s, int c, size_t n) { unsigned char* p=s; while(n--) *p++=(unsigned char)c; return s; } void* memcpy(void* d, const void* s, size_t n) { unsigned char* pd=d; const unsigned char* ps=s; while(n--) *pd++=*ps++; return d; } void* memmove(void* d, const void* s, size_t n) { unsigned char* pd=d; const unsigned char* ps=s; if(pd<ps) while(n--) *pd++=*ps++; else { pd+=n; ps+=n; while(n--) *--pd=*--ps; } return d; } size_t strcspn(const char* s, const char* rej) { size_t c=0; while(*s) { const char* r=rej; while(*r) { if(*s==*r) return c; r++; } s++; c++; } return c; } char* strcat(char* d, const char* s) { strcpy(d + strlen(d), s); return d; } int isspace(int c) { return c==' '||c=='\t'||c=='\n'||c=='\r'||c=='\f'||c=='\v'; } int isdigit(int c) { return c>='0'&&c<='9'; } int isalpha(int c) { return (c>='a'&&c<='z')||(c>='A'&&c<='Z'); } int isalnum(int c) { return isalpha(c)||isdigit(c); }
 long long atoll(const char* str) { long long res=0; int sign=1; while(isspace(*str)) str++; if(*str=='-') { sign=-1; str++; } else if(*str=='+') str++; while(isdigit(*str)) res = res*10 + (*str++ - '0'); return res*sign; } double atof(const char* str) { double res=0, frac=1; int sign=1; while(isspace(*str)) str++; if(*str=='-') { sign=-1; str++; } else if(*str=='+') str++; while(isdigit(*str)) res = res*10 + (*str++ - '0'); if(*str=='.') { str++; while(isdigit(*str)) { res = res*10 + (*str++ - '0'); frac*=10; } } return sign * (res/frac); } long long strtoll(const char* str, char** endptr, int base) { (void)base; if(endptr) *endptr = (char*)str + strlen(str); return atoll(str); } double strtod(const char* str, char** endptr) { if(endptr) *endptr = (char*)str + strlen(str); return atof(str); }
-
 void itoa(long long num, char* str) { int i = 0; bool is_neg = false; if (num == 0) { str[i++] = '0'; str[i] = '\0'; return; } if (num < 0) { is_neg = true; num = -num; } while(num != 0) { str[i++] = (num % 10) + '0'; num /= 10; } if (is_neg) str[i++] = '-'; str[i] = '\0'; for(int j=0; j<i/2; j++) { char t=str[j]; str[j]=str[i-1-j]; str[i-1-j]=t; } }
 void ftoa(double n, char* res) { long long ipart = (long long)n; double fpart = n - (double)ipart; if(n < 0 && ipart == 0) { *res++ = '-'; fpart = -fpart; } else if (n < 0) fpart = -fpart; itoa(ipart, res); int len = strlen(res); res[len] = '.'; long long frac = (long long)(fpart * 1000000); itoa(frac, res + len + 1); }
 int os_sprintf(char* buf, const char* fmt, ...) { va_list args; va_start(args, fmt); int i = 0; while(*fmt) { if (*fmt == '%') { fmt++; if (*fmt == 'l' && *(fmt+1) == 'l' && *(fmt+2) == 'd') { char tmp[64]; itoa(va_arg(args, long long), tmp); strcpy(&buf[i], tmp); i += strlen(tmp); fmt += 2; } else if (*fmt == 'g' || *fmt == 'f') { char tmp[64]; ftoa(va_arg(args, double), tmp); strcpy(&buf[i], tmp); i += strlen(tmp); } else if (*fmt == 's') { char* str = va_arg(args, char*); strcpy(&buf[i], str); i += strlen(str); } else if (*fmt == 'c') { buf[i++] = (char)va_arg(args, int); } } else { buf[i++] = *fmt; } fmt++; } buf[i] = '\0'; va_end(args); return i; }
@@ -33,53 +32,75 @@ const char kbd_US_shift[128] = { 0,27,'!','@','#','$','%','^','&','*','(',')','_
 char os_getchar() { static bool shift = false; while(1) { if (inb(0x64) & 1) { uint8_t sc = inb(0x60); if (sc == 0x2A || sc == 0x36) shift = true; else if (sc == 0xAA || sc == 0xB6) shift = false; else if (!(sc & 0x80)) { char c = shift ? kbd_US_shift[sc] : kbd_US[sc]; if (c) return c; } } } }
 void os_getline(char* buf, int max) { int i = 0; while(i < max - 1) { char c = os_getchar(); if (c == '\b') { if (i > 0) { i--; vga_putchar('\b'); vga_putchar(' '); vga_putchar('\b'); } } else if (c == '\n') { os_printf("\n"); buf[i] = '\0'; return; } else { os_printf("%c", c); buf[i++] = c; } } buf[i] = '\0'; }
 
-// --- ADVANCED ATA ENUMERATOR & PARTITION MBR DRIVER ---
+// --- CRASH-PROOF ATA ENUMERATOR & PARTITION DRIVER ---
 typedef struct { bool present; bool is_atapi; uint32_t sectors; uint16_t io_base; uint8_t drive_sel; } ata_drive_t;
 ata_drive_t drives[4];
 
 typedef struct { uint8_t status; uint8_t chs_first[3]; uint8_t type; uint8_t chs_last[3]; uint32_t lba_start; uint32_t num_sectors; } __attribute__((packed)) mbr_entry_t;
 
-void ata_wait_bsy(uint16_t io) { while(inb(io + 7) & 0x80); }
-void ata_wait_drq(uint16_t io) { while(!(inb(io + 7) & 0x08)); }
+// Added timeouts to prevent infinite freeze when drives are missing!
+bool ata_wait_bsy(uint16_t io) { 
+    for(int i=0; i<100000; i++) { 
+        uint8_t status = inb(io + 7);
+        if (status == 0xFF) return false; // Missing hardware detected
+        if (!(status & 0x80)) return true; 
+    } 
+    return false; 
+}
+bool ata_wait_drq(uint16_t io) { 
+    for(int i=0; i<100000; i++) { if (inb(io + 7) & 0x08) return true; } 
+    return false; 
+}
 
 void ata_identify(int idx, uint16_t io_base, uint8_t drive_sel) {
     drives[idx].present = false; drives[idx].io_base = io_base; drives[idx].drive_sel = drive_sel;
+    
+    // Check for floating bus BEFORE doing anything
+    if (inb(io_base + 7) == 0xFF) return; 
+
     outb(io_base + 6, drive_sel); outb(io_base + 2, 0); outb(io_base + 3, 0); outb(io_base + 4, 0); outb(io_base + 5, 0);
     outb(io_base + 7, 0xEC); // IDENTIFY
-    if (inb(io_base + 7) == 0) return;
-    ata_wait_bsy(io_base);
+    
+    uint8_t status = inb(io_base + 7);
+    if (status == 0 || status == 0xFF) return; 
+    if (!ata_wait_bsy(io_base)) return;
     if (inb(io_base + 4) != 0 || inb(io_base + 5) != 0) { drives[idx].is_atapi = true; drives[idx].present = true; return; }
-    while ((inb(io_base + 7) & 0x08) == 0 && (inb(io_base + 7) & 0x01) == 0);
-    if (inb(io_base + 7) & 0x01) return;
+    
+    while (1) {
+        status = inb(io_base + 7);
+        if (status & 0x01) return; // ERR
+        if (status & 0x08) break;  // DRQ
+    }
+    
     uint16_t buf[256]; for (int i=0; i<256; i++) buf[i] = inw(io_base + 0);
     drives[idx].present = true; drives[idx].is_atapi = false;
     drives[idx].sectors = *(uint32_t*)&buf[60];
 }
 
 void ata_init() {
-    ata_identify(0, 0x1F0, 0xA0); ata_identify(1, 0x1F0, 0xB0); // Pri
-    ata_identify(2, 0x170, 0xA0); ata_identify(3, 0x170, 0xB0); // Sec
+    ata_identify(0, 0x1F0, 0xA0); ata_identify(1, 0x1F0, 0xB0); // Primary Controller
+    ata_identify(2, 0x170, 0xA0); ata_identify(3, 0x170, 0xB0); // Secondary Controller
 }
 
 void raw_ata_write_sector(int idx, uint32_t lba, uint8_t* buffer) {
     uint16_t io = drives[idx].io_base; uint8_t sel = drives[idx].drive_sel;
-    ata_wait_bsy(io);
+    if (!ata_wait_bsy(io)) return;
     outb(io + 6, (sel | 0x40) | ((lba >> 24) & 0x0F));
     outb(io + 2, 1); outb(io + 3, (uint8_t)lba); outb(io + 4, (uint8_t)(lba >> 8)); outb(io + 5, (uint8_t)(lba >> 16));
     outb(io + 7, 0x30); // WRITE
-    ata_wait_bsy(io); ata_wait_drq(io);
+    if (!ata_wait_bsy(io) || !ata_wait_drq(io)) return;
     for(int i=0; i<256; i++) outw(io + 0, ((uint16_t*)buffer)[i]);
 }
 
 void raw_ata_read_sector(int idx, uint32_t lba, uint8_t* buffer) {
     uint16_t io = drives[idx].io_base; uint8_t sel = drives[idx].drive_sel;
-    ata_wait_bsy(io);
+    if (!ata_wait_bsy(io)) { memset(buffer, 0, 512); return; }
     outb(io + 6, (sel | 0x40) | ((lba >> 24) & 0x0F));
     outb(io + 2, 1); outb(io + 3, (uint8_t)lba); outb(io + 4, (uint8_t)(lba >> 8)); outb(io + 5, (uint8_t)(lba >> 16));
     outb(io + 7, 0x20); // READ
-    ata_wait_bsy(io);
+    if (!ata_wait_bsy(io)) { memset(buffer, 0, 512); return; }
     if(inb(io + 7) & 0x01) { memset(buffer, 0, 512); return; } // ERR
-    ata_wait_drq(io);
+    if (!ata_wait_drq(io)) { memset(buffer, 0, 512); return; }
     for(int i=0; i<256; i++) ((uint16_t*)buffer)[i] = inw(io + 0);
 }
 
@@ -115,11 +136,7 @@ void fs_flush_nodes() {
     uint8_t* ptr = (uint8_t*)inodes;
     for(int i=0; i < 34; i++) ata_write_sector(2 + i, ptr + i*512);
 }
-
-int fs_find_child(int parent_id, const char* name) {
-    for(int i=0; i<MAX_NODES; i++) if(inodes[i].used && inodes[i].parent == parent_id && strcmp(inodes[i].name, name) == 0) return i; return -1;
-}
-
+int fs_find_child(int parent_id, const char* name) { for(int i=0; i<MAX_NODES; i++) if(inodes[i].used && inodes[i].parent == parent_id && strcmp(inodes[i].name, name) == 0) return i; return -1; }
 int fs_resolve(const char* path) {
     if(!path || strlen(path) == 0) return current_dir_id;
     int curr = current_dir_id; int i = 0;
@@ -177,7 +194,7 @@ void sys_install_os() {
         }
     }
 
-    if (target_count == 0) { os_printf("No installable Hard Drives found! (Are you in a VM with only a CD-ROM?)\n"); return; }
+    if (target_count == 0) { os_printf("No installable IDE Hard Drives found!\n(Are you using SATA/NVMe? OS IDE driver only supports legacy mode)\n"); return; }
     for(int i=0; i<target_count; i++) os_printf("[%d] %s\n", i, install_targets[i].name);
     
     os_printf("\nEnter target ID (or 'q' to cancel): "); char buf[16]; os_getline(buf, 16);
