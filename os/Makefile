@@ -9,10 +9,14 @@ OBJS = boot.o kernel.o easec.o
 
 all: inpsos.iso
 
+scripts.h:
+	@echo "Bundling easec scripts..."
+	@python3 -c 'import os, json; out = open("scripts.h", "w"); out.write("void load_easec_scripts() {\\n"); [out.write(f"    fs_write(\"/inpsos/easec/{f}\", {json.dumps(open(os.path.join(\"easec\", f)).read())});\\n") for f in os.listdir("easec") if f.endswith(".easec")] if os.path.exists("easec") else None; out.write("}\\n"); out.close()'
+
 boot.o: boot.s
 	$(AS) $(ASFLAGS) -c $< -o $@
 
-kernel.o: kernel.c
+kernel.o: kernel.c scripts.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
 easec.o: easec.c
@@ -28,4 +32,4 @@ inpsos.iso: inpsos.bin
 	grub-mkrescue -o inpsos.iso isodir
 
 clean:
-	rm -rf *.o inpsos.bin inpsos.iso isodir
+	rm -rf *.o inpsos.bin inpsos.iso isodir scripts.h

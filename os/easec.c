@@ -90,21 +90,20 @@ Value eval_expr(ASTNode* expr, Env* env); void exec_stmt(ASTNode* stmt, Env* env
 Value eval_expr(ASTNode* expr, Env* env) {
     if (!expr) return val_null(); if (expr->type == NODE_LITERAL) return expr->literal_val;
     if (expr->type == NODE_VAR_EXPR) {
-        // OS Special System Hooks
         if (!strcmp(expr->name, "sys_clear")) { vga_clear(); return val_null(); }
         if (!strcmp(expr->name, "sys_shutdown")) { outw(0x604, 0x2000); outw(0xB004, 0x2000); return val_null(); }
         if (!strcmp(expr->name, "sys_restart")) { outb(0x64, 0xFE); return val_null(); }
-        if (!strcmp(expr->name, "sys_install")) { sys_install_os(); return val_null(); }
-        if (!strcmp(expr->name, "sys_cd")) { vfs_cd(value_to_string(env_get(env, "sys_arg"))); return val_null(); }
-        if (!strcmp(expr->name, "sys_ls")) { vfs_ls(value_to_string(env_get(env, "sys_arg"))); return val_null(); }
-        if (!strcmp(expr->name, "sys_mkdir")) { vfs_mkdir(value_to_string(env_get(env, "sys_arg"))); return val_null(); }
-        if (!strcmp(expr->name, "sys_rmdir")) { vfs_rmdir(value_to_string(env_get(env, "sys_arg"))); return val_null(); }
+        if (!strcmp(expr->name, "sys_format")) { sys_format_os(); return val_null(); }
+        if (!strcmp(expr->name, "sys_cd")) { fs_cd(value_to_string(env_get(env, "sys_arg"))); return val_null(); }
+        if (!strcmp(expr->name, "sys_ls")) { fs_ls(value_to_string(env_get(env, "sys_arg"))); return val_null(); }
+        if (!strcmp(expr->name, "sys_mkdir")) { fs_mkdir(value_to_string(env_get(env, "sys_arg"))); return val_null(); }
+        if (!strcmp(expr->name, "sys_rmdir")) { fs_rmdir(value_to_string(env_get(env, "sys_arg"))); return val_null(); }
 
         Value val = env_get(env, expr->name);
         if (val.type == VAL_JOB) { Env* local_env = new_env(env); for (int i=0; i < val.as.job->body_count; i++) { exec_stmt(val.as.job->body[i], local_env); if (is_return) { is_return = false; return return_value; } if (is_break) { is_break = false; return val_null(); } } return val_null(); } return val;
     }
     if (expr->type == NODE_GET) { char buf[1024]; os_getline(buf, 1024); char* end; long long l = strtoll(buf, &end, 10); if(*end == '\0') return val_int(l); double d = strtod(buf, &end); if(*end == '\0') return val_float(d); if(!strcasecmp(buf, "true")) return val_bool(true); if(!strcasecmp(buf, "false")) return val_bool(false); return val_string(buf); }
-    if (expr->type == NODE_FILE_READ) { char* fname = value_to_string(eval_expr(expr->left, env)); char* buf = vfs_read(fname); if(buf) return val_string(buf); os_printf("File not found.\n"); longjmp(easec_env, 1); }
+    if (expr->type == NODE_FILE_READ) { char* fname = value_to_string(eval_expr(expr->left, env)); char* buf = fs_read(fname); if(buf) return val_string(buf); os_printf("File not found.\n"); longjmp(easec_env, 1); }
     if (expr->type == NODE_ARRAY_GET) { Value obj = env_get(env, expr->name); if (obj.type == VAL_ARRAY) { int idx = (int)eval_expr(expr->left, env).as.i; return obj.as.arr->items[idx]; } os_printf("Not an array.\n"); longjmp(easec_env, 1); }
     if (expr->type == NODE_ARRAY_LEN) { Value obj = env_get(env, expr->name); if (obj.type == VAL_ARRAY) return val_int(obj.as.arr->count); os_printf("Not an array.\n"); longjmp(easec_env, 1); }
     if (expr->type == NODE_DICT_GET) { Value obj = env_get(env, expr->name); if (obj.type == VAL_DICT) { if (expr->is_key) { char* key = value_to_string(eval_expr(expr->left, env)); for(int i=0; i<obj.as.dict->count; i++) { if(!strcmp(obj.as.dict->pairs[i].key, key)) return obj.as.dict->pairs[i].value; } os_printf("Key not found.\n"); longjmp(easec_env, 1); } else { int idx = (int)eval_expr(expr->left, env).as.i; return obj.as.dict->pairs[idx].value; } } os_printf("Not a dict.\n"); longjmp(easec_env, 1); }
@@ -133,9 +132,9 @@ void exec_stmt(ASTNode* stmt, Env* env) {
     else if (stmt->type == NODE_ARRAY_SET) { Value arr = env_get(env, stmt->name); if (arr.type == VAL_ARRAY) { int idx = (int)eval_expr(stmt->left, env).as.i; Value val = eval_expr(stmt->right, env); if(idx >= 0 && idx < arr.as.arr->count) arr.as.arr->items[idx] = val; else { os_printf("Index error\n"); longjmp(easec_env, 1); } } else { os_printf("Not array\n"); longjmp(easec_env, 1); } }
     else if (stmt->type == NODE_DICT_DECL) { ValueDict* dict = new_dict(); for(int i=0; i<stmt->pair_count; i++) dict_set(dict, stmt->dict_pairs[i].key, eval_expr(stmt->dict_pairs[i].val, env)); Value v; v.type = VAL_DICT; v.as.dict = dict; env_define(env, stmt->name, v); }
     else if (stmt->type == NODE_DICT_SET) { Value d = env_get(env, stmt->name); if (d.type == VAL_DICT) { Value val = eval_expr(stmt->right, env); if (stmt->is_key) { char* k = value_to_string(eval_expr(stmt->left, env)); dict_set(d.as.dict, k, val); } else { int idx = (int)eval_expr(stmt->left, env).as.i; if(idx >= 0 && idx < d.as.dict->count) d.as.dict->pairs[idx].value = val; else { os_printf("Index error\n"); longjmp(easec_env, 1); } } } else { os_printf("Not dict\n"); longjmp(easec_env, 1); } }
-    else if (stmt->type == NODE_FILE_CREATE) { char* fname = value_to_string(eval_expr(stmt->left, env)); char* cnt = value_to_string(eval_expr(stmt->right, env)); vfs_write(fname, cnt); }
-    else if (stmt->type == NODE_FILE_UPDATE) { char* fname = value_to_string(eval_expr(stmt->left, env)); char* cnt = value_to_string(eval_expr(stmt->right, env)); vfs_append(fname, cnt); }
-    else if (stmt->type == NODE_FILE_DELETE) { char* fname = value_to_string(eval_expr(stmt->left, env)); if (vfs_delete(fname) != 0) { os_printf("File delete fail.\n"); longjmp(easec_env, 1); } }
+    else if (stmt->type == NODE_FILE_CREATE) { char* fname = value_to_string(eval_expr(stmt->left, env)); char* cnt = value_to_string(eval_expr(stmt->right, env)); fs_write(fname, cnt); }
+    else if (stmt->type == NODE_FILE_UPDATE) { char* fname = value_to_string(eval_expr(stmt->left, env)); char* cnt = value_to_string(eval_expr(stmt->right, env)); fs_append(fname, cnt); }
+    else if (stmt->type == NODE_FILE_DELETE) { char* fname = value_to_string(eval_expr(stmt->left, env)); if (fs_delete(fname) != 0) { os_printf("File delete fail.\n"); longjmp(easec_env, 1); } }
     else if (stmt->type == NODE_JOB) env_define(env, stmt->name, val_job(stmt));
     else if (stmt->type == NODE_EXPR_STMT) eval_expr(stmt->left, env);
 }
@@ -144,6 +143,6 @@ void run_easec(const char* code, const char* arg) {
     token_count = 0; current_token = 0; is_break = false; is_return = false;
     tokenize(code); ASTNode* ast = parse();
     Env* global_env = new_env(NULL);
-    env_define(global_env, "sys_arg", val_string(arg ? arg : "")); // Pass CLI args to script!
+    env_define(global_env, "sys_arg", val_string(arg ? arg : "")); 
     for(int i=0; i<ast->body_count; i++) exec_stmt(ast->body[i], global_env);
 }
