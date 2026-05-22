@@ -3,7 +3,7 @@ AS = gcc
 
 CFLAGS = -m32 -ffreestanding -O2 -Wall -Wextra -fno-exceptions -fno-pie -mno-sse -mno-sse2
 ASFLAGS = -m32
-LDFLAGS = -m32 -T linker.ld -ffreestanding -O2 -nostdlib -no-pie
+LDFLAGS = -m32 -T linker.ld -ffreestanding -O2 -nostdlib -no-pie -Wl,-n
 
 OBJS = boot.o kernel.o
 
