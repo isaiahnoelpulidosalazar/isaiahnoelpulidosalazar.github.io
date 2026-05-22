@@ -114,6 +114,51 @@ void ata_read_sector(uint32_t lba, uint8_t* buffer) {
     raw_ata_read_sector(boot_drive_idx, fs_lba_offset + lba, buffer);
 }
 
+// Helper function to read PCI Configuration Space
+uint32_t pci_read_config_dword(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offset) {
+    uint32_t address = (uint32_t)((uint32_t)bus << 16) | ((uint32_t)slot << 11) |
+                       ((uint32_t)func << 8) | (offset & 0xFC) | ((uint32_t)0x80000000);
+    outl(0xCF8, address);
+    return inl(0xCFC);
+}
+
+// Scans the PCI bus and lists modern storage controllers
+void pci_scan_storage() {
+    os_printf("Scanning PCI Bus for SATA & NVMe controllers...\n");
+    bool found_any = false;
+
+    for (uint16_t bus = 0; bus < 256; bus++) {
+        for (uint8_t device = 0; device < 32; device++) {
+            for (uint8_t func = 0; func < 8; func++) {
+                uint32_t reg0 = pci_read_config_dword(bus, device, func, 0);
+                uint16_t vendor = reg0 & 0xFFFF;
+                if (vendor == 0xFFFF) continue; // No device present
+
+                // Offset 0x08 contains Class (bits 24-31) and Subclass (bits 16-23)
+                uint32_t reg8 = pci_read_config_dword(bus, device, func, 0x08);
+                uint8_t class_code = (reg8 >> 24) & 0xFF;
+                uint8_t subclass = (reg8 >> 16) & 0xFF;
+
+                if (class_code == 0x01) { // Mass Storage Class
+                    found_any = true;
+                    if (subclass == 0x06) { // AHCI SATA Subclass
+                        os_printf("  -> Found SATA (AHCI) Controller [Bus %d, Dev %d, Func %d]\n", bus, device, func);
+                    } else if (subclass == 0x08) { // NVMe Subclass
+                        os_printf("  -> Found NVMe SSD Controller [Bus %d, Dev %d, Func %d]\n", bus, device, func);
+                    } else if (subclass == 0x01) {
+                        os_printf("  -> Found Legacy IDE Controller [Bus %d, Dev %d, Func %d]\n", bus, device, func);
+                    } else {
+                        os_printf("  -> Found Unknown Storage Controller (Type 0x%x) [Bus %d]\n", subclass, bus);
+                    }
+                }
+            }
+        }
+    }
+    if (!found_any) {
+        os_printf("  No PCI Storage controllers detected.\n");
+    }
+}
+
 // --- INPSOS REAL FILESYSTEM (IFS) ---
 #define FS_MAGIC "INPSOSFS"
 #define MAX_NODES 256
@@ -167,7 +212,12 @@ void sys_install_os() {
     struct { int drive_idx; uint32_t lba_start; uint32_t sectors; char name[128]; } install_targets[32];
     int target_count = 0;
 
-    os_printf("\n--- INPSOS INSTALLER ---\nScanning hardware PCI/IDE drives...\n\n");
+    os_printf("\n--- INPSOS INSTALLER ---\n");
+    
+    // 1. Scan for modern controllers first to give the user system visibility!
+    pci_scan_storage();
+    os_printf("\nScanning legacy IDE channels...\n");
+
     for(int i=0; i<4; i++) {
         if(drives[i].present && !drives[i].is_atapi) {
             install_targets[target_count].drive_idx = i; install_targets[target_count].lba_start = 0;
@@ -190,7 +240,14 @@ void sys_install_os() {
         }
     }
 
-    if (target_count == 0) { os_printf("No installable IDE Hard Drives found!\n(Are you using SATA/NVMe? OS IDE driver only supports legacy mode)\n"); return; }
+    if (target_count == 0) { 
+        os_printf("\nNo legacy IDE Hard Drives found.\n");
+        os_printf("Note: To write/read files on this hardware, we would need to implement\n");
+        os_printf("an AHCI or NVMe driver utilizing MMIO. Your system will continue\n");
+        os_printf("running completely fine in Live RAM Disk Mode!\n");
+        return; 
+    }
+    
     for(int i=0; i<target_count; i++) os_printf("[%d] %s\n", i, install_targets[i].name);
     
     os_printf("\nEnter target ID (or 'q' to cancel): "); char buf[16]; os_getline(buf, 16);
