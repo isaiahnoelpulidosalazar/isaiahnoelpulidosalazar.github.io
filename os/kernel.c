@@ -1,5 +1,5 @@
 #include "kernel.h"
-#include "scripts.h"
+#include "scripts.h" // AUTO-GENERATED BUNDLE FROM MAKEFILE
 
 // --- SETJMP / LONGJMP ---
 __attribute__((naked)) int setjmp(jmp_buf buf) { asm volatile ("mov 4(%esp), %eax\n mov %ebx, 0(%eax)\n mov %esi, 4(%eax)\n mov %edi, 8(%eax)\n mov %ebp, 12(%eax)\n mov %esp, 16(%eax)\n mov 0(%esp), %edx\n mov %edx, 20(%eax)\n xor %eax, %eax\n ret\n"); }
@@ -14,7 +14,30 @@ void* realloc(void* p, size_t size) { if(!p) return malloc(size); if(size == 0) 
 
 // --- LIBC STRING & CTYPE ---
 size_t strlen(const char* s) { size_t i=0; while(s[i]) i++; return i; } char* strcpy(char* d, const char* s) { int i=0; while((d[i]=s[i])) i++; return d; } char* strncpy(char* d, const char* s, size_t n) { size_t i=0; while(i<n && s[i]) {d[i]=s[i]; i++;} while(i<n) d[i++]='\0'; return d; } int strcmp(const char* s1, const char* s2) { while(*s1 && (*s1==*s2)) { s1++; s2++; } return *(const unsigned char*)s1 - *(const unsigned char*)s2; } int strncmp(const char* s1, const char* s2, size_t n) { while(n--) { if(*s1!=*s2) return *(const unsigned char*)s1 - *(const unsigned char*)s2; s1++; s2++; } return 0; } int strcasecmp(const char* s1, const char* s2) { while(*s1) { char c1 = (*s1>='A'&&*s1<='Z')?*s1+32:*s1; char c2 = (*s2>='A'&&*s2<='Z')?*s2+32:*s2; if (c1 != c2) return c1 - c2; s1++; s2++; } return *s2 == 0 ? 0 : -1; } char* strrchr(const char* s, int c) { const char* last = NULL; while(*s) { if (*s == (char)c) last = s; s++; } return (char*)last; } void* memset(void* s, int c, size_t n) { unsigned char* p=s; while(n--) *p++=(unsigned char)c; return s; } void* memcpy(void* d, const void* s, size_t n) { unsigned char* pd=d; const unsigned char* ps=s; while(n--) *pd++=*ps++; return d; } void* memmove(void* d, const void* s, size_t n) { unsigned char* pd=d; const unsigned char* ps=s; if(pd<ps) while(n--) *pd++=*ps++; else { pd+=n; ps+=n; while(n--) *--pd=*--ps; } return d; } size_t strcspn(const char* s, const char* reject) { size_t c=0; while(*s) { const char* r=reject; while(*r) { if(*s==*r) return c; r++; } s++; c++; } return c; } char* strcat(char* d, const char* s) { strcpy(d + strlen(d), s); return d; } int isspace(int c) { return c==' '||c=='\t'||c=='\n'||c=='\r'||c=='\f'||c=='\v'; } int isdigit(int c) { return c>='0'&&c<='9'; } int isalpha(int c) { return (c>='a'&&c<='z')||(c>='A'&&c<='Z'); } int isalnum(int c) { return isalpha(c)||isdigit(c); }
-long long atoll(const char* str) { long long res=0; int sign=1; while(isspace(*str)) str++; if(*str=='-') { sign=-1; str++; } else if(*str=='+') str++; while(isdigit(*str)) res = res*10 + (*str++ - '0'); return res*sign; } double atof(const char* str) { double res=0, frac=1; int sign=1; while(isspace(*str)) str++; if(*str=='-') { sign=-1; str++; } else if(*str=='+') str++; while(isdigit(*str)) res = res*10 + (*str++ - '0'); if(*str=='.') { str++; while(isdigit(*str)) { res = res*10 + (*str++ - '0'); frac*=10; } } return sign * (res/frac); } long long strtoll(const char* str, char** endptr, int base) { (void)base; if(endptr) *endptr = (char*)str + strlen(str); return atoll(str); } double strtod(const char* str, char** endptr) { if(endptr) *endptr = (char*)str + strlen(str); return atof(str); }
+
+// --- FIXED: PROPER STRING-TO-INTEGER PARSING ---
+long long strtoll(const char* str, char** endptr, int base) {
+    (void)base; const char* start = str; long long res = 0; int sign = 1;
+    while(isspace(*str)) str++;
+    if(*str == '-') { sign = -1; str++; } else if(*str == '+') str++;
+    if (!isdigit(*str)) { if(endptr) *endptr = (char*)start; return 0; } // NOT A NUMBER! STOP!
+    while(isdigit(*str)) res = res*10 + (*str++ - '0');
+    if(endptr) *endptr = (char*)str;
+    return res*sign;
+}
+double strtod(const char* str, char** endptr) {
+    const char* start = str; double res = 0, frac = 1; int sign = 1;
+    while(isspace(*str)) str++;
+    if(*str == '-') { sign = -1; str++; } else if(*str == '+') str++;
+    if (!isdigit(*str) && *str != '.') { if(endptr) *endptr = (char*)start; return 0; }
+    while(isdigit(*str)) res = res*10 + (*str++ - '0');
+    if(*str == '.') { str++; while(isdigit(*str)) { res = res*10 + (*str++ - '0'); frac *= 10; } }
+    if(endptr) *endptr = (char*)str;
+    return sign * (res/frac);
+}
+long long atoll(const char* str) { return strtoll(str, NULL, 10); } 
+double atof(const char* str) { return strtod(str, NULL); }
+
 void itoa(long long num, char* str) { int i = 0; bool is_neg = false; if (num == 0) { str[i++] = '0'; str[i] = '\0'; return; } if (num < 0) { is_neg = true; num = -num; } while(num != 0) { str[i++] = (num % 10) + '0'; num /= 10; } if (is_neg) str[i++] = '-'; str[i] = '\0'; for(int j=0; j<i/2; j++) { char t=str[j]; str[j]=str[i-1-j]; str[i-1-j]=t; } }
 void ftoa(double n, char* res) { long long ipart = (long long)n; double fpart = n - (double)ipart; if(n < 0 && ipart == 0) { *res++ = '-'; fpart = -fpart; } else if (n < 0) fpart = -fpart; itoa(ipart, res); int len = strlen(res); res[len] = '.'; long long frac = (long long)(fpart * 1000000); itoa(frac, res + len + 1); }
 int os_sprintf(char* buf, const char* fmt, ...) { va_list args; va_start(args, fmt); int i = 0; while(*fmt) { if (*fmt == '%') { fmt++; if (*fmt == 'l' && *(fmt+1) == 'l' && *(fmt+2) == 'd') { char tmp[64]; itoa(va_arg(args, long long), tmp); strcpy(&buf[i], tmp); i += strlen(tmp); fmt += 2; } else if (*fmt == 'g' || *fmt == 'f') { char tmp[64]; ftoa(va_arg(args, double), tmp); strcpy(&buf[i], tmp); i += strlen(tmp); } else if (*fmt == 's') { char* str = va_arg(args, char*); strcpy(&buf[i], str); i += strlen(str); } else if (*fmt == 'c') { buf[i++] = (char)va_arg(args, int); } } else { buf[i++] = *fmt; } fmt++; } buf[i] = '\0'; va_end(args); return i; }
@@ -117,42 +140,17 @@ void ahci_start_cmd(HBA_PORT* port) {
 }
 void ahci_port_rebase(HBA_PORT* port) {
     ahci_stop_cmd(port);
-
-    // 1. Spin up and power on the physical device
-    port->cmd |= (1U << 1);  // POD: Power On Device
-    port->cmd |= (1U << 2);  // SUD: Spin Up Device
-
-    // 2. CRITICAL FOR REAL HARDWARE: Clear SATA errors and interrupt statuses.
-    // If these contain residual boot garbage, the drive will refuse to read.
-    port->serr = 0xFFFFFFFF;
-    port->is = 0xFFFFFFFF;
-
-    // 3. Command List Base (1KB aligned)
-    port->clb = (uint32_t)ahci_alloc_aligned(1024, 1024);
-    port->clbu = 0;
-
-    // 4. FIS Receive Base (256-byte aligned)
-    port->fb = (uint32_t)ahci_alloc_aligned(256, 256);
-    port->fbu = 0;
-
-    // 5. Command Tables (128-byte aligned)
+    port->cmd |= (1U << 1);  port->cmd |= (1U << 2);
+    port->serr = 0xFFFFFFFF; port->is = 0xFFFFFFFF;
+    port->clb = (uint32_t)ahci_alloc_aligned(1024, 1024); port->clbu = 0;
+    port->fb = (uint32_t)ahci_alloc_aligned(256, 256); port->fbu = 0;
     HBA_CMD_HEADER* cmdheader = (HBA_CMD_HEADER*)(port->clb);
     for (int i = 0; i < 32; i++) {
         cmdheader[i].prdtl = 1;
-        uint32_t cmd_tbl = (uint32_t)ahci_alloc_aligned(256, 128);
-        cmdheader[i].ctba = cmd_tbl;
-        cmdheader[i].ctbau = 0;
+        cmdheader[i].ctba = (uint32_t)ahci_alloc_aligned(256, 128); cmdheader[i].ctbau = 0;
     }
-
     ahci_start_cmd(port);
-
-    // 6. HARDWARE CALIBRATION WAITER: 
-    // Wait for BSY (Busy) and DRQ (Data Request) bits to clear in Task File Data.
-    // 50,000,000 loops gives a physical hard drive ~1.5 seconds to spin up and calibrate.
-    int timeout = 0;
-    while ((port->tfd & (0x80 | 0x08)) && timeout < 50000000) {
-        timeout++;
-    }
+    int timeout = 0; while ((port->tfd & (0x80 | 0x08)) && timeout < 50000000) timeout++;
 }
 
 bool ahci_read(HBA_PORT* port, uint32_t startl, uint32_t count, uint16_t* buf) {
@@ -166,11 +164,7 @@ bool ahci_read(HBA_PORT* port, uint32_t startl, uint32_t count, uint16_t* buf) {
     cmdfis->lba0 = (uint8_t)startl; cmdfis->lba1 = (uint8_t)(startl >> 8); cmdfis->lba2 = (uint8_t)(startl >> 16); cmdfis->device = 1 << 6;
     cmdfis->lba3 = (uint8_t)(startl >> 24); cmdfis->lba4 = 0; cmdfis->lba5 = 0;
     cmdfis->countl = count & 0xFF; cmdfis->counth = (count >> 8) & 0xFF;
-    
-    int spin = 0; 
-    while ((port->tfd & (0x80 | 0x08)) && spin < 50000000) spin++; 
-    if (spin == 50000000) return false;
-    
+    int spin = 0; while ((port->tfd & (0x80 | 0x08)) && spin < 50000000) spin++; if (spin == 50000000) return false;
     port->ci = (1 << slot);
     int spin2 = 0;
     while (1) { if ((port->ci & (1 << slot)) == 0) break; if (port->is & (1 << 30)) return false; spin2++; if (spin2 > 500000) return false; } return true;
@@ -187,11 +181,7 @@ bool ahci_write(HBA_PORT* port, uint32_t startl, uint32_t count, uint16_t* buf) 
     cmdfis->lba0 = (uint8_t)startl; cmdfis->lba1 = (uint8_t)(startl >> 8); cmdfis->lba2 = (uint8_t)(startl >> 16); cmdfis->device = 1 << 6;
     cmdfis->lba3 = (uint8_t)(startl >> 24); cmdfis->lba4 = 0; cmdfis->lba5 = 0;
     cmdfis->countl = count & 0xFF; cmdfis->counth = (count >> 8) & 0xFF;
-    
-    int spin = 0; 
-    while ((port->tfd & (0x80 | 0x08)) && spin < 50000000) spin++; 
-    if (spin == 50000000) return false;
-    
+    int spin = 0; while ((port->tfd & (0x80 | 0x08)) && spin < 50000000) spin++; if (spin == 50000000) return false;
     port->ci = (1 << slot);
     int spin2 = 0;
     while (1) { if ((port->ci & (1 << slot)) == 0) break; if (port->is & (1 << 30)) return false; spin2++; if (spin2 > 500000) return false; } return true;
@@ -241,10 +231,9 @@ void ata_identify(int idx, uint16_t io_base, uint8_t drive_sel) {
     
     int spin = 0; 
     while (1) { status = inb(io_base + 7); if (status & 0x01) return; if (status & 0x08) break; spin++; if(spin > 100000) return; }
-    uint16_t buf[256] = {0}; // FIXED: Initialize to prevent compiler warnings [2]
+    uint16_t buf[256] = {0}; 
     for (int i = 0; i < 256; i++) buf[i] = inw(io_base + 0);
     drives[idx].present = true; drives[idx].is_atapi = false; 
-    // FIXED: Use bitwise shifts to resolve pointer-pun aliasing warnings [2]
     drives[idx].sectors = (uint32_t)buf[60] | ((uint32_t)buf[61] << 16);
 }
 
@@ -391,36 +380,19 @@ void sys_install_os() {
             target_count++;
             
             if (!ahci_bounce_buffer) ahci_bounce_buffer = (uint16_t*)ahci_alloc_aligned(512, 16);
-            
-            // Try to read Sector 0
             if (ahci_read(active_ahci_ports[i], 0, 1, ahci_bounce_buffer)) {
                 uint8_t* sector0 = (uint8_t*)ahci_bounce_buffer;
-                
-                // Print the signature we found for debugging
-                uint16_t boot_sig = (sector0[511] << 8) | sector0[510];
-                os_printf("  -> Port %d Sector 0 Read Success! Signature: 0x%x\n", i, boot_sig);
-
-                if (boot_sig == 0xAA55) {
+                if(sector0[510] == 0x55 && sector0[511] == 0xAA) {
                     mbr_entry_t* pt = (mbr_entry_t*)(sector0 + 0x1BE);
                     for(int p=0; p<4; p++) {
                         if(pt[p].type != 0) {
                             install_targets[target_count].drive_idx = i; install_targets[target_count].is_ahci = true;
                             install_targets[target_count].lba_start = pt[p].lba_start; install_targets[target_count].sectors = pt[p].num_sectors;
-                            
-                            // Check if this is a GPT protective partition
-                            if (pt[p].type == 0xEE) {
-                                os_sprintf(install_targets[target_count].name, "SATA/AHCI Drive %d, Part %d (GPT Protective Partition - Type 0xee)", i, p+1);
-                            } else {
-                                os_sprintf(install_targets[target_count].name, "SATA/AHCI Drive %d, Part %d (Type 0x%x)", i, p+1, pt[p].type);
-                            }
+                            os_sprintf(install_targets[target_count].name, "SATA/AHCI Drive %d, Part %d (Type 0x%x)", i, p+1, pt[p].type);
                             target_count++;
                         }
                     }
-                } else {
-                    os_printf("  -> Warning: Sector 0 lacks boot signature (0x55AA).\n");
                 }
-            } else {
-                os_printf("  -> Error: Physical AHCI Read Failed on Port %d.\n", i);
             }
         }
     }
@@ -441,7 +413,9 @@ void sys_install_os() {
     fs_lba_offset  = install_targets[sel].lba_start;
     
     sys_format_os();
-    os_printf("\nInstallation Complete! You can safely reboot the computer.\n");
+    os_printf("\nFilesystem Installed Successfully!\n");
+    os_printf("Note: To boot directly from this hard drive, you must flash the 'inpsos.iso'\n");
+    os_printf("image directly to this drive using a tool like Rufus.\n");
 }
 
 bool try_load_os() {
@@ -539,10 +513,27 @@ void fs_mkdir(const char* path) {
 void fs_rmdir(const char* path) {
     int id = fs_resolve(path); if(id != -1 && id != 0 && inodes[id].is_dir) { inodes[id].used = 0; for(int i=0; i<MAX_NODES; i++) if(inodes[i].used && inodes[i].parent == id) inodes[i].used = 0; fs_flush_nodes(); }
 }
+
+// --- FIXED: ROBUST CHANGE DIRECTORY LOGIC ---
 void fs_cd(const char* path) {
-    if(!path || strlen(path) == 0) return; int target = fs_resolve(path);
-    if(target != -1 && inodes[target].is_dir) { current_dir_id = target; fs_rebuild_path(current_dir_id, current_dir_path); } else os_printf("Invalid directory.\n");
+    if(!path || strlen(path) == 0) return; 
+    
+    // Explicitly handle ".." so it never tries to push past the root folder (id 0)
+    if(strcmp(path, "..") == 0) {
+        if (current_dir_id != 0) { current_dir_id = inodes[current_dir_id].parent; }
+        fs_rebuild_path(current_dir_id, current_dir_path);
+        return;
+    }
+
+    int target = fs_resolve(path);
+    if(target != -1 && inodes[target].is_dir) { 
+        current_dir_id = target; 
+        fs_rebuild_path(current_dir_id, current_dir_path); 
+    } else {
+        os_printf("Invalid directory.\n");
+    }
 }
+
 void fs_ls(const char* path) {
     int target = fs_resolve((path && strlen(path) > 0) ? path : ".");
     if(target == -1 || !inodes[target].is_dir) { os_printf("Invalid directory.\n"); return; }

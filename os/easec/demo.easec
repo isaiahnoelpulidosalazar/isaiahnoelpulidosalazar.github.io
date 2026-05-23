@@ -5,7 +5,7 @@ say mynum
 
 say "Arrays:"
 array number arr 10, 20
-say arr[1]
+say array get arr 1
 
 say "Conditionals:"
 if mynum == 42 [
