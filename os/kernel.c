@@ -118,22 +118,24 @@ void ahci_start_cmd(HBA_PORT* port) {
 void ahci_port_rebase(HBA_PORT* port) {
     ahci_stop_cmd(port);
 
-    // 1. Physically spin up and power on the device (Required for real hardware!)
+    // 1. Spin up and power on the physical device
     port->cmd |= (1U << 1);  // POD: Power On Device
     port->cmd |= (1U << 2);  // SUD: Spin Up Device
 
-    // Wait a brief moment for the physical spindle motor to spin up
-    for (volatile int delay = 0; delay < 1000000; delay++);
+    // 2. CRITICAL FOR REAL HARDWARE: Clear SATA errors and interrupt statuses.
+    // If these contain residual boot garbage, the drive will refuse to read.
+    port->serr = 0xFFFFFFFF;
+    port->is = 0xFFFFFFFF;
 
-    // 2. Command List Base (1KB aligned)
+    // 3. Command List Base (1KB aligned)
     port->clb = (uint32_t)ahci_alloc_aligned(1024, 1024);
     port->clbu = 0;
 
-    // 3. FIS Receive Base (256-byte aligned)
+    // 4. FIS Receive Base (256-byte aligned)
     port->fb = (uint32_t)ahci_alloc_aligned(256, 256);
     port->fbu = 0;
 
-    // 4. Command Tables (128-byte aligned) for all 32 command slots
+    // 5. Command Tables (128-byte aligned)
     HBA_CMD_HEADER* cmdheader = (HBA_CMD_HEADER*)(port->clb);
     for (int i = 0; i < 32; i++) {
         cmdheader[i].prdtl = 1;
@@ -143,6 +145,14 @@ void ahci_port_rebase(HBA_PORT* port) {
     }
 
     ahci_start_cmd(port);
+
+    // 6. HARDWARE CALIBRATION WAITER: 
+    // Wait for BSY (Busy) and DRQ (Data Request) bits to clear in Task File Data.
+    // 50,000,000 loops gives a physical hard drive ~1.5 seconds to spin up and calibrate.
+    int timeout = 0;
+    while ((port->tfd & (0x80 | 0x08)) && timeout < 50000000) {
+        timeout++;
+    }
 }
 
 bool ahci_read(HBA_PORT* port, uint32_t startl, uint32_t count, uint16_t* buf) {
@@ -156,7 +166,12 @@ bool ahci_read(HBA_PORT* port, uint32_t startl, uint32_t count, uint16_t* buf) {
     cmdfis->lba0 = (uint8_t)startl; cmdfis->lba1 = (uint8_t)(startl >> 8); cmdfis->lba2 = (uint8_t)(startl >> 16); cmdfis->device = 1 << 6;
     cmdfis->lba3 = (uint8_t)(startl >> 24); cmdfis->lba4 = 0; cmdfis->lba5 = 0;
     cmdfis->countl = count & 0xFF; cmdfis->counth = (count >> 8) & 0xFF;
-    int spin = 0; while ((port->tfd & (0x80 | 0x08)) && spin < 100000) spin++; if (spin == 100000) return false;
+    
+    // Increased timeout to allow physical spindle calibration!
+    int spin = 0; 
+    while ((port->tfd & (0x80 | 0x08)) && spin < 50000000) spin++; 
+    if (spin == 50000000) return false;
+    
     port->ci = (1 << slot);
     int spin2 = 0;
     while (1) { if ((port->ci & (1 << slot)) == 0) break; if (port->is & (1 << 30)) return false; spin2++; if (spin2 > 500000) return false; } return true;
@@ -173,7 +188,12 @@ bool ahci_write(HBA_PORT* port, uint32_t startl, uint32_t count, uint16_t* buf) 
     cmdfis->lba0 = (uint8_t)startl; cmdfis->lba1 = (uint8_t)(startl >> 8); cmdfis->lba2 = (uint8_t)(startl >> 16); cmdfis->device = 1 << 6;
     cmdfis->lba3 = (uint8_t)(startl >> 24); cmdfis->lba4 = 0; cmdfis->lba5 = 0;
     cmdfis->countl = count & 0xFF; cmdfis->counth = (count >> 8) & 0xFF;
-    int spin = 0; while ((port->tfd & (0x80 | 0x08)) && spin < 100000) spin++; if (spin == 100000) return false;
+    
+    // Increased timeout to allow physical spindle calibration!
+    int spin = 0; 
+    while ((port->tfd & (0x80 | 0x08)) && spin < 50000000) spin++; 
+    if (spin == 50000000) return false;
+    
     port->ci = (1 << slot);
     int spin2 = 0;
     while (1) { if ((port->ci & (1 << slot)) == 0) break; if (port->is & (1 << 30)) return false; spin2++; if (spin2 > 500000) return false; } return true;
