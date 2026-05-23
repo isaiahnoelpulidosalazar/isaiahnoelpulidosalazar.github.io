@@ -167,7 +167,6 @@ bool ahci_read(HBA_PORT* port, uint32_t startl, uint32_t count, uint16_t* buf) {
     cmdfis->lba3 = (uint8_t)(startl >> 24); cmdfis->lba4 = 0; cmdfis->lba5 = 0;
     cmdfis->countl = count & 0xFF; cmdfis->counth = (count >> 8) & 0xFF;
     
-    // Increased timeout to allow physical spindle calibration!
     int spin = 0; 
     while ((port->tfd & (0x80 | 0x08)) && spin < 50000000) spin++; 
     if (spin == 50000000) return false;
@@ -189,7 +188,6 @@ bool ahci_write(HBA_PORT* port, uint32_t startl, uint32_t count, uint16_t* buf) 
     cmdfis->lba3 = (uint8_t)(startl >> 24); cmdfis->lba4 = 0; cmdfis->lba5 = 0;
     cmdfis->countl = count & 0xFF; cmdfis->counth = (count >> 8) & 0xFF;
     
-    // Increased timeout to allow physical spindle calibration!
     int spin = 0; 
     while ((port->tfd & (0x80 | 0x08)) && spin < 50000000) spin++; 
     if (spin == 50000000) return false;
