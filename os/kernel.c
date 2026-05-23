@@ -37,6 +37,12 @@ uint32_t pci_read_config_dword(uint8_t bus, uint8_t slot, uint8_t func, uint8_t 
     uint32_t address = (uint32_t)((uint32_t)bus << 16) | ((uint32_t)slot << 11) | ((uint32_t)func << 8) | (offset & 0xFC) | ((uint32_t)0x80000000);
     outl(0xCF8, address); return inl(0xCFC);
 }
+// NEW: Required to enable Bus Mastering!
+void pci_write_config_dword(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offset, uint32_t value) {
+    uint32_t address = (uint32_t)((uint32_t)bus << 16) | ((uint32_t)slot << 11) | ((uint32_t)func << 8) | (offset & 0xFC) | ((uint32_t)0x80000000);
+    outl(0xCF8, address); outl(0xCFC, value);
+}
+
 bool find_ahci_controller(uint8_t* out_bus, uint8_t* out_device, uint8_t* out_func) {
     for (uint16_t bus = 0; bus < 256; bus++) {
         for (uint8_t device = 0; device < 32; device++) {
@@ -60,24 +66,27 @@ void* get_ahci_abar(uint8_t bus, uint8_t device, uint8_t func) {
 }
 
 // --- AHCI DRIVER (SATA DMA) ---
-#define SATA_SIG_ATA   0x00000101
-#define SATA_SIG_ATAPI 0xEB140101
-
-HBA_PORT* active_ahci_ports[32]; // Keeps track of AHCI drives
+HBA_PORT* active_ahci_ports[32]; 
 
 void* ahci_alloc_aligned(size_t size, size_t alignment) {
     extern char end; static uint32_t ahci_heap = 0;
-    if (!ahci_heap) ahci_heap = (uint32_t)&end + 0x200000; // Place AHCI buffers safely high
+    if (!ahci_heap) ahci_heap = (uint32_t)&end + 0x200000; 
     if (ahci_heap % alignment) ahci_heap += alignment - (ahci_heap % alignment);
     uint32_t ptr = ahci_heap; ahci_heap += size; memset((void*)ptr, 0, size); return (void*)ptr;
 }
 
 void ahci_stop_cmd(HBA_PORT* port) {
     port->cmd &= ~0x0001; port->cmd &= ~0x0010; 
-    while (1) { if (port->cmd & 0x4000) continue; if (port->cmd & 0x8000) continue; break; }
+    int spin = 0; // Added timeout!
+    while (1) { 
+        if (port->cmd & 0x4000) { spin++; if(spin>100000) break; continue; } 
+        if (port->cmd & 0x8000) { spin++; if(spin>100000) break; continue; } 
+        break; 
+    }
 }
 void ahci_start_cmd(HBA_PORT* port) {
-    while (port->cmd & 0x8000); 
+    int spin = 0; // Added timeout!
+    while (port->cmd & 0x8000) { spin++; if(spin>100000) break; } 
     port->cmd |= 0x0010; port->cmd |= 0x0001; 
 }
 void ahci_port_rebase(HBA_PORT* port) {
@@ -103,9 +112,14 @@ bool ahci_read(HBA_PORT* port, uint32_t startl, uint32_t count, uint16_t* buf) {
     cmdfis->lba0 = (uint8_t)startl; cmdfis->lba1 = (uint8_t)(startl >> 8); cmdfis->lba2 = (uint8_t)(startl >> 16); cmdfis->device = 1 << 6;
     cmdfis->lba3 = (uint8_t)(startl >> 24); cmdfis->lba4 = 0; cmdfis->lba5 = 0;
     cmdfis->countl = count & 0xFF; cmdfis->counth = (count >> 8) & 0xFF;
-    int spin = 0; while ((port->tfd & (0x80 | 0x08)) && spin < 1000000) spin++; if (spin == 1000000) return false;
+    int spin = 0; while ((port->tfd & (0x80 | 0x08)) && spin < 100000) spin++; if (spin == 100000) return false;
     port->ci = (1 << slot);
-    while (1) { if ((port->ci & (1 << slot)) == 0) break; if (port->is & (1 << 30)) return false; } return true;
+    int spin2 = 0; // Added timeout!
+    while (1) { 
+        if ((port->ci & (1 << slot)) == 0) break; 
+        if (port->is & (1 << 30)) return false; 
+        spin2++; if (spin2 > 500000) return false;
+    } return true;
 }
 
 bool ahci_write(HBA_PORT* port, uint32_t startl, uint32_t count, uint16_t* buf) {
@@ -119,9 +133,14 @@ bool ahci_write(HBA_PORT* port, uint32_t startl, uint32_t count, uint16_t* buf) 
     cmdfis->lba0 = (uint8_t)startl; cmdfis->lba1 = (uint8_t)(startl >> 8); cmdfis->lba2 = (uint8_t)(startl >> 16); cmdfis->device = 1 << 6;
     cmdfis->lba3 = (uint8_t)(startl >> 24); cmdfis->lba4 = 0; cmdfis->lba5 = 0;
     cmdfis->countl = count & 0xFF; cmdfis->counth = (count >> 8) & 0xFF;
-    int spin = 0; while ((port->tfd & (0x80 | 0x08)) && spin < 1000000) spin++; if (spin == 1000000) return false;
+    int spin = 0; while ((port->tfd & (0x80 | 0x08)) && spin < 100000) spin++; if (spin == 100000) return false;
     port->ci = (1 << slot);
-    while (1) { if ((port->ci & (1 << slot)) == 0) break; if (port->is & (1 << 30)) return false; } return true;
+    int spin2 = 0; // Added timeout!
+    while (1) { 
+        if ((port->ci & (1 << slot)) == 0) break; 
+        if (port->is & (1 << 30)) return false; 
+        spin2++; if (spin2 > 500000) return false;
+    } return true;
 }
 
 void pci_scan_storage() {
@@ -129,8 +148,12 @@ void pci_scan_storage() {
     for (int i=0; i<32; i++) active_ahci_ports[i] = NULL;
 
     if (find_ahci_controller(&ahci_bus, &ahci_dev, &ahci_func)) {
+        // NEW: CRITICAL! Enable PCI Bus Mastering and Memory Space so ABAR isn't garbage!
+        uint32_t pci_cmd = pci_read_config_dword(ahci_bus, ahci_dev, ahci_func, 0x04);
+        pci_write_config_dword(ahci_bus, ahci_dev, ahci_func, 0x04, pci_cmd | 0x06);
+
         HBA_MEM* abar = (HBA_MEM*)get_ahci_abar(ahci_bus, ahci_dev, ahci_func);
-        if (abar != NULL) {
+        if (abar != NULL && abar != (void*)0xFFFFFFFF) {
             abar->ghc |= (1U << 31); // Enable AHCI Mode
             uint32_t pi = abar->pi;
             for (int i = 0; i < 32; i++) {
@@ -140,7 +163,7 @@ void pci_scan_storage() {
                     uint8_t det = ssts & 0x0F; uint8_t ipm = (ssts >> 8) & 0x0F;
                     if (det == 3 && ipm == 1 && port->sig == SATA_SIG_ATA) {
                         ahci_port_rebase(port);
-                        active_ahci_ports[i] = port; // Save it to our active list!
+                        active_ahci_ports[i] = port;
                     }
                 }
             }
@@ -148,7 +171,7 @@ void pci_scan_storage() {
     }
 }
 
-// --- CRASH-PROOF ATA ENUMERATOR & PARTITION DRIVER ---
+// --- ATA ENUMERATOR & PARTITION DRIVER ---
 typedef struct { bool present; bool is_atapi; uint32_t sectors; uint16_t io_base; uint8_t drive_sel; } ata_drive_t;
 ata_drive_t drives[4];
 
@@ -163,7 +186,9 @@ void ata_identify(int idx, uint16_t io_base, uint8_t drive_sel) {
     outb(io_base + 6, drive_sel); outb(io_base + 2, 0); outb(io_base + 3, 0); outb(io_base + 4, 0); outb(io_base + 5, 0); outb(io_base + 7, 0xEC); 
     uint8_t status = inb(io_base + 7); if (status == 0 || status == 0xFF) return; if (!ata_wait_bsy(io_base)) return;
     if (inb(io_base + 4) != 0 || inb(io_base + 5) != 0) { drives[idx].is_atapi = true; drives[idx].present = true; return; }
-    while (1) { status = inb(io_base + 7); if (status & 0x01) return; if (status & 0x08) break; }
+    
+    int spin = 0; // Added timeout!
+    while (1) { status = inb(io_base + 7); if (status & 0x01) return; if (status & 0x08) break; spin++; if(spin > 100000) return; }
     uint16_t buf[256]; for (int i=0; i<256; i++) buf[i] = inw(io_base + 0);
     drives[idx].present = true; drives[idx].is_atapi = false; drives[idx].sectors = *(uint32_t*)&buf[60];
 }
@@ -199,14 +224,13 @@ bool boot_is_ahci = false;
 uint32_t fs_lba_offset = 0; 
 uint8_t ram_disk[1024 * 1024]; 
 
-// DMA memory must be aligned perfectly. We use this safe bounce buffer!
 uint16_t* ahci_bounce_buffer = NULL;
 
 void ata_write_sector(uint32_t lba, uint8_t* buffer) {
     if (boot_drive_idx == -1) { if(lba < 2048) memcpy(&ram_disk[lba * 512], buffer, 512); return; }
     if (boot_is_ahci) {
         if (!ahci_bounce_buffer) ahci_bounce_buffer = (uint16_t*)ahci_alloc_aligned(512, 16);
-        memcpy(ahci_bounce_buffer, buffer, 512); // Copy from standard RAM into DMA-aligned buffer
+        memcpy(ahci_bounce_buffer, buffer, 512); 
         ahci_write(active_ahci_ports[boot_drive_idx], fs_lba_offset + lba, 1, ahci_bounce_buffer);
     } else {
         raw_ata_write_sector(boot_drive_idx, fs_lba_offset + lba, buffer);
@@ -216,8 +240,11 @@ void ata_read_sector(uint32_t lba, uint8_t* buffer) {
     if (boot_drive_idx == -1) { if(lba < 2048) memcpy(buffer, &ram_disk[lba * 512], 512); return; }
     if (boot_is_ahci) {
         if (!ahci_bounce_buffer) ahci_bounce_buffer = (uint16_t*)ahci_alloc_aligned(512, 16);
-        ahci_read(active_ahci_ports[boot_drive_idx], fs_lba_offset + lba, 1, ahci_bounce_buffer);
-        memcpy(buffer, ahci_bounce_buffer, 512); // Copy from DMA-aligned buffer back to standard RAM
+        if(ahci_read(active_ahci_ports[boot_drive_idx], fs_lba_offset + lba, 1, ahci_bounce_buffer)) {
+            memcpy(buffer, ahci_bounce_buffer, 512); 
+        } else {
+            memset(buffer, 0, 512);
+        }
     } else {
         raw_ata_read_sector(boot_drive_idx, fs_lba_offset + lba, buffer);
     }
@@ -268,6 +295,19 @@ void sys_format_os() {
     inodes[2].used = 1; inodes[2].is_dir = 1; inodes[2].parent = 0; strcpy(inodes[2].name, "easec");
     fs_flush_nodes();
 
+    fs_write("/inpsos/easec/clear.easec", "var tmp sys_clear");
+    fs_write("/inpsos/easec/shutdown.easec", "var tmp sys_shutdown");
+    fs_write("/inpsos/easec/restart.easec", "var tmp sys_restart");
+    fs_write("/inpsos/easec/format.easec", "var tmp sys_format");
+    fs_write("/inpsos/easec/install.easec", "var tmp sys_install"); 
+    fs_write("/inpsos/easec/list.easec", "var tmp sys_ls");
+    fs_write("/inpsos/easec/change_directory.easec", "var tmp sys_cd");
+    fs_write("/inpsos/easec/create_folder.easec", "var tmp sys_mkdir");
+    fs_write("/inpsos/easec/delete_folder.easec", "var tmp sys_rmdir");
+    fs_write("/inpsos/easec/create_file.easec", "say \"Filename:\"\nvar fname get\nsay \"Content:\"\nvar fcontent get\nfile create fname [ fcontent ]");
+    fs_write("/inpsos/easec/delete_file.easec", "say \"Delete target:\"\nvar fname get\nfile delete fname");
+    fs_write("/inpsos/easec/demo.easec", "say \"--- EASEC DEMO ---\"\nsay \"Variables:\"\nvar number mynum 42\nsay mynum\nsay \"Arrays:\"\narray number arr 10, 20\nsay arr[1]\nsay \"Conditionals:\"\nif mynum == 42 [\nsay \"Number is 42!\"\n] else [\nsay \"No\"\n]\nsay \"Loops:\"\nvar i 0\nrepeat 3 [\nsay i\nincrement i 1\n]\nsay \"Jobs:\"\njob greet x [\nsay \"Hello \" + x\n]\ngreet \"User!\"\nsay \"Demo Complete.\"");
+    
     load_easec_scripts(); 
     os_printf("System Formatted successfully.\n");
 }
@@ -309,7 +349,6 @@ void sys_install_os() {
             os_sprintf(install_targets[target_count].name, "SATA/AHCI Drive on Port %d (Whole Disk Format)", i);
             target_count++;
             
-            // Map partitions for AHCI
             if (!ahci_bounce_buffer) ahci_bounce_buffer = (uint16_t*)ahci_alloc_aligned(512, 16);
             if (ahci_read(active_ahci_ports[i], 0, 1, ahci_bounce_buffer)) {
                 uint8_t* sector0 = (uint8_t*)ahci_bounce_buffer;
@@ -339,7 +378,6 @@ void sys_install_os() {
     os_printf("WARNING: Erasing '%s'. Type 'yes' to proceed: ", install_targets[sel].name);
     os_getline(buf, 16); if(strcmp(buf, "yes") != 0) { os_printf("Cancelled.\n"); return; }
     
-    // Assign global Disk Abstraction variables
     boot_drive_idx = install_targets[sel].drive_idx;
     boot_is_ahci   = install_targets[sel].is_ahci;
     fs_lba_offset  = install_targets[sel].lba_start;
@@ -350,7 +388,7 @@ void sys_install_os() {
 
 bool try_load_os() {
     ata_init();
-    pci_scan_storage(); // Maps AHCI drives to active_ahci_ports array
+    pci_scan_storage(); 
 
     // 1. Try IDE
     for(int i=0; i<4; i++) {
@@ -397,7 +435,7 @@ bool try_load_os() {
 load_fs:
     os_printf("Loaded OS Persistent Filesystem from %s Drive %d, LBA %lld.\n", boot_is_ahci ? "AHCI" : "IDE", boot_drive_idx, (long long)fs_lba_offset);
     uint8_t* ptr = (uint8_t*)inodes;
-    for(int s=0; s<34; s++) ata_read_sector(2+s, ptr + s*512); // Smart wrapper handles the rest!
+    for(int s=0; s<34; s++) ata_read_sector(2+s, ptr + s*512); 
     return true;
 }
 
