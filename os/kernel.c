@@ -168,8 +168,8 @@ bool ahci_read(HBA_PORT* port, uint32_t startl, uint32_t count, uint16_t* buf) {
     cmdfis->countl = count & 0xFF; cmdfis->counth = (count >> 8) & 0xFF;
     
     int spin = 0; 
-    while ((port->tfd & (0x80 | 0x08)) && spin < 75000000) spin++; 
-    if (spin == 75000000) return false;
+    while ((port->tfd & (0x80 | 0x08)) && spin < 50000000) spin++; 
+    if (spin == 50000000) return false;
     
     port->ci = (1 << slot);
     int spin2 = 0;
@@ -189,8 +189,8 @@ bool ahci_write(HBA_PORT* port, uint32_t startl, uint32_t count, uint16_t* buf) 
     cmdfis->countl = count & 0xFF; cmdfis->counth = (count >> 8) & 0xFF;
     
     int spin = 0; 
-    while ((port->tfd & (0x80 | 0x08)) && spin < 75000000) spin++; 
-    if (spin == 75000000) return false;
+    while ((port->tfd & (0x80 | 0x08)) && spin < 50000000) spin++; 
+    if (spin == 50000000) return false;
     
     port->ci = (1 << slot);
     int spin2 = 0;
