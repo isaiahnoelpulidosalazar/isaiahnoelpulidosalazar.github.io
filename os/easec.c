@@ -94,7 +94,17 @@ Value eval_expr(ASTNode* expr, Env* env) {
     if (expr->type == NODE_VAR_EXPR) {
         // OS Special System Hooks
         if (!strcmp(expr->name, "sys_clear")) { vga_clear(); return val_null(); }
-        if (!strcmp(expr->name, "sys_shutdown")) { outw(0x604, 0x2000); outw(0xB004, 0x2000); return val_null(); }
+        if (!strcmp(expr->name, "sys_shutdown")) {
+            outw(0x4004, 0x3400);
+            outw(0x604, 0x2000);
+            outw(0xB004, 0x2000);
+            outw(0x600, 0x34);
+            os_printf("\nPlease press the power button to turn off your computer.\n");
+            while(1) {
+                asm volatile("cli; hlt");
+            }
+            return val_null();
+        }
         if (!strcmp(expr->name, "sys_restart")) { outb(0x64, 0xFE); return val_null(); }
         if (!strcmp(expr->name, "sys_format")) { sys_format_os(); return val_null(); }
         if (!strcmp(expr->name, "sys_cd")) { fs_cd(value_to_string(env_get(env, "sys_arg"))); return val_null(); }

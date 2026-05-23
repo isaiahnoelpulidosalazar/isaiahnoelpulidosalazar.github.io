@@ -117,13 +117,31 @@ void ahci_start_cmd(HBA_PORT* port) {
 }
 void ahci_port_rebase(HBA_PORT* port) {
     ahci_stop_cmd(port);
-    port->clb = (uint32_t)ahci_alloc_aligned(1024, 1024); port->clbu = 0;
-    port->fb = (uint32_t)ahci_alloc_aligned(256, 256); port->fbu = 0;
+
+    // 1. Physically spin up and power on the device (Required for real hardware!)
+    port->cmd |= (1U << 1);  // POD: Power On Device
+    port->cmd |= (1U << 2);  // SUD: Spin Up Device
+
+    // Wait a brief moment for the physical spindle motor to spin up
+    for (volatile int delay = 0; delay < 1000000; delay++);
+
+    // 2. Command List Base (1KB aligned)
+    port->clb = (uint32_t)ahci_alloc_aligned(1024, 1024);
+    port->clbu = 0;
+
+    // 3. FIS Receive Base (256-byte aligned)
+    port->fb = (uint32_t)ahci_alloc_aligned(256, 256);
+    port->fbu = 0;
+
+    // 4. Command Tables (128-byte aligned) for all 32 command slots
     HBA_CMD_HEADER* cmdheader = (HBA_CMD_HEADER*)(port->clb);
     for (int i = 0; i < 32; i++) {
         cmdheader[i].prdtl = 1;
-        cmdheader[i].ctba = (uint32_t)ahci_alloc_aligned(256, 128); cmdheader[i].ctbau = 0;
+        uint32_t cmd_tbl = (uint32_t)ahci_alloc_aligned(256, 128);
+        cmdheader[i].ctba = cmd_tbl;
+        cmdheader[i].ctbau = 0;
     }
+
     ahci_start_cmd(port);
 }
 
@@ -313,20 +331,6 @@ void sys_format_os() {
     inodes[1].used = 1; inodes[1].is_dir = 1; inodes[1].parent = 0; strcpy(inodes[1].name, "boot");
     inodes[2].used = 1; inodes[2].is_dir = 1; inodes[2].parent = 0; strcpy(inodes[2].name, "easec");
     fs_flush_nodes();
-
-    fs_write("/inpsos/easec/clear.easec", "var tmp sys_clear");
-    fs_write("/inpsos/easec/shutdown.easec", "var tmp sys_shutdown");
-    fs_write("/inpsos/easec/restart.easec", "var tmp sys_restart");
-    fs_write("/inpsos/easec/format.easec", "var tmp sys_format");
-    fs_write("/inpsos/easec/install.easec", "var tmp sys_install"); 
-    fs_write("/inpsos/easec/list.easec", "var tmp sys_ls");
-    fs_write("/inpsos/easec/change_directory.easec", "var tmp sys_cd");
-    fs_write("/inpsos/easec/create_folder.easec", "var tmp sys_mkdir");
-    fs_write("/inpsos/easec/delete_folder.easec", "var tmp sys_rmdir");
-    fs_write("/inpsos/easec/create_file.easec", "say \"Filename:\"\nvar fname get\nsay \"Content:\"\nvar fcontent get\nfile create fname [ fcontent ]");
-    fs_write("/inpsos/easec/delete_file.easec", "say \"Delete target:\"\nvar fname get\nfile delete fname");
-    fs_write("/inpsos/easec/demo.easec", "say \"--- EASEC DEMO ---\"\nsay \"Variables:\"\nvar number mynum 42\nsay mynum\nsay \"Arrays:\"\narray number arr 10, 20\nsay arr[1]\nsay \"Conditionals:\"\nif mynum == 42 [\nsay \"Number is 42!\"\n] else [\nsay \"No\"\n]\nsay \"Loops:\"\nvar i 0\nrepeat 3 [\nsay i\nincrement i 1\n]\nsay \"Jobs:\"\njob greet x [\nsay \"Hello \" + x\n]\ngreet \"User!\"\nsay \"Demo Complete.\"");
-    
     load_easec_scripts(); 
     os_printf("System Formatted successfully.\n");
 }
@@ -369,19 +373,36 @@ void sys_install_os() {
             target_count++;
             
             if (!ahci_bounce_buffer) ahci_bounce_buffer = (uint16_t*)ahci_alloc_aligned(512, 16);
+            
+            // Try to read Sector 0
             if (ahci_read(active_ahci_ports[i], 0, 1, ahci_bounce_buffer)) {
                 uint8_t* sector0 = (uint8_t*)ahci_bounce_buffer;
-                if(sector0[510] == 0x55 && sector0[511] == 0xAA) {
+                
+                // Print the signature we found for debugging
+                uint16_t boot_sig = (sector0[511] << 8) | sector0[510];
+                os_printf("  -> Port %d Sector 0 Read Success! Signature: 0x%x\n", i, boot_sig);
+
+                if (boot_sig == 0xAA55) {
                     mbr_entry_t* pt = (mbr_entry_t*)(sector0 + 0x1BE);
                     for(int p=0; p<4; p++) {
                         if(pt[p].type != 0) {
                             install_targets[target_count].drive_idx = i; install_targets[target_count].is_ahci = true;
                             install_targets[target_count].lba_start = pt[p].lba_start; install_targets[target_count].sectors = pt[p].num_sectors;
-                            os_sprintf(install_targets[target_count].name, "SATA/AHCI Drive %d, Part %d (Type 0x%x)", i, p+1, pt[p].type);
+                            
+                            // Check if this is a GPT protective partition
+                            if (pt[p].type == 0xEE) {
+                                os_sprintf(install_targets[target_count].name, "SATA/AHCI Drive %d, Part %d (GPT Protective Partition - Type 0xee)", i, p+1);
+                            } else {
+                                os_sprintf(install_targets[target_count].name, "SATA/AHCI Drive %d, Part %d (Type 0x%x)", i, p+1, pt[p].type);
+                            }
                             target_count++;
                         }
                     }
+                } else {
+                    os_printf("  -> Warning: Sector 0 lacks boot signature (0x55AA).\n");
                 }
+            } else {
+                os_printf("  -> Error: Physical AHCI Read Failed on Port %d.\n", i);
             }
         }
     }
