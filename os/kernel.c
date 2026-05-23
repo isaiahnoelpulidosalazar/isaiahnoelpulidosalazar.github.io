@@ -1,5 +1,5 @@
 #include "kernel.h"
-#include "scripts.h" // AUTO-GENERATED BUNDLE FROM MAKEFILE
+#include "scripts.h"
 
 // --- SETJMP / LONGJMP ---
 __attribute__((naked)) int setjmp(jmp_buf buf) { asm volatile ("mov 4(%esp), %eax\n mov %ebx, 0(%eax)\n mov %esi, 4(%eax)\n mov %edi, 8(%eax)\n mov %ebp, 12(%eax)\n mov %esp, 16(%eax)\n mov 0(%esp), %edx\n mov %edx, 20(%eax)\n xor %eax, %eax\n ret\n"); }
@@ -168,8 +168,8 @@ bool ahci_read(HBA_PORT* port, uint32_t startl, uint32_t count, uint16_t* buf) {
     cmdfis->countl = count & 0xFF; cmdfis->counth = (count >> 8) & 0xFF;
     
     int spin = 0; 
-    while ((port->tfd & (0x80 | 0x08)) && spin < 50000000) spin++; 
-    if (spin == 50000000) return false;
+    while ((port->tfd & (0x80 | 0x08)) && spin < 75000000) spin++; 
+    if (spin == 75000000) return false;
     
     port->ci = (1 << slot);
     int spin2 = 0;
@@ -189,8 +189,8 @@ bool ahci_write(HBA_PORT* port, uint32_t startl, uint32_t count, uint16_t* buf) 
     cmdfis->countl = count & 0xFF; cmdfis->counth = (count >> 8) & 0xFF;
     
     int spin = 0; 
-    while ((port->tfd & (0x80 | 0x08)) && spin < 50000000) spin++; 
-    if (spin == 50000000) return false;
+    while ((port->tfd & (0x80 | 0x08)) && spin < 75000000) spin++; 
+    if (spin == 75000000) return false;
     
     port->ci = (1 << slot);
     int spin2 = 0;
