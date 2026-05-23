@@ -17,8 +17,6 @@ size_t strlen(const char* s) { size_t i=0; while(s[i]) i++; return i; } char* st
 long long atoll(const char* str) { long long res=0; int sign=1; while(isspace(*str)) str++; if(*str=='-') { sign=-1; str++; } else if(*str=='+') str++; while(isdigit(*str)) res = res*10 + (*str++ - '0'); return res*sign; } double atof(const char* str) { double res=0, frac=1; int sign=1; while(isspace(*str)) str++; if(*str=='-') { sign=-1; str++; } else if(*str=='+') str++; while(isdigit(*str)) res = res*10 + (*str++ - '0'); if(*str=='.') { str++; while(isdigit(*str)) { res = res*10 + (*str++ - '0'); frac*=10; } } return sign * (res/frac); } long long strtoll(const char* str, char** endptr, int base) { (void)base; if(endptr) *endptr = (char*)str + strlen(str); return atoll(str); } double strtod(const char* str, char** endptr) { if(endptr) *endptr = (char*)str + strlen(str); return atof(str); }
 void itoa(long long num, char* str) { int i = 0; bool is_neg = false; if (num == 0) { str[i++] = '0'; str[i] = '\0'; return; } if (num < 0) { is_neg = true; num = -num; } while(num != 0) { str[i++] = (num % 10) + '0'; num /= 10; } if (is_neg) str[i++] = '-'; str[i] = '\0'; for(int j=0; j<i/2; j++) { char t=str[j]; str[j]=str[i-1-j]; str[i-1-j]=t; } }
 void ftoa(double n, char* res) { long long ipart = (long long)n; double fpart = n - (double)ipart; if(n < 0 && ipart == 0) { *res++ = '-'; fpart = -fpart; } else if (n < 0) fpart = -fpart; itoa(ipart, res); int len = strlen(res); res[len] = '.'; long long frac = (long long)(fpart * 1000000); itoa(frac, res + len + 1); }
-
-// --- FIXED: ADDED ROBUST %d AND %x SUPPORT TO OS_PRINTF ---
 int os_sprintf(char* buf, const char* fmt, ...) { va_list args; va_start(args, fmt); int i = 0; while(*fmt) { if (*fmt == '%') { fmt++; if (*fmt == 'l' && *(fmt+1) == 'l' && *(fmt+2) == 'd') { char tmp[64]; itoa(va_arg(args, long long), tmp); strcpy(&buf[i], tmp); i += strlen(tmp); fmt += 2; } else if (*fmt == 'g' || *fmt == 'f') { char tmp[64]; ftoa(va_arg(args, double), tmp); strcpy(&buf[i], tmp); i += strlen(tmp); } else if (*fmt == 's') { char* str = va_arg(args, char*); strcpy(&buf[i], str); i += strlen(str); } else if (*fmt == 'c') { buf[i++] = (char)va_arg(args, int); } } else { buf[i++] = *fmt; } fmt++; } buf[i] = '\0'; va_end(args); return i; }
 
 // --- VGA DRIVER ---
@@ -26,7 +24,6 @@ uint16_t* vga = (uint16_t*)0xB8000; int cx = 0, cy = 0;
 void vga_scroll() { if (cy >= 25) { for(int i=0; i<24*80; i++) vga[i] = vga[i + 80]; for(int i=24*80; i<25*80; i++) vga[i] = 0x0720; cy = 24; } }
 void vga_putchar(char c) { if (c == '\n') { cx = 0; cy++; } else if (c == '\b') { if (cx > 0) cx--; else if (cy > 0) { cy--; cx = 79; } vga[cy * 80 + cx] = 0x0720; } else { vga[cy * 80 + cx] = (uint16_t)c | 0x0700; cx++; if (cx >= 80) { cx = 0; cy++; } } vga_scroll(); uint16_t pos = cy * 80 + cx; outb(0x3D4, 0x0F); outb(0x3D5, (uint8_t)(pos & 0xFF)); outb(0x3D4, 0x0E); outb(0x3D5, (uint8_t)((pos >> 8) & 0xFF)); }
 void vga_clear() { for(int i=0; i<25*80; i++) vga[i] = 0x0720; cx = 0; cy = 0; }
-
 void os_printf(const char* fmt, ...) { 
     va_list args; va_start(args, fmt); 
     while(*fmt) { 
@@ -43,11 +40,11 @@ void os_printf(const char* fmt, ...) {
                 for(int k=0; str[k]; k++) vga_putchar(str[k]); 
             } else if (*fmt == 'c') { 
                 vga_putchar((char)va_arg(args, int)); 
-            } else if (*fmt == 'd') { // FIXED: Added direct base-10 integer support
+            } else if (*fmt == 'd') { 
                 int val = va_arg(args, int);
                 char tmp[64]; itoa(val, tmp);
                 for(int k=0; tmp[k]; k++) vga_putchar(tmp[k]);
-            } else if (*fmt == 'x') { // FIXED: Added base-16 hex formatting
+            } else if (*fmt == 'x') { 
                 uint32_t val = va_arg(args, uint32_t);
                 char tmp[64]; int pos = 0;
                 if (val == 0) { tmp[pos++] = '0'; }
@@ -60,6 +57,12 @@ void os_printf(const char* fmt, ...) {
     } 
     va_end(args); 
 }
+
+// --- KEYBOARD DRIVER ---
+const char kbd_US[128] = { 0,27,'1','2','3','4','5','6','7','8','9','0','-','=','\b','\t','q','w','e','r','t','y','u','i','o','p','[',']','\n', 0,'a','s','d','f','g','h','j','k','l',';','\'','`',0,'\\','z','x','c','v','b','n','m',',','.','/',0,'*',0,' ',0 };
+const char kbd_US_shift[128] = { 0,27,'!','@','#','$','%','^','&','*','(',')','_','+','\b','\t','Q','W','E','R','T','Y','U','I','O','P','{','}','\n', 0,'A','S','D','F','G','H','J','K','L',':','"','~',0,'|','Z','X','C','V','B','N','M','<','>','?',0,'*',0,' ',0 };
+char os_getchar() { static bool shift = false; while(1) { if (inb(0x64) & 1) { uint8_t sc = inb(0x60); if (sc == 0x2A || sc == 0x36) shift = true; else if (sc == 0xAA || sc == 0xB6) shift = false; else if (!(sc & 0x80)) { char c = shift ? kbd_US_shift[sc] : kbd_US[sc]; if (c) return c; } } } }
+void os_getline(char* buf, int max) { int i = 0; while(i < max - 1) { char c = os_getchar(); if (c == '\b') { if (i > 0) { i--; vga_putchar('\b'); vga_putchar(' '); vga_putchar('\b'); } } else if (c == '\n') { os_printf("\n"); buf[i] = '\0'; return; } else { os_printf("%c", c); buf[i++] = c; } } buf[i] = '\0'; }
 
 // --- PCI BUS SCANNER ---
 uint32_t pci_read_config_dword(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offset) {
@@ -88,7 +91,7 @@ void* get_ahci_abar(uint8_t bus, uint8_t device, uint8_t func) {
     if (bar5 & 0x01) return NULL;
     uint8_t type = (bar5 >> 1) & 0x03;
     uint32_t abar_low = bar5 & 0xFFFFFFF0;
-    if (type == 0x02 && pci_read_config_dword(bus, device, func, 0x28) != 0) return NULL; // Above 4GB
+    if (type == 0x02 && pci_read_config_dword(bus, device, func, 0x28) != 0) return NULL; 
     return (void*)abar_low;
 }
 
@@ -199,9 +202,14 @@ void ata_identify(int idx, uint16_t io_base, uint8_t drive_sel) {
     outb(io_base + 6, drive_sel); outb(io_base + 2, 0); outb(io_base + 3, 0); outb(io_base + 4, 0); outb(io_base + 5, 0); outb(io_base + 7, 0xEC); 
     uint8_t status = inb(io_base + 7); if (status == 0 || status == 0xFF) return; if (!ata_wait_bsy(io_base)) return;
     if (inb(io_base + 4) != 0 || inb(io_base + 5) != 0) { drives[idx].is_atapi = true; drives[idx].present = true; return; }
-    int spin = 0; while (1) { status = inb(io_base + 7); if (status & 0x01) return; if (status & 0x08) break; spin++; if(spin > 100000) return; }
-    uint16_t buf[256]; for (int i=0; i<256; i++) buf[i] = inw(io_base + 0);
-    drives[idx].present = true; drives[idx].is_atapi = false; drives[idx].sectors = *(uint32_t*)&buf[60];
+    
+    int spin = 0; 
+    while (1) { status = inb(io_base + 7); if (status & 0x01) return; if (status & 0x08) break; spin++; if(spin > 100000) return; }
+    uint16_t buf[256] = {0}; // FIXED: Initialize to prevent compiler warnings [2]
+    for (int i = 0; i < 256; i++) buf[i] = inw(io_base + 0);
+    drives[idx].present = true; drives[idx].is_atapi = false; 
+    // FIXED: Use bitwise shifts to resolve pointer-pun aliasing warnings [2]
+    drives[idx].sectors = (uint32_t)buf[60] | ((uint32_t)buf[61] << 16);
 }
 
 void ata_init() {
