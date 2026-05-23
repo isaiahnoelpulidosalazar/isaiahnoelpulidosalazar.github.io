@@ -13,10 +13,12 @@ void* calloc(size_t n, size_t size) { void* p = malloc(n * size); memset(p, 0, n
 void* realloc(void* p, size_t size) { if(!p) return malloc(size); if(size == 0) return NULL; size_t old_size = *((size_t*)p - 1); if (old_size >= size) return p; void* newp = malloc(size); memcpy(newp, p, old_size); return newp; }
 
 // --- LIBC STRING & CTYPE ---
-size_t strlen(const char* s) { size_t i=0; while(s[i]) i++; return i; } char* strcpy(char* d, const char* s) { int i=0; while((d[i]=s[i])) i++; return d; } char* strncpy(char* d, const char* s, size_t n) { size_t i=0; while(i<n && s[i]) {d[i]=s[i]; i++;} while(i<n) d[i++]='\0'; return d; } int strcmp(const char* s1, const char* s2) { while(*s1 && (*s1==*s2)) { s1++; s2++; } return *(const unsigned char*)s1 - *(const unsigned char*)s2; } int strncmp(const char* s1, const char* s2, size_t n) { while(n--) { if(*s1!=*s2) return *(const unsigned char*)s1 - *(const unsigned char*)s2; s1++; s2++; } return 0; } int strcasecmp(const char* s1, const char* s2) { while(*s1) { char c1 = (*s1>='A'&&*s1<='Z')?*s1+32:*s1; char c2 = (*s2>='A'&&*s2<='Z')?*s2+32:*s2; if (c1 != c2) return c1 - c2; s1++; s2++; } return *s2 == 0 ? 0 : -1; } char* strrchr(const char* s, int c) { const char* last = NULL; while(*s) { if (*s == (char)c) last = s; s++; } return (char*)last; } void* memset(void* s, int c, size_t n) { unsigned char* p=s; while(n--) *p++=(unsigned char)c; return s; } void* memcpy(void* d, const void* s, size_t n) { unsigned char* pd=d; const unsigned char* ps=s; while(n--) *pd++=*ps++; return d; } void* memmove(void* d, const void* s, size_t n) { unsigned char* pd=d; const unsigned char* ps=s; if(pd<ps) while(n--) *pd++=*ps++; else { pd+=n; ps+=n; while(n--) *--pd=*--ps; } return d; } size_t strcspn(const char* s, const char* rej) { size_t c=0; while(*s) { const char* r=rej; while(*r) { if(*s==*r) return c; r++; } s++; c++; } return c; } char* strcat(char* d, const char* s) { strcpy(d + strlen(d), s); return d; } int isspace(int c) { return c==' '||c=='\t'||c=='\n'||c=='\r'||c=='\f'||c=='\v'; } int isdigit(int c) { return c>='0'&&c<='9'; } int isalpha(int c) { return (c>='a'&&c<='z')||(c>='A'&&c<='Z'); } int isalnum(int c) { return isalpha(c)||isdigit(c); }
+size_t strlen(const char* s) { size_t i=0; while(s[i]) i++; return i; } char* strcpy(char* d, const char* s) { int i=0; while((d[i]=s[i])) i++; return d; } char* strncpy(char* d, const char* s, size_t n) { size_t i=0; while(i<n && s[i]) {d[i]=s[i]; i++;} while(i<n) d[i++]='\0'; return d; } int strcmp(const char* s1, const char* s2) { while(*s1 && (*s1==*s2)) { s1++; s2++; } return *(const unsigned char*)s1 - *(const unsigned char*)s2; } int strncmp(const char* s1, const char* s2, size_t n) { while(n--) { if(*s1!=*s2) return *(const unsigned char*)s1 - *(const unsigned char*)s2; s1++; s2++; } return 0; } int strcasecmp(const char* s1, const char* s2) { while(*s1) { char c1 = (*s1>='A'&&*s1<='Z')?*s1+32:*s1; char c2 = (*s2>='A'&&*s2<='Z')?*s2+32:*s2; if (c1 != c2) return c1 - c2; s1++; s2++; } return *s2 == 0 ? 0 : -1; } char* strrchr(const char* s, int c) { const char* last = NULL; while(*s) { if (*s == (char)c) last = s; s++; } return (char*)last; } void* memset(void* s, int c, size_t n) { unsigned char* p=s; while(n--) *p++=(unsigned char)c; return s; } void* memcpy(void* d, const void* s, size_t n) { unsigned char* pd=d; const unsigned char* ps=s; while(n--) *pd++=*ps++; return d; } void* memmove(void* d, const void* s, size_t n) { unsigned char* pd=d; const unsigned char* ps=s; if(pd<ps) while(n--) *pd++=*ps++; else { pd+=n; ps+=n; while(n--) *--pd=*--ps; } return d; } size_t strcspn(const char* s, const char* reject) { size_t c=0; while(*s) { const char* r=reject; while(*r) { if(*s==*r) return c; r++; } s++; c++; } return c; } char* strcat(char* d, const char* s) { strcpy(d + strlen(d), s); return d; } int isspace(int c) { return c==' '||c=='\t'||c=='\n'||c=='\r'||c=='\f'||c=='\v'; } int isdigit(int c) { return c>='0'&&c<='9'; } int isalpha(int c) { return (c>='a'&&c<='z')||(c>='A'&&c<='Z'); } int isalnum(int c) { return isalpha(c)||isdigit(c); }
 long long atoll(const char* str) { long long res=0; int sign=1; while(isspace(*str)) str++; if(*str=='-') { sign=-1; str++; } else if(*str=='+') str++; while(isdigit(*str)) res = res*10 + (*str++ - '0'); return res*sign; } double atof(const char* str) { double res=0, frac=1; int sign=1; while(isspace(*str)) str++; if(*str=='-') { sign=-1; str++; } else if(*str=='+') str++; while(isdigit(*str)) res = res*10 + (*str++ - '0'); if(*str=='.') { str++; while(isdigit(*str)) { res = res*10 + (*str++ - '0'); frac*=10; } } return sign * (res/frac); } long long strtoll(const char* str, char** endptr, int base) { (void)base; if(endptr) *endptr = (char*)str + strlen(str); return atoll(str); } double strtod(const char* str, char** endptr) { if(endptr) *endptr = (char*)str + strlen(str); return atof(str); }
 void itoa(long long num, char* str) { int i = 0; bool is_neg = false; if (num == 0) { str[i++] = '0'; str[i] = '\0'; return; } if (num < 0) { is_neg = true; num = -num; } while(num != 0) { str[i++] = (num % 10) + '0'; num /= 10; } if (is_neg) str[i++] = '-'; str[i] = '\0'; for(int j=0; j<i/2; j++) { char t=str[j]; str[j]=str[i-1-j]; str[i-1-j]=t; } }
 void ftoa(double n, char* res) { long long ipart = (long long)n; double fpart = n - (double)ipart; if(n < 0 && ipart == 0) { *res++ = '-'; fpart = -fpart; } else if (n < 0) fpart = -fpart; itoa(ipart, res); int len = strlen(res); res[len] = '.'; long long frac = (long long)(fpart * 1000000); itoa(frac, res + len + 1); }
+
+// --- FIXED: ADDED ROBUST %d AND %x SUPPORT TO OS_PRINTF ---
 int os_sprintf(char* buf, const char* fmt, ...) { va_list args; va_start(args, fmt); int i = 0; while(*fmt) { if (*fmt == '%') { fmt++; if (*fmt == 'l' && *(fmt+1) == 'l' && *(fmt+2) == 'd') { char tmp[64]; itoa(va_arg(args, long long), tmp); strcpy(&buf[i], tmp); i += strlen(tmp); fmt += 2; } else if (*fmt == 'g' || *fmt == 'f') { char tmp[64]; ftoa(va_arg(args, double), tmp); strcpy(&buf[i], tmp); i += strlen(tmp); } else if (*fmt == 's') { char* str = va_arg(args, char*); strcpy(&buf[i], str); i += strlen(str); } else if (*fmt == 'c') { buf[i++] = (char)va_arg(args, int); } } else { buf[i++] = *fmt; } fmt++; } buf[i] = '\0'; va_end(args); return i; }
 
 // --- VGA DRIVER ---
@@ -24,25 +26,50 @@ uint16_t* vga = (uint16_t*)0xB8000; int cx = 0, cy = 0;
 void vga_scroll() { if (cy >= 25) { for(int i=0; i<24*80; i++) vga[i] = vga[i + 80]; for(int i=24*80; i<25*80; i++) vga[i] = 0x0720; cy = 24; } }
 void vga_putchar(char c) { if (c == '\n') { cx = 0; cy++; } else if (c == '\b') { if (cx > 0) cx--; else if (cy > 0) { cy--; cx = 79; } vga[cy * 80 + cx] = 0x0720; } else { vga[cy * 80 + cx] = (uint16_t)c | 0x0700; cx++; if (cx >= 80) { cx = 0; cy++; } } vga_scroll(); uint16_t pos = cy * 80 + cx; outb(0x3D4, 0x0F); outb(0x3D5, (uint8_t)(pos & 0xFF)); outb(0x3D4, 0x0E); outb(0x3D5, (uint8_t)((pos >> 8) & 0xFF)); }
 void vga_clear() { for(int i=0; i<25*80; i++) vga[i] = 0x0720; cx = 0; cy = 0; }
-void os_printf(const char* fmt, ...) { va_list args; va_start(args, fmt); while(*fmt) { if (*fmt == '%') { fmt++; if (*fmt == 'l' && *(fmt+1) == 'l' && *(fmt+2) == 'd') { char tmp[64]; itoa(va_arg(args, long long), tmp); for(int k=0; tmp[k]; k++) vga_putchar(tmp[k]); fmt += 2; } else if (*fmt == 'g' || *fmt == 'f') { char tmp[64]; ftoa(va_arg(args, double), tmp); for(int k=0; tmp[k]; k++) vga_putchar(tmp[k]); } else if (*fmt == 's') { char* str = va_arg(args, char*); for(int k=0; str[k]; k++) vga_putchar(str[k]); } else if (*fmt == 'c') { vga_putchar((char)va_arg(args, int)); } } else { vga_putchar(*fmt); } fmt++; } va_end(args); }
 
-// --- KEYBOARD DRIVER ---
-const char kbd_US[128] = { 0,27,'1','2','3','4','5','6','7','8','9','0','-','=','\b','\t','q','w','e','r','t','y','u','i','o','p','[',']','\n', 0,'a','s','d','f','g','h','j','k','l',';','\'','`',0,'\\','z','x','c','v','b','n','m',',','.','/',0,'*',0,' ',0 };
-const char kbd_US_shift[128] = { 0,27,'!','@','#','$','%','^','&','*','(',')','_','+','\b','\t','Q','W','E','R','T','Y','U','I','O','P','{','}','\n', 0,'A','S','D','F','G','H','J','K','L',':','"','~',0,'|','Z','X','C','V','B','N','M','<','>','?',0,'*',0,' ',0 };
-char os_getchar() { static bool shift = false; while(1) { if (inb(0x64) & 1) { uint8_t sc = inb(0x60); if (sc == 0x2A || sc == 0x36) shift = true; else if (sc == 0xAA || sc == 0xB6) shift = false; else if (!(sc & 0x80)) { char c = shift ? kbd_US_shift[sc] : kbd_US[sc]; if (c) return c; } } } }
-void os_getline(char* buf, int max) { int i = 0; while(i < max - 1) { char c = os_getchar(); if (c == '\b') { if (i > 0) { i--; vga_putchar('\b'); vga_putchar(' '); vga_putchar('\b'); } } else if (c == '\n') { os_printf("\n"); buf[i] = '\0'; return; } else { os_printf("%c", c); buf[i++] = c; } } buf[i] = '\0'; }
+void os_printf(const char* fmt, ...) { 
+    va_list args; va_start(args, fmt); 
+    while(*fmt) { 
+        if (*fmt == '%') { 
+            fmt++; 
+            if (*fmt == 'l' && *(fmt+1) == 'l' && *(fmt+2) == 'd') { 
+                char tmp[64]; itoa(va_arg(args, long long), tmp); 
+                for(int k=0; tmp[k]; k++) vga_putchar(tmp[k]); fmt += 2; 
+            } else if (*fmt == 'g' || *fmt == 'f') { 
+                char tmp[64]; ftoa(va_arg(args, double), tmp); 
+                for(int k=0; tmp[k]; k++) vga_putchar(tmp[k]); 
+            } else if (*fmt == 's') { 
+                char* str = va_arg(args, char*); 
+                for(int k=0; str[k]; k++) vga_putchar(str[k]); 
+            } else if (*fmt == 'c') { 
+                vga_putchar((char)va_arg(args, int)); 
+            } else if (*fmt == 'd') { // FIXED: Added direct base-10 integer support
+                int val = va_arg(args, int);
+                char tmp[64]; itoa(val, tmp);
+                for(int k=0; tmp[k]; k++) vga_putchar(tmp[k]);
+            } else if (*fmt == 'x') { // FIXED: Added base-16 hex formatting
+                uint32_t val = va_arg(args, uint32_t);
+                char tmp[64]; int pos = 0;
+                if (val == 0) { tmp[pos++] = '0'; }
+                else { while (val > 0) { int d = val % 16; if (d < 10) tmp[pos++] = d + '0'; else tmp[pos++] = (d - 10) + 'a'; val /= 16; } }
+                tmp[pos] = '\0';
+                for(int j=0; j<pos/2; j++) { char t=tmp[j]; tmp[j]=tmp[pos-1-j]; tmp[pos-1-j]=t; }
+                for(int k=0; tmp[k]; k++) vga_putchar(tmp[k]);
+            }
+        } else { vga_putchar(*fmt); } fmt++; 
+    } 
+    va_end(args); 
+}
 
 // --- PCI BUS SCANNER ---
 uint32_t pci_read_config_dword(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offset) {
     uint32_t address = (uint32_t)((uint32_t)bus << 16) | ((uint32_t)slot << 11) | ((uint32_t)func << 8) | (offset & 0xFC) | ((uint32_t)0x80000000);
     outl(0xCF8, address); return inl(0xCFC);
 }
-// NEW: Required to enable Bus Mastering!
 void pci_write_config_dword(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offset, uint32_t value) {
     uint32_t address = (uint32_t)((uint32_t)bus << 16) | ((uint32_t)slot << 11) | ((uint32_t)func << 8) | (offset & 0xFC) | ((uint32_t)0x80000000);
     outl(0xCF8, address); outl(0xCFC, value);
 }
-
 bool find_ahci_controller(uint8_t* out_bus, uint8_t* out_device, uint8_t* out_func) {
     for (uint16_t bus = 0; bus < 256; bus++) {
         for (uint8_t device = 0; device < 32; device++) {
@@ -77,15 +104,11 @@ void* ahci_alloc_aligned(size_t size, size_t alignment) {
 
 void ahci_stop_cmd(HBA_PORT* port) {
     port->cmd &= ~0x0001; port->cmd &= ~0x0010; 
-    int spin = 0; // Added timeout!
-    while (1) { 
-        if (port->cmd & 0x4000) { spin++; if(spin>100000) break; continue; } 
-        if (port->cmd & 0x8000) { spin++; if(spin>100000) break; continue; } 
-        break; 
-    }
+    int spin = 0;
+    while (1) { if (port->cmd & 0x4000) { spin++; if(spin>100000) break; continue; } if (port->cmd & 0x8000) { spin++; if(spin>100000) break; continue; } break; }
 }
 void ahci_start_cmd(HBA_PORT* port) {
-    int spin = 0; // Added timeout!
+    int spin = 0;
     while (port->cmd & 0x8000) { spin++; if(spin>100000) break; } 
     port->cmd |= 0x0010; port->cmd |= 0x0001; 
 }
@@ -114,12 +137,8 @@ bool ahci_read(HBA_PORT* port, uint32_t startl, uint32_t count, uint16_t* buf) {
     cmdfis->countl = count & 0xFF; cmdfis->counth = (count >> 8) & 0xFF;
     int spin = 0; while ((port->tfd & (0x80 | 0x08)) && spin < 100000) spin++; if (spin == 100000) return false;
     port->ci = (1 << slot);
-    int spin2 = 0; // Added timeout!
-    while (1) { 
-        if ((port->ci & (1 << slot)) == 0) break; 
-        if (port->is & (1 << 30)) return false; 
-        spin2++; if (spin2 > 500000) return false;
-    } return true;
+    int spin2 = 0;
+    while (1) { if ((port->ci & (1 << slot)) == 0) break; if (port->is & (1 << 30)) return false; spin2++; if (spin2 > 500000) return false; } return true;
 }
 
 bool ahci_write(HBA_PORT* port, uint32_t startl, uint32_t count, uint16_t* buf) {
@@ -135,12 +154,8 @@ bool ahci_write(HBA_PORT* port, uint32_t startl, uint32_t count, uint16_t* buf) 
     cmdfis->countl = count & 0xFF; cmdfis->counth = (count >> 8) & 0xFF;
     int spin = 0; while ((port->tfd & (0x80 | 0x08)) && spin < 100000) spin++; if (spin == 100000) return false;
     port->ci = (1 << slot);
-    int spin2 = 0; // Added timeout!
-    while (1) { 
-        if ((port->ci & (1 << slot)) == 0) break; 
-        if (port->is & (1 << 30)) return false; 
-        spin2++; if (spin2 > 500000) return false;
-    } return true;
+    int spin2 = 0;
+    while (1) { if ((port->ci & (1 << slot)) == 0) break; if (port->is & (1 << 30)) return false; spin2++; if (spin2 > 500000) return false; } return true;
 }
 
 void pci_scan_storage() {
@@ -148,10 +163,8 @@ void pci_scan_storage() {
     for (int i=0; i<32; i++) active_ahci_ports[i] = NULL;
 
     if (find_ahci_controller(&ahci_bus, &ahci_dev, &ahci_func)) {
-        // NEW: CRITICAL! Enable PCI Bus Mastering and Memory Space so ABAR isn't garbage!
         uint32_t pci_cmd = pci_read_config_dword(ahci_bus, ahci_dev, ahci_func, 0x04);
         pci_write_config_dword(ahci_bus, ahci_dev, ahci_func, 0x04, pci_cmd | 0x06);
-
         HBA_MEM* abar = (HBA_MEM*)get_ahci_abar(ahci_bus, ahci_dev, ahci_func);
         if (abar != NULL && abar != (void*)0xFFFFFFFF) {
             abar->ghc |= (1U << 31); // Enable AHCI Mode
@@ -186,9 +199,7 @@ void ata_identify(int idx, uint16_t io_base, uint8_t drive_sel) {
     outb(io_base + 6, drive_sel); outb(io_base + 2, 0); outb(io_base + 3, 0); outb(io_base + 4, 0); outb(io_base + 5, 0); outb(io_base + 7, 0xEC); 
     uint8_t status = inb(io_base + 7); if (status == 0 || status == 0xFF) return; if (!ata_wait_bsy(io_base)) return;
     if (inb(io_base + 4) != 0 || inb(io_base + 5) != 0) { drives[idx].is_atapi = true; drives[idx].present = true; return; }
-    
-    int spin = 0; // Added timeout!
-    while (1) { status = inb(io_base + 7); if (status & 0x01) return; if (status & 0x08) break; spin++; if(spin > 100000) return; }
+    int spin = 0; while (1) { status = inb(io_base + 7); if (status & 0x01) return; if (status & 0x08) break; spin++; if(spin > 100000) return; }
     uint16_t buf[256]; for (int i=0; i<256; i++) buf[i] = inw(io_base + 0);
     drives[idx].present = true; drives[idx].is_atapi = false; drives[idx].sectors = *(uint32_t*)&buf[60];
 }

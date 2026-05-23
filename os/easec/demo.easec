@@ -4,7 +4,7 @@ var number mynum 42
 say mynum
 
 say "Arrays:"
-array number arr 10, 20   # FIXED: Removed brackets [ ]
+array number arr 10, 20
 say arr[1]
 
 say "Conditionals:"
