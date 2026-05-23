@@ -16,6 +16,56 @@ typedef __builtin_va_list va_list;
 #define va_end(v) __builtin_va_end(v)
 #define va_arg(v,l) __builtin_va_arg(v,l)
 
+#pragma pack(push, 1) // Force the compiler to NOT add padding bytes!
+
+typedef volatile struct {
+    uint32_t clb;
+    uint32_t clbu;
+    uint32_t fb;
+    uint32_t fbu;
+    uint32_t is;
+    uint32_t ie;
+    uint32_t cmd;
+    uint32_t reserved0;
+    uint32_t tfd;
+    uint32_t sig;
+    uint32_t ssts;
+    uint32_t sctl;
+    uint32_t serr;
+    uint32_t sact;
+    uint32_t ci;
+    uint32_t sntf;
+    uint32_t fbs;
+    uint32_t reserved1[11];
+    uint32_t vendor[4];
+} HBA_PORT;
+
+typedef volatile struct {
+    uint32_t cap;
+    uint32_t ghc;
+    uint32_t is;
+    uint32_t pi;
+    uint32_t vs;
+    uint32_t ccc_ctl;
+    uint32_t ccc_pts;
+    uint32_t em_loc;
+    uint32_t em_ctl;
+    uint32_t cap2;
+    uint32_t bohc;
+    uint8_t reserved[0xA0 - 0x2C];
+    uint8_t vendor[0x100 - 0xA0];
+    HBA_PORT ports[32]; // <--- We add the 32 ports here at the very end!
+} HBA_MEM;
+
+#define SATA_SIG_ATA   0x00000101 // SATA Hard Drive
+#define SATA_SIG_ATAPI 0xEB140101 // SATA CD/DVD Drive (ATAPI)
+#define SATA_SIG_SEMB  0xC33C0101 // Enclosure management bridge
+#define SATA_SIG_PM    0x96690101 // Port multiplier
+
+void ahci_probe_ports(HBA_MEM* abar);
+
+#pragma pack(pop) // Restore normal compiler padding for the rest of the OS
+
 typedef struct { uint32_t regs[6]; } jmp_buf[1];
 int setjmp(jmp_buf buf);
 void longjmp(jmp_buf buf, int val);

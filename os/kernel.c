@@ -175,6 +175,53 @@ void* get_ahci_abar(uint8_t bus, uint8_t device, uint8_t func) {
     return (void*)abar_low;
 }
 
+void ahci_probe_ports(HBA_MEM* abar) {
+    // Read the "Ports Implemented" bitmask (Bit 0 = Port 0, Bit 1 = Port 1, etc.)
+    uint32_t pi = abar->pi;
+
+    os_printf("  -> Probing implemented SATA ports...\n");
+    int drives_found = 0;
+
+    for (int i = 0; i < 32; i++) {
+        if (pi & (1 << i)) {
+            // The motherboard physically has this port!
+            HBA_PORT* port = &abar->ports[i];
+            
+            // Read SATA Status
+            uint32_t ssts = port->ssts;
+            
+            // Extract Device Detection (det) and Interface Power Management (ipm)
+            uint8_t det = ssts & 0x0F;
+            uint8_t ipm = (ssts >> 8) & 0x0F;
+
+            // det == 3 means "Device present and PHY communication established"
+            // ipm == 1 means "Active state"
+            if (det == 3 && ipm == 1) {
+                drives_found++;
+                
+                // Read the device signature to see WHAT is plugged in
+                uint32_t sig = port->sig;
+                
+                if (sig == SATA_SIG_ATA) {
+                    os_printf("     [Port %d] SATA Hard Drive detected!\n", i);
+                } else if (sig == SATA_SIG_ATAPI) {
+                    os_printf("     [Port %d] SATAPI (CD/ROM) Drive detected!\n", i);
+                } else if (sig == SATA_SIG_PM) {
+                    os_printf("     [Port %d] SATA Port Multiplier detected!\n", i);
+                } else {
+                    os_printf("     [Port %d] Unknown SATA Device (Sig: 0x%x)\n", i, sig);
+                }
+            } else if (det == 1) {
+                os_printf("     [Port %d] Device present but communication failed.\n", i);
+            }
+        }
+    }
+
+    if (drives_found == 0) {
+        os_printf("     No drives found on any SATA ports.\n");
+    }
+}
+
 void pci_scan_storage() {
     uint8_t ahci_bus, ahci_dev, ahci_func;
 
@@ -183,22 +230,20 @@ void pci_scan_storage() {
     if (find_ahci_controller(&ahci_bus, &ahci_dev, &ahci_func)) {
         os_printf("  -> SUCCESS: AHCI SATA Controller found at %d:%d:%d\n", ahci_bus, ahci_dev, ahci_func);
         
-        // Retrieve the Base Address!
-        hba_mem_t* abar = (hba_mem_t*)get_ahci_abar(ahci_bus, ahci_dev, ahci_func);
+        HBA_MEM* abar = (HBA_MEM*)get_ahci_abar(ahci_bus, ahci_dev, ahci_func);
         
         if (abar != NULL) {
-            os_printf("  -> ABAR Physical Address mapped at: 0x%x\n", (uint32_t)abar);
-
-            // Let's read from the actual controller chip in memory!
-            // The Version Register (VS) formats it like Major.Minor
             uint32_t version = abar->vs;
             uint8_t major = (version >> 16) & 0xFF;
             uint8_t minor = (version >> 8) & 0xFF;
 
             os_printf("  -> AHCI Specification Version: %d.%d\n", major, minor);
             
-            // NOTE: If you enable Paging in the future, you will need to add:
-            // map_page((void*)abar, (void*)abar, PAGE_PRESENT | PAGE_RW | PAGE_DISABLE_CACHE);
+            // Enable AHCI mode by setting Bit 31 of Global Host Control (GHC)
+            abar->ghc |= (1U << 31);
+            
+            // Call our new probe function!
+            ahci_probe_ports(abar);
         }
         
     } else {
