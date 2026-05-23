@@ -308,9 +308,9 @@ char current_dir_path[128] = "/inpsos";
 
 void fs_flush_nodes() {
     uint8_t magic_buf[512] = {0}; strcpy((char*)magic_buf, FS_MAGIC);
-    ata_write_sector(1, magic_buf);
+    ata_write_sector(128, magic_buf); // Shifted to Sector 128
     uint8_t* ptr = (uint8_t*)inodes;
-    for(int i=0; i < 34; i++) ata_write_sector(2 + i, ptr + i*512);
+    for(int i=0; i < 34; i++) ata_write_sector(129 + i, ptr + i*512); // Shifted to 129
 }
 int fs_find_child(int parent_id, const char* name) { for(int i=0; i<MAX_NODES; i++) if(inodes[i].used && inodes[i].parent == parent_id && strcmp(inodes[i].name, name) == 0) return i; return -1; }
 int fs_resolve(const char* path) {
@@ -425,7 +425,7 @@ bool try_load_os() {
     // 1. Try IDE
     for(int i=0; i<4; i++) {
         if(!drives[i].present || drives[i].is_atapi) continue;
-        uint8_t magic[512]; raw_ata_read_sector(i, 1, magic);
+        uint8_t magic[512]; raw_ata_read_sector(i, 128, magic);
         if(strncmp((char*)magic, FS_MAGIC, 8) == 0) { boot_drive_idx = i; boot_is_ahci = false; fs_lba_offset = 0; goto load_fs; }
         
         uint8_t sector0[512]; raw_ata_read_sector(i, 0, sector0);
@@ -433,7 +433,7 @@ bool try_load_os() {
             mbr_entry_t* pt = (mbr_entry_t*)(sector0 + 0x1BE);
             for(int p=0; p<4; p++) {
                 if(pt[p].type != 0) {
-                    raw_ata_read_sector(i, pt[p].lba_start + 1, magic);
+                    raw_ata_read_sector(i, pt[p].lba_start + 128, magic);
                     if(strncmp((char*)magic, FS_MAGIC, 8) == 0) { boot_drive_idx = i; boot_is_ahci = false; fs_lba_offset = pt[p].lba_start; goto load_fs; }
                 }
             }
@@ -445,7 +445,7 @@ bool try_load_os() {
     for (int i=0; i<32; i++) {
         if (!active_ahci_ports[i]) continue;
         
-        if (ahci_read(active_ahci_ports[i], 1, 1, ahci_bounce_buffer)) {
+        if (ahci_read(active_ahci_ports[i], 128, 1, ahci_bounce_buffer)) {
             if(strncmp((char*)ahci_bounce_buffer, FS_MAGIC, 8) == 0) { boot_drive_idx = i; boot_is_ahci = true; fs_lba_offset = 0; goto load_fs; }
         }
         if (ahci_read(active_ahci_ports[i], 0, 1, ahci_bounce_buffer)) {
@@ -454,7 +454,7 @@ bool try_load_os() {
                 mbr_entry_t* pt = (mbr_entry_t*)(sector0 + 0x1BE);
                 for(int p=0; p<4; p++) {
                     if(pt[p].type != 0) {
-                        ahci_read(active_ahci_ports[i], pt[p].lba_start + 1, 1, ahci_bounce_buffer);
+                        ahci_read(active_ahci_ports[i], pt[p].lba_start + 128, 1, ahci_bounce_buffer);
                         if(strncmp((char*)ahci_bounce_buffer, FS_MAGIC, 8) == 0) { boot_drive_idx = i; boot_is_ahci = true; fs_lba_offset = pt[p].lba_start; goto load_fs; }
                     }
                 }
@@ -467,7 +467,7 @@ bool try_load_os() {
 load_fs:
     os_printf("Loaded OS Persistent Filesystem from %s Drive %d, LBA %lld.\n", boot_is_ahci ? "AHCI" : "IDE", boot_drive_idx, (long long)fs_lba_offset);
     uint8_t* ptr = (uint8_t*)inodes;
-    for(int s=0; s<34; s++) ata_read_sector(2+s, ptr + s*512); 
+    for(int s=0; s<34; s++) ata_read_sector(129+s, ptr + s*512); // Changed 2 to 129
     return true;
 }
 
