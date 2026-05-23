@@ -27,6 +27,18 @@ static inline uint16_t inw(uint16_t port) { uint16_t ret; asm volatile("inw %1, 
 static inline void outl(uint16_t port, uint32_t val) { asm volatile("outl %0, %1" : : "a"(val), "Nd"(port)); }
 static inline uint32_t inl(uint16_t port) { uint32_t ret; asm volatile("inl %1, %0" : "=a"(ret) : "Nd"(port)); return ret; }
 
+typedef volatile struct {
+    uint32_t cap;       // 0x00: Host capability
+    uint32_t ghc;       // 0x04: Global host control
+    uint32_t is;        // 0x08: Interrupt status
+    uint32_t pi;        // 0x0C: Ports implemented
+    uint32_t vs;        // 0x10: AHCI Version
+} hba_mem_t;
+
+// Add our new function prototypes
+bool find_ahci_controller(uint8_t* out_bus, uint8_t* out_device, uint8_t* out_func);
+void* get_ahci_abar(uint8_t bus, uint8_t device, uint8_t func);
+
 void* malloc(size_t size);
 void free(void* p);
 void* calloc(size_t n, size_t size);

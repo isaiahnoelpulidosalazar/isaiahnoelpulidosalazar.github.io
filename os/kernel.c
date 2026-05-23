@@ -122,19 +122,84 @@ uint32_t pci_read_config_dword(uint8_t bus, uint8_t slot, uint8_t func, uint8_t 
     return inl(0xCFC);
 }
 
-// Scans the PCI bus and lists modern storage controllers
+bool find_ahci_controller(uint8_t* out_bus, uint8_t* out_device, uint8_t* out_func) {
+    for (uint16_t bus = 0; bus < 256; bus++) {
+        for (uint8_t device = 0; device < 32; device++) {
+            for (uint8_t func = 0; func < 8; func++) {
+                uint32_t reg0 = pci_read_config_dword(bus, device, func, 0);
+                if ((reg0 & 0xFFFF) == 0xFFFF) continue; 
+
+                uint32_t reg8 = pci_read_config_dword(bus, device, func, 0x08);
+                uint8_t class_code = (reg8 >> 24) & 0xFF;
+                uint8_t subclass   = (reg8 >> 16) & 0xFF;
+                uint8_t prog_if    = (reg8 >> 8)  & 0xFF;
+
+                if (class_code == 0x01 && subclass == 0x06 && prog_if == 0x01) {
+                    *out_bus = bus;
+                    *out_device = device;
+                    *out_func = func;
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
+void* get_ahci_abar(uint8_t bus, uint8_t device, uint8_t func) {
+    // Read BAR5 (Offset 0x24)
+    uint32_t bar5 = pci_read_config_dword(bus, device, func, 0x24);
+
+    // Bit 0 determines if this is Memory Space (0) or I/O Space (1)
+    if (bar5 & 0x01) {
+        os_printf("Error: AHCI BAR5 is I/O mapped, but we expected Memory Mapped!\n");
+        return NULL;
+    }
+
+    // Bits 1 and 2 determine the Type (0 = 32-bit, 2 = 64-bit)
+    uint8_t type = (bar5 >> 1) & 0x03;
+
+    // Mask out the lower 4 bits (which are read-only hardware flags)
+    uint32_t abar_low = bar5 & 0xFFFFFFF0;
+
+    // If it's a 64-bit BAR, we must ensure the upper 32 bits are 0.
+    // If they aren't 0, the address is above 4GB, which a 32-bit OS cannot reach!
+    if (type == 0x02) {
+        uint32_t bar5_high = pci_read_config_dword(bus, device, func, 0x28);
+        if (bar5_high != 0) {
+            os_printf("Error: AHCI ABAR is mapped above 4GB. 32-bit OS cannot access this!\n");
+            return NULL;
+        }
+    }
+
+    return (void*)abar_low;
+}
+
 void pci_scan_storage() {
     uint8_t ahci_bus, ahci_dev, ahci_func;
 
     os_printf("Scanning PCI Bus for storage controllers...\n");
 
     if (find_ahci_controller(&ahci_bus, &ahci_dev, &ahci_func)) {
-        os_printf("  -> SUCCESS: AHCI SATA Controller found!\n");
-        os_printf("     Location: Bus %d, Device %d, Function %d\n", ahci_bus, ahci_dev, ahci_func);
+        os_printf("  -> SUCCESS: AHCI SATA Controller found at %d:%d:%d\n", ahci_bus, ahci_dev, ahci_func);
         
-        // This is where you would eventually read BAR5 to get the memory address 
-        // to start communicating with the hard drives!
-        // uint32_t bar5 = pci_read_config_dword(ahci_bus, ahci_dev, ahci_func, 0x24);
+        // Retrieve the Base Address!
+        hba_mem_t* abar = (hba_mem_t*)get_ahci_abar(ahci_bus, ahci_dev, ahci_func);
+        
+        if (abar != NULL) {
+            os_printf("  -> ABAR Physical Address mapped at: 0x%x\n", (uint32_t)abar);
+
+            // Let's read from the actual controller chip in memory!
+            // The Version Register (VS) formats it like Major.Minor
+            uint32_t version = abar->vs;
+            uint8_t major = (version >> 16) & 0xFF;
+            uint8_t minor = (version >> 8) & 0xFF;
+
+            os_printf("  -> AHCI Specification Version: %d.%d\n", major, minor);
+            
+            // NOTE: If you enable Paging in the future, you will need to add:
+            // map_page((void*)abar, (void*)abar, PAGE_PRESENT | PAGE_RW | PAGE_DISABLE_CACHE);
+        }
         
     } else {
         os_printf("  -> ERROR: No AHCI controller detected on this motherboard.\n");
