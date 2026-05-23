@@ -124,39 +124,56 @@ uint32_t pci_read_config_dword(uint8_t bus, uint8_t slot, uint8_t func, uint8_t 
 
 // Scans the PCI bus and lists modern storage controllers
 void pci_scan_storage() {
-    os_printf("Scanning PCI Bus for SATA & NVMe controllers...\n");
-    bool found_any = false;
+    uint8_t ahci_bus, ahci_dev, ahci_func;
 
+    os_printf("Scanning PCI Bus for storage controllers...\n");
+
+    if (find_ahci_controller(&ahci_bus, &ahci_dev, &ahci_func)) {
+        os_printf("  -> SUCCESS: AHCI SATA Controller found!\n");
+        os_printf("     Location: Bus %d, Device %d, Function %d\n", ahci_bus, ahci_dev, ahci_func);
+        
+        // This is where you would eventually read BAR5 to get the memory address 
+        // to start communicating with the hard drives!
+        // uint32_t bar5 = pci_read_config_dword(ahci_bus, ahci_dev, ahci_func, 0x24);
+        
+    } else {
+        os_printf("  -> ERROR: No AHCI controller detected on this motherboard.\n");
+    }
+}
+
+bool find_ahci_controller(uint8_t* out_bus, uint8_t* out_device, uint8_t* out_func) {
+    // Scan all 256 PCI buses
     for (uint16_t bus = 0; bus < 256; bus++) {
+        // Scan all 32 devices per bus
         for (uint8_t device = 0; device < 32; device++) {
+            // Scan all 8 functions per device
             for (uint8_t func = 0; func < 8; func++) {
+                
+                // Read Offset 0x00 (Vendor & Device ID)
                 uint32_t reg0 = pci_read_config_dword(bus, device, func, 0);
                 uint16_t vendor = reg0 & 0xFFFF;
-                if (vendor == 0xFFFF) continue; // No device present
+                
+                // 0xFFFF means nothing is plugged into this slot
+                if (vendor == 0xFFFF) continue; 
 
-                // Offset 0x08 contains Class (bits 24-31) and Subclass (bits 16-23)
+                // Read Offset 0x08 (Class, Subclass, Prog IF, Revision)
                 uint32_t reg8 = pci_read_config_dword(bus, device, func, 0x08);
+                
                 uint8_t class_code = (reg8 >> 24) & 0xFF;
-                uint8_t subclass = (reg8 >> 16) & 0xFF;
+                uint8_t subclass   = (reg8 >> 16) & 0xFF;
+                uint8_t prog_if    = (reg8 >> 8)  & 0xFF;
 
-                if (class_code == 0x01) { // Mass Storage Class
-                    found_any = true;
-                    if (subclass == 0x06) { // AHCI SATA Subclass
-                        os_printf("  -> Found SATA (AHCI) Controller [Bus %d, Dev %d, Func %d]\n", bus, device, func);
-                    } else if (subclass == 0x08) { // NVMe Subclass
-                        os_printf("  -> Found NVMe SSD Controller [Bus %d, Dev %d, Func %d]\n", bus, device, func);
-                    } else if (subclass == 0x01) {
-                        os_printf("  -> Found Legacy IDE Controller [Bus %d, Dev %d, Func %d]\n", bus, device, func);
-                    } else {
-                        os_printf("  -> Found Unknown Storage Controller (Type 0x%x) [Bus %d]\n", subclass, bus);
-                    }
+                // Check if it exactly matches Mass Storage -> SATA -> AHCI 1.0
+                if (class_code == 0x01 && subclass == 0x06 && prog_if == 0x01) {
+                    *out_bus = bus;
+                    *out_device = device;
+                    *out_func = func;
+                    return true; // Found it!
                 }
             }
         }
     }
-    if (!found_any) {
-        os_printf("  No PCI Storage controllers detected.\n");
-    }
+    return false; // No AHCI controller found on this system
 }
 
 // --- INPSOS REAL FILESYSTEM (IFS) ---
