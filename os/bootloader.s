@@ -14,22 +14,20 @@ _start:
     /* Save the boot drive number provided by the BIOS */
     mov %dl, boot_drive
 
-    /* 2. Read the Kernel from the Disk into Memory */
-    mov $0x02, %ah        /* BIOS Function: Read Sectors */
-    mov $64, %al          /* Read 64 sectors (32 KB of kernel code) */
-    mov $0x00, %ch        /* Cylinder 0 */
-    mov $0x02, %cl        /* Sector 2 (Sector 1 is this bootloader!) */
-    mov $0x00, %dh        /* Head 0 */
-    mov boot_drive, %dl   /* Boot drive */
+    /* 2. Check if the BIOS supports modern LBA Disk Reads */
+    mov $0x41, %ah
+    mov $0x55AA, %bx
+    int $0x13
+    jc disk_error         /* If LBA is not supported, halt the system */
 
-    /* Load kernel into RAM at 0x1000:0x0000 (Physical address 0x10000) */
-    mov $0x1000, %bx
-    mov %bx, %es
-    mov $0x0000, %bx
+    /* 3. Read the Kernel using LBA (Int 13h, AH=42h) */
+    mov $0x42, %ah
+    mov $dap, %si         /* Point the BIOS to our Disk Address Packet */
+    mov boot_drive, %dl   /* Boot drive */
     int $0x13
     jc disk_error         /* If the read fails, halt the system */
 
-    /* 3. Switch to 32-bit Protected Mode */
+    /* 4. Switch to 32-bit Protected Mode */
     cli                   /* Disable interrupts permanently */
     lgdt gdt_descriptor   /* Load the Global Descriptor Table */
 
@@ -37,8 +35,9 @@ _start:
     or $1, %eax           /* Set the Protection Enable (PE) bit */
     mov %eax, %cr0
 
-    /* Far jump to 32-bit code segment to flush the CPU pipeline */
-    ljmp $0x08, $0x10000
+    /* Far jump to 32-bit code segment! 
+       Notice the 'l' in 'ljmpl' to tell the compiler we are using a 32-bit offset! */
+    ljmpl $0x08, $0x10000
 
 disk_error:
     hlt
@@ -46,6 +45,17 @@ disk_error:
 
 boot_drive:
     .byte 0
+
+/* --- Disk Address Packet (DAP) --- */
+/* This tells the BIOS exactly what to read and where to put it */
+.align 4
+dap:
+    .byte 0x10            /* Size of this DAP structure (16 bytes) */
+    .byte 0               /* Unused */
+    .short 127            /* Read 127 sectors (~63.5 KB of kernel code) */
+    .short 0x0000         /* Memory Offset to load into */
+    .short 0x1000         /* Memory Segment (0x1000:0x0000 = Physical 0x10000) */
+    .quad 1               /* Start reading at LBA 1 (Sector 2 on the disk) */
 
 /* --- Global Descriptor Table (GDT) --- */
 .align 8
@@ -61,6 +71,6 @@ gdt_descriptor:
     .short gdt_end - gdt_start - 1
     .long gdt_start
 
-/* Boot sector magic signature (Required by BIOS) */
+/* Boot sector magic signature (Required by BIOS to make the disk bootable) */
 .org 510
 .word 0xAA55
