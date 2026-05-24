@@ -1,4 +1,4 @@
-name: Build inpsos ISO
+name: Build inpsos IMG
 
 on:
   workflow_dispatch:
@@ -18,13 +18,13 @@ jobs:
     - name: Install Build Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y build-essential gcc-multilib xorriso mtools grub-pc-bin grub-efi-amd64-bin grub-common
+        sudo apt-get install -y build-essential gcc-multilib
 
-    - name: Compile and Build ISO
+    - name: Compile and Build IMG
       run: make
 
-    - name: Upload ISO Artifact
+    - name: Upload IMG Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: inpsos-iso
-        path: os/inpsos.iso
+        name: inpsos-img
+        path: os/inpsos.img
