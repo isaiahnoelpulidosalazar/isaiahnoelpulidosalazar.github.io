@@ -237,7 +237,7 @@ void gc_collect() {
                 Env* env = (Env*)unreached;
                 for (int i = 0; i < env->count; i++) safe_free(env->entries[i].name);
                 safe_free(env->entries);
-            } // ObjJob AST components are natively maintained by Arena
+            }
             
             safe_free(unreached);
         } else {
@@ -584,17 +584,6 @@ Expr* parse_literal() {
 Expr* parse_variable() {
     Expr* e = make_expr(EXPR_VAR, parser_prev.line);
     e->as.name = ast_strdup(parser_prev.text);
-
-    if (is_expr_start(parser_curr.type)) {
-        Expr* call = make_expr(EXPR_CALL, parser_prev.line);
-        call->as.call.callee = e; call->as.call.args = NULL; call->as.call.count = 0;
-        do {
-            if (parser_curr.type == TOKEN_NEWLINE || parser_curr.type == TOKEN_EOF) break;
-            call->as.call.args = AST_REALLOC_ARRAY(call->as.call.args, Expr*, call->as.call.count, call->as.call.count + 1);
-            call->as.call.args[call->as.call.count++] = parse_expr(PREC_ASSIGN);
-        } while (match_token(TOKEN_COMMA));
-        return call;
-    }
     return e;
 }
 
@@ -649,8 +638,33 @@ Expr* parse_expr(Precedence prec) {
     ParseRule* prefixRule = get_rule(parser_prev.type);
     if (prefixRule->prefix == NULL) { error_at(&parser_prev, "Expected expression"); return make_error_expr(); }
     Expr* left = prefixRule->prefix();
-    while (prec <= get_rule(parser_curr.type)->prec) {
-        advance_parser(); ParseRule* infixRule = get_rule(parser_prev.type); left = infixRule->infix(left);
+    
+    while (1) {
+        ParseRule* infixRule = get_rule(parser_curr.type);
+        
+        // Treat space-separated list of expressions as function call arguments
+        // If the token has no infix behavior but starts a new expression, it must be an argument!
+        if (prec <= PREC_CALL && infixRule->infix == NULL && is_expr_start(parser_curr.type)) {
+            Expr* call = make_expr(EXPR_CALL, parser_prev.line);
+            call->as.call.callee = left;
+            call->as.call.args = NULL;
+            call->as.call.count = 0;
+            do {
+                if (parser_curr.type == TOKEN_NEWLINE || parser_curr.type == TOKEN_EOF || parser_curr.type == TOKEN_RBRACKET) break;
+                call->as.call.args = AST_REALLOC_ARRAY(call->as.call.args, Expr*, call->as.call.count, call->as.call.count + 1);
+                call->as.call.args[call->as.call.count++] = parse_expr(PREC_ASSIGN);
+            } while (match_token(TOKEN_COMMA));
+            left = call;
+            continue;
+        }
+        
+        if (prec <= infixRule->prec && infixRule->prec != PREC_NONE) {
+            advance_parser();
+            left = infixRule->infix(left);
+            continue;
+        }
+        
+        break;
     }
     return left;
 }
@@ -692,11 +706,13 @@ Stmt* parse_statement() {
         if (parser_curr.type == TOKEN_TEXT || parser_curr.type == TOKEN_NUMBER_KW || parser_curr.type == TOKEN_DECIMAL_KW || parser_curr.type == TOKEN_BOOLEAN_KW) advance_parser();
         if (parser_curr.type != TOKEN_IDENTIFIER) { error_at(&parser_curr, "Expected variable name"); return make_error_stmt(); }
         char* name = ast_strdup(parser_curr.text); advance_parser();
-        Stmt* s = make_stmt(STMT_VAR, line); s->as.var_decl.name = name;
+        
         if (match_token(TOKEN_EQ)) {
             error_at(&parser_prev, "Variable declarations do not use '='. Use 'var <optional type> <name> <value>'");
             return make_error_stmt();
         }
+
+        Stmt* s = make_stmt(STMT_VAR, line); s->as.var_decl.name = name;
         if (match_token(TOKEN_GET)) { s->as.var_decl.is_get = 1; s->as.var_decl.initializer = NULL; }
         else { s->as.var_decl.is_get = 0; s->as.var_decl.initializer = parse_expr(PREC_ASSIGN); }
         return s;
@@ -1144,7 +1160,6 @@ int main(int argc, char** argv) {
     pop_env();
     vm.gc_paused = 0; vm.next_gc = 0;
     
-    // De-mark all constant tracking to clear out strings upon program end
     Object* curr = vm.objects;
     while(curr) { curr->is_constant = 0; curr = curr->next; }
     gc_collect();
