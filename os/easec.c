@@ -6,9 +6,27 @@
 
 #ifdef _MSC_VER
 #define strcasecmp _stricmp
+#include <sys/timeb.h>
 #else
 #include <strings.h>
+#include <sys/time.h>
 #endif
+#include <time.h>
+
+// ============================================================================
+// CROSS-PLATFORM TIME
+// ============================================================================
+long long get_time_ms() {
+#ifdef _MSC_VER
+    struct __timeb64 timebuffer;
+    _ftime64(&timebuffer);
+    return (long long)(timebuffer.time) * 1000 + timebuffer.millitm;
+#else
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    return (long long)(tv.tv_sec) * 1000 + (tv.tv_usec) / 1000;
+#endif
+}
 
 // ============================================================================
 // MEMORY HANDLING & BOUNDS CHECKING
@@ -338,7 +356,7 @@ typedef enum {
     TOKEN_SAY, TOKEN_VAR, TOKEN_TEXT, TOKEN_NUMBER_KW, TOKEN_DECIMAL_KW, TOKEN_BOOLEAN_KW,
     TOKEN_GET, TOKEN_ARRAY, TOKEN_DICTIONARY, TOKEN_JOB, TOKEN_IF, TOKEN_ELSE, TOKEN_REPEAT, 
     TOKEN_FOREVER, TOKEN_OUT, TOKEN_FILE, TOKEN_CREATE, TOKEN_UPDATE, TOKEN_DELETE, TOKEN_SET,
-    TOKEN_TRUE, TOKEN_FALSE, TOKEN_IMPORT, TOKEN_AS
+    TOKEN_TRUE, TOKEN_FALSE, TOKEN_IMPORT, TOKEN_AS, TOKEN_TIME
 } TokenType;
 
 typedef struct { TokenType type; char* text; int line, col; } Token;
@@ -444,6 +462,7 @@ Token next_token() {
         else if (strcmp(text, "delete") == 0) type = TOKEN_DELETE; else if (strcmp(text, "set") == 0) type = TOKEN_SET;
         else if (strcmp(text, "true") == 0) type = TOKEN_TRUE; else if (strcmp(text, "false") == 0) type = TOKEN_FALSE;
         else if (strcmp(text, "import") == 0) type = TOKEN_IMPORT; else if (strcmp(text, "as") == 0) type = TOKEN_AS;
+        else if (strcmp(text, "time") == 0) type = TOKEN_TIME;
         return make_token(type, start, len);
     }
     return make_token(TOKEN_EOF, start, 0);
@@ -452,7 +471,7 @@ Token next_token() {
 // ============================================================================
 // PARSER AND AST
 // ============================================================================
-typedef enum { EXPR_LITERAL, EXPR_VAR, EXPR_BINOP, EXPR_UNARY, EXPR_CALL, EXPR_MEMBER, EXPR_ARRAY_GET, EXPR_DICT_GET } ExprType;
+typedef enum { EXPR_LITERAL, EXPR_VAR, EXPR_BINOP, EXPR_UNARY, EXPR_CALL, EXPR_MEMBER, EXPR_ARRAY_GET, EXPR_DICT_GET, EXPR_TIME_GET } ExprType;
 typedef struct sExpr {
     ExprType type; int line;
     union {
@@ -540,7 +559,7 @@ int is_expr_start(TokenType type) {
     switch (type) {
         case TOKEN_IDENTIFIER: case TOKEN_NUMBER: case TOKEN_DECIMAL: case TOKEN_STRING:
         case TOKEN_TRUE: case TOKEN_FALSE: case TOKEN_MINUS: case TOKEN_LPAREN:
-        case TOKEN_ARRAY: case TOKEN_DICTIONARY: return 1;
+        case TOKEN_ARRAY: case TOKEN_DICTIONARY: case TOKEN_TIME: return 1;
         default: return 0;
     }
 }
@@ -615,6 +634,13 @@ Expr* parse_dict_get() {
     Expr* e = make_expr(EXPR_DICT_GET, line); e->as.dict_get.name = name; e->as.dict_get.key = key; return e;
 }
 
+Expr* parse_time_get() {
+    int line = parser_prev.line; 
+    consume(TOKEN_GET, "Expected 'get' after time");
+    Expr* e = make_expr(EXPR_TIME_GET, line); 
+    return e;
+}
+
 typedef struct { Expr* (*prefix)(); Expr* (*infix)(Expr*); Precedence prec; } ParseRule;
 ParseRule* get_rule(TokenType type);
 
@@ -640,6 +666,7 @@ ParseRule rules[] = {
     [TOKEN_STRING]    = {parse_literal, NULL, PREC_NONE}, [TOKEN_TRUE]      = {parse_literal, NULL, PREC_NONE},
     [TOKEN_FALSE]     = {parse_literal, NULL, PREC_NONE}, [TOKEN_IDENTIFIER]= {parse_variable, NULL, PREC_NONE},
     [TOKEN_ARRAY]     = {parse_array_get, NULL, PREC_NONE}, [TOKEN_DICTIONARY]= {parse_dict_get, NULL, PREC_NONE},
+    [TOKEN_TIME]      = {parse_time_get, NULL, PREC_NONE},
 };
 ParseRule* get_rule(TokenType type) {
     if (type >= sizeof(rules) / sizeof(rules[0])) { static ParseRule empty = {NULL, NULL, PREC_NONE}; return &empty; }
@@ -927,6 +954,9 @@ Value eval(Expr* expr, Env* env) {
         Value obj = eval(expr->as.member.object, env);
         if (obj.type == VAL_OBJ && obj.as.obj->type == OBJ_MODULE) return env_get(((ObjModule*)obj.as.obj)->env, expr->as.member.prop);
         runtime_error("Cannot access property of non-module."); return make_null();
+    }
+    if (expr->type == EXPR_TIME_GET) {
+        return make_int(get_time_ms());
     }
     return make_null();
 }
