@@ -7,6 +7,7 @@
 #ifdef _MSC_VER
 #define strcasecmp _stricmp
 #include <sys/timeb.h>
+#include <windows.h>
 #else
 #include <strings.h>
 #include <sys/time.h>
@@ -14,7 +15,7 @@
 #include <time.h>
 
 // ============================================================================
-// CROSS-PLATFORM TIME
+// CROSS-PLATFORM TIME & SLEEP
 // ============================================================================
 long long get_time_ms() {
 #ifdef _MSC_VER
@@ -25,6 +26,17 @@ long long get_time_ms() {
     struct timeval tv;
     gettimeofday(&tv, NULL);
     return (long long)(tv.tv_sec) * 1000 + (tv.tv_usec) / 1000;
+#endif
+}
+
+void sleep_ms(long long ms) {
+#ifdef _MSC_VER
+    Sleep((DWORD)ms);
+#else
+    struct timespec ts;
+    ts.tv_sec = ms / 1000;
+    ts.tv_nsec = (ms % 1000) * 1000000;
+    nanosleep(&ts, NULL);
 #endif
 }
 
@@ -356,7 +368,7 @@ typedef enum {
     TOKEN_SAY, TOKEN_VAR, TOKEN_TEXT, TOKEN_NUMBER_KW, TOKEN_DECIMAL_KW, TOKEN_BOOLEAN_KW,
     TOKEN_GET, TOKEN_ARRAY, TOKEN_DICTIONARY, TOKEN_JOB, TOKEN_IF, TOKEN_ELSE, TOKEN_REPEAT, 
     TOKEN_FOREVER, TOKEN_OUT, TOKEN_FILE, TOKEN_CREATE, TOKEN_UPDATE, TOKEN_DELETE, TOKEN_SET,
-    TOKEN_TRUE, TOKEN_FALSE, TOKEN_IMPORT, TOKEN_AS, TOKEN_TIME
+    TOKEN_TRUE, TOKEN_FALSE, TOKEN_IMPORT, TOKEN_AS, TOKEN_TIME, TOKEN_SLEEP
 } TokenType;
 
 typedef struct { TokenType type; char* text; int line, col; } Token;
@@ -462,7 +474,7 @@ Token next_token() {
         else if (strcmp(text, "delete") == 0) type = TOKEN_DELETE; else if (strcmp(text, "set") == 0) type = TOKEN_SET;
         else if (strcmp(text, "true") == 0) type = TOKEN_TRUE; else if (strcmp(text, "false") == 0) type = TOKEN_FALSE;
         else if (strcmp(text, "import") == 0) type = TOKEN_IMPORT; else if (strcmp(text, "as") == 0) type = TOKEN_AS;
-        else if (strcmp(text, "time") == 0) type = TOKEN_TIME;
+        else if (strcmp(text, "time") == 0) type = TOKEN_TIME; else if (strcmp(text, "sleep") == 0) type = TOKEN_SLEEP;
         return make_token(type, start, len);
     }
     return make_token(TOKEN_EOF, start, 0);
@@ -471,7 +483,7 @@ Token next_token() {
 // ============================================================================
 // PARSER AND AST
 // ============================================================================
-typedef enum { EXPR_LITERAL, EXPR_VAR, EXPR_BINOP, EXPR_UNARY, EXPR_CALL, EXPR_MEMBER, EXPR_ARRAY_GET, EXPR_DICT_GET, EXPR_TIME_GET } ExprType;
+typedef enum { EXPR_LITERAL, EXPR_VAR, EXPR_BINOP, EXPR_UNARY, EXPR_CALL, EXPR_MEMBER, EXPR_ARRAY_GET, EXPR_DICT_GET, EXPR_TIME_GET, EXPR_TIME_SLEEP } ExprType;
 typedef struct sExpr {
     ExprType type; int line;
     union {
@@ -482,6 +494,7 @@ typedef struct sExpr {
         struct { struct sExpr* object; char* prop; } member;
         struct { char* name; struct sExpr* index; } array_get;
         struct { char* name; char* key; } dict_get;
+        struct { struct sExpr* ms; } time_sleep;
     } as;
 } Expr;
 
@@ -623,11 +636,18 @@ Expr* parse_dict_get() {
     Expr* e = make_expr(EXPR_DICT_GET, line); e->as.dict_get.name = name; e->as.dict_get.key = key; return e;
 }
 
-Expr* parse_time_get() {
+Expr* parse_time() {
     int line = parser_prev.line; 
-    consume(TOKEN_GET, "Expected 'get' after time");
-    Expr* e = make_expr(EXPR_TIME_GET, line); 
-    return e;
+    if (match_token(TOKEN_GET)) {
+        return make_expr(EXPR_TIME_GET, line);
+    } else if (match_token(TOKEN_SLEEP)) {
+        Expr* e = make_expr(EXPR_TIME_SLEEP, line);
+        e->as.time_sleep.ms = parse_expr(PREC_ASSIGN);
+        return e;
+    } else {
+        error_at(&parser_curr, "Expected 'get' or 'sleep' after time");
+        return make_error_expr();
+    }
 }
 
 typedef struct { Expr* (*prefix)(); Expr* (*infix)(Expr*); Precedence prec; } ParseRule;
@@ -680,7 +700,7 @@ ParseRule rules[] = {
     [TOKEN_STRING]    = {parse_literal, NULL, PREC_NONE}, [TOKEN_TRUE]      = {parse_literal, NULL, PREC_NONE},
     [TOKEN_FALSE]     = {parse_literal, NULL, PREC_NONE}, [TOKEN_IDENTIFIER]= {parse_variable, NULL, PREC_NONE},
     [TOKEN_ARRAY]     = {parse_array_get, NULL, PREC_NONE}, [TOKEN_DICTIONARY]= {parse_dict_get, NULL, PREC_NONE},
-    [TOKEN_TIME]      = {parse_time_get, NULL, PREC_NONE},
+    [TOKEN_TIME]      = {parse_time, NULL, PREC_NONE},
 };
 ParseRule* get_rule(TokenType type) {
     if (type >= sizeof(rules) / sizeof(rules[0])) { static ParseRule empty = {NULL, NULL, PREC_NONE}; return &empty; }
@@ -977,6 +997,16 @@ Value eval(Expr* expr, Env* env) {
     }
     if (expr->type == EXPR_TIME_GET) {
         return make_int(get_time_ms());
+    }
+    if (expr->type == EXPR_TIME_SLEEP) {
+        Value ms_val = eval(expr->as.time_sleep.ms, env);
+        if (ms_val.type != VAL_INT && ms_val.type != VAL_FLOAT) {
+            runtime_error("Sleep duration must be a number.");
+            return make_null();
+        }
+        long long ms = (ms_val.type == VAL_INT) ? ms_val.as.integer : (long long)ms_val.as.floating;
+        if (ms > 0) sleep_ms(ms);
+        return make_null();
     }
     return make_null();
 }
