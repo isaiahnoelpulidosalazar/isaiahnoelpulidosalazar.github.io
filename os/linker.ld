@@ -1,3 +1,4 @@
+/* The bootloader jumps exactly to the 64KB mark (0x10000) */
 ENTRY(_start)
 
 SECTIONS
@@ -6,7 +7,7 @@ SECTIONS
 
     .text : ALIGN(4K)
     {
-        *(.entry)
+        entry.o(.entry) 
         *(.text)
     }
 
@@ -25,5 +26,10 @@ SECTIONS
         *(COMMON)
         *(.bss)
         PROVIDE(end = .);
+    }
+    
+    /DISCARD/ : {
+        *(.note.gnu.build-id)
+        *(.comment)
     }
 }

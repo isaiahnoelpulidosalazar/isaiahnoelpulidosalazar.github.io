@@ -1,4 +1,4 @@
-.section .entry
+.section .entry, "ax"
 .code32
 .global _start
 
@@ -22,5 +22,5 @@ hang:
 .section .bss
 .align 16
 stack_bottom:
-.skip 16384 # 16 KiB
+.skip 16384
 stack_top:
