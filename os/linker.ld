@@ -1,4 +1,3 @@
-/* The bootloader jumps exactly to the 64KB mark (0x10000) */
 ENTRY(_start)
 
 SECTIONS
@@ -23,8 +22,10 @@ SECTIONS
 
     .bss : ALIGN(4K)
     {
+        PROVIDE(bss_start = .);
         *(COMMON)
         *(.bss)
+        PROVIDE(bss_end = .);
         PROVIDE(end = .);
     }
     

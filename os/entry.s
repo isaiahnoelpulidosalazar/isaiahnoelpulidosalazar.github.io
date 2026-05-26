@@ -12,6 +12,12 @@ _start:
 
     mov $stack_top, %esp
 
+    mov $bss_start, %edi
+    mov $bss_end, %ecx
+    sub %edi, %ecx
+    xor %eax, %eax
+    rep stosb
+
     call kernel_main
 
 hang:
