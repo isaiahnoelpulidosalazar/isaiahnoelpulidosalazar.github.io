@@ -1,61 +1,120 @@
-note [ demo.easec - Main demonstration script for optimized EaseC ]
-
-say "=== MODULES & FUNCTIONS ==="
-import "math.modec" as math
-
-say "PI from math module: " + math.PI
-say "E from math module:  " + math.E
-
-var number x = 10
-var number y = 5
-say "10 + 5 = " + math.add(x, y)
-say "Factorial of 5 = " + math.factorial(5)
-say "Fibonacci of 6 = " + math.fibonacci(6)
-
-
-say ""
-say "=== ARRAYS & DYNAMIC SIZING ==="
-array text langs "EaseC", "C", "Python"
-
-say "Original index 1: " + langs[1]
-
-note [ Modify using standard index bracket assignment ]
-langs[1] = "C++"
-langs[3] = "Rust" note [ Dynamic sizing expands the array safely ]
-
-say "Modified index 1: " + langs[1]
-say "Newly added index 3: " + langs[3]
-
-
-say ""
-say "=== DICTIONARIES ==="
-dictionary number ages "Alice": 24, "Bob": 30
-
-say "Alice's age: " + ages["Alice"]
-
-note [ Append new key-value pairs dynamically ]
-ages["Charlie"] = 18
-say "Charlie was just added. Age: " + ages["Charlie"]
-
-
-say ""
-say "=== CONTROL FLOW & LOOPS ==="
-var number count = 3
-
-repeat count [
-    if count > 1 [
-        say count + " is strictly greater than 1"
-    ] else [
-        say count + " is exactly 1"
-    ]
-    count = count - 1
+note [
+    =========================================
+    EaseC Language Demonstration Script
+    =========================================
 ]
 
+note Capture the start time in milliseconds
+var start_time time get
 
+say "--- EaseC Demo Started ---"
 say ""
-say "=== FILE I/O ==="
-file create "easec_output.txt" "Hello from the optimized EaseC interpreter!"
-say "Successfully created 'easec_output.txt'."
 
-note [ You can uncomment the line below to test deletion ]
-note file delete "easec_output.txt"
+note --- 1. Variables & Types ---
+say "> 1. Variables"
+var text greeting "Hello, World!"
+var number x 10
+var number y 20
+var result x + y
+
+say greeting
+say "10 + 20 = "
+say result
+say ""
+
+
+note --- 2. Arrays ---
+say "> 2. Arrays"
+array text proglang "C", "C++", "Assembly"
+say "Initial Array Index 1:"
+say array get proglang 1
+
+note Modifying the array
+array set proglang 1 "EaseC"
+say "Modified Array Index 1:"
+say array get proglang 1
+say ""
+
+
+note --- 3. Dictionaries ---
+say "> 3. Dictionaries"
+dictionary information name: "John", age: 15
+
+say "Dictionary User Name:"
+say dictionary get information name
+
+say "Original Age:"
+say dictionary get information age
+
+note Modifying the dictionary
+dictionary set information age 21
+say "Updated Age:"
+say dictionary get information age
+say ""
+
+
+note --- 4. Jobs (Functions) ---
+say "> 4. Jobs (Functions)"
+job multiplyNumbers a, b [
+    var product a * b
+    out product
+]
+
+var math_result multiplyNumbers 5, 8
+say "5 * 8 via Job is:"
+say math_result
+say ""
+
+
+note --- 5. Conditionals (If/Else) ---
+say "> 5. Conditionals"
+if math_result == 40 [
+    say "The math job worked correctly!"
+] else [
+    say "Something went wrong..."
+]
+
+if false [
+    say "This will not print."
+] else [
+    say "The else block works!"
+]
+say ""
+
+
+note --- 6. Loops (Repeat) ---
+say "> 6. Loops"
+var counter 3
+say "Counting down:"
+repeat 3 [
+    say counter
+    counter = counter - 1
+]
+say "Blastoff!"
+say ""
+
+
+note --- 7. File I/O ---
+say "> 7. File Operations"
+var filename "easec_test_file.txt"
+
+say "Creating file..."
+file create filename "This is a test file created by EaseC.\n"
+
+say "Appending to file..."
+file update filename "This is the second line added.\n"
+
+say "File operations complete. Deleting file..."
+file delete filename
+say "File deleted."
+say ""
+
+
+note --- 8. Time Command & Performance ---
+say "> 8. Time Command"
+var end_time time get
+var elapsed end_time - start_time
+
+say "Demo completed successfully!"
+say "Total execution time (ms):"
+say elapsed

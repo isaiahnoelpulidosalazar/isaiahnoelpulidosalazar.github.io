@@ -693,6 +693,10 @@ Stmt* parse_statement() {
         if (parser_curr.type != TOKEN_IDENTIFIER) { error_at(&parser_curr, "Expected variable name"); return make_error_stmt(); }
         char* name = ast_strdup(parser_curr.text); advance_parser();
         Stmt* s = make_stmt(STMT_VAR, line); s->as.var_decl.name = name;
+        if (match_token(TOKEN_EQ)) {
+            error_at(&parser_prev, "Variable declarations do not use '='. Use 'var <optional type> <name> <value>'");
+            return make_error_stmt();
+        }
         if (match_token(TOKEN_GET)) { s->as.var_decl.is_get = 1; s->as.var_decl.initializer = NULL; }
         else { s->as.var_decl.is_get = 0; s->as.var_decl.initializer = parse_expr(PREC_ASSIGN); }
         return s;
