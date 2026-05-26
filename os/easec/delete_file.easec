@@ -1,3 +1,0 @@
-say "Delete target:"
-var fname get
-file delete fname

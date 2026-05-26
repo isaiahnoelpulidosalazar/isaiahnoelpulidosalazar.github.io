@@ -1,5 +1,0 @@
-say "Filename:"
-var fname get
-say "Content:"
-var fcontent get
-file create fname [ fcontent ]

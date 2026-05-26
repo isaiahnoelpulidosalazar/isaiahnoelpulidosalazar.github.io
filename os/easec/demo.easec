@@ -1,29 +1,61 @@
-say "--- EASEC DEMO ---"
-say "Variables:"
-var number mynum 42
-say mynum
+note [ demo.easec - Main demonstration script for optimized EaseC ]
 
-say "Arrays:"
-array number arr 10, 20
-say array get arr 1
+say "=== MODULES & FUNCTIONS ==="
+import "math.modec" as math
 
-say "Conditionals:"
-if mynum == 42 [
-say "Number is 42!"
-] else [
-say "No"
+say "PI from math module: " + math.PI
+say "E from math module:  " + math.E
+
+var number x = 10
+var number y = 5
+say "10 + 5 = " + math.add(x, y)
+say "Factorial of 5 = " + math.factorial(5)
+say "Fibonacci of 6 = " + math.fibonacci(6)
+
+
+say ""
+say "=== ARRAYS & DYNAMIC SIZING ==="
+array text langs "EaseC", "C", "Python"
+
+say "Original index 1: " + langs[1]
+
+note [ Modify using standard index bracket assignment ]
+langs[1] = "C++"
+langs[3] = "Rust" note [ Dynamic sizing expands the array safely ]
+
+say "Modified index 1: " + langs[1]
+say "Newly added index 3: " + langs[3]
+
+
+say ""
+say "=== DICTIONARIES ==="
+dictionary number ages "Alice": 24, "Bob": 30
+
+say "Alice's age: " + ages["Alice"]
+
+note [ Append new key-value pairs dynamically ]
+ages["Charlie"] = 18
+say "Charlie was just added. Age: " + ages["Charlie"]
+
+
+say ""
+say "=== CONTROL FLOW & LOOPS ==="
+var number count = 3
+
+repeat count [
+    if count > 1 [
+        say count + " is strictly greater than 1"
+    ] else [
+        say count + " is exactly 1"
+    ]
+    count = count - 1
 ]
 
-say "Loops:"
-var i 0
-repeat 3 [
-say i
-increment i 1
-]
 
-say "Jobs:"
-job greet x [
-say "Hello " + x
-]
-greet "User!"
-say "Demo Complete."
+say ""
+say "=== FILE I/O ==="
+file create "easec_output.txt" "Hello from the optimized EaseC interpreter!"
+say "Successfully created 'easec_output.txt'."
+
+note [ You can uncomment the line below to test deletion ]
+note file delete "easec_output.txt"
