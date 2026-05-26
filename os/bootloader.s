@@ -47,12 +47,11 @@ boot_drive:
     .byte 0
 
 /* --- Disk Address Packet (DAP) --- */
-/* This tells the BIOS exactly what to read and where to put it */
 .align 4
 dap:
     .byte 0x10            /* Size of this DAP structure (16 bytes) */
     .byte 0               /* Unused */
-    .short 127            /* Read 127 sectors (~63.5 KB of kernel code) */
+    .short 64             /* CHANGED: Read 64 sectors (~32 KB) for BIOS stability */
     .short 0x0000         /* Memory Offset to load into */
     .short 0x1000         /* Memory Segment (0x1000:0x0000 = Physical 0x10000) */
     .quad 1               /* Start reading at LBA 1 (Sector 2 on the disk) */

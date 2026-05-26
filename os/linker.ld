@@ -6,6 +6,7 @@ SECTIONS
 
     .text : ALIGN(4K)
     {
+        *(.entry)
         *(.text)
     }
 
