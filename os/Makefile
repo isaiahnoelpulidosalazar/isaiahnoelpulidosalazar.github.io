@@ -8,7 +8,7 @@ LDFLAGS = -m32 -T linker.ld -nostdlib -no-pie
 
 OBJS = entry.o kernel.o easec.o
 
-all: inpsos.img
+all: inpsos.img inpsos.iso inpsos.vdi
 
 scripts.h:
 	@echo "Bundling easec scripts..."
@@ -33,6 +33,16 @@ kernel.bin: $(OBJS)
 
 inpsos.img: bootloader.bin kernel.bin
 	cat bootloader.bin kernel.bin > inpsos.img
+	# Pad image to 2MB to ensure stable BIOS hard disk emulation
+	truncate -s 2M inpsos.img
+
+inpsos.iso: inpsos.img
+	mkdir -p isodir
+	cp inpsos.img isodir/
+	xorriso -as mkisofs -V "INPSOS" -b inpsos.img -hard-disk-boot -c boot.catalog -o inpsos.iso isodir/
+
+inpsos.vdi: inpsos.img
+	qemu-img convert -f raw -O vdi inpsos.img inpsos.vdi
 
 clean:
-	rm -rf *.o *.elf *.bin *.img scripts.h
+	rm -rf *.o *.elf *.bin *.img *.iso *.vdi isodir scripts.h

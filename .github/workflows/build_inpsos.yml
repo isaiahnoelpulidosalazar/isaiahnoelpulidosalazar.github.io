@@ -1,4 +1,4 @@
-name: Build inpsos IMG
+name: Build inpsos
 
 on:
   workflow_dispatch:
@@ -15,16 +15,28 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Install Build Dependencies
+    - name: Install build dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y build-essential gcc-multilib
+        sudo apt-get install -y build-essential gcc-multilib qemu-utils xorriso
 
-    - name: Compile and Build IMG
+    - name: Compile and build inpsos
       run: make
 
-    - name: Upload IMG Artifact
+    - name: Upload ISO artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: inpsos-iso
+        path: os/inpsos.iso
+
+    - name: Upload raw IMG artifact
       uses: actions/upload-artifact@v4
       with:
         name: inpsos-img
         path: os/inpsos.img
+
+    - name: Upload VirtualBox VDI artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: inpsos-vdi
+        path: os/inpsos.vdi
