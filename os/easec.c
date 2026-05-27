@@ -17,6 +17,50 @@
 #include <time.h>
 
 // ============================================================================
+// FORWARD DECLARATIONS & TYPES
+// ============================================================================
+typedef enum {
+    TOKEN_EOF, TOKEN_NEWLINE, TOKEN_LPAREN, TOKEN_RPAREN, TOKEN_LBRACKET, TOKEN_RBRACKET,
+    TOKEN_LBRACE, TOKEN_RBRACE, TOKEN_COMMA, TOKEN_COLON, TOKEN_DOT, TOKEN_PLUS, TOKEN_MINUS,
+    TOKEN_STAR, TOKEN_SLASH, TOKEN_EQEQ, TOKEN_EQ, TOKEN_BANGEQ, TOKEN_LESSEQ, TOKEN_LESS,
+    TOKEN_GREATEREQ, TOKEN_GREATER, TOKEN_STRING, TOKEN_DECIMAL, TOKEN_NUMBER, TOKEN_IDENTIFIER,
+    TOKEN_SAY, TOKEN_VAR, TOKEN_TEXT, TOKEN_NUMBER_KW, TOKEN_DECIMAL_KW, TOKEN_BOOLEAN_KW,
+    TOKEN_GET, TOKEN_ARRAY, TOKEN_DICTIONARY, TOKEN_JOB, TOKEN_IF, TOKEN_ELSE, TOKEN_REPEAT,
+    TOKEN_FOREVER, TOKEN_OUT, TOKEN_FILE, TOKEN_CREATE, TOKEN_UPDATE, TOKEN_DELETE, TOKEN_SET,
+    TOKEN_TRUE, TOKEN_FALSE, TOKEN_IMPORT, TOKEN_AS, TOKEN_TIME, TOKEN_SLEEP
+} TokenType;
+
+typedef struct {
+    TokenType type;
+    char* text;
+    int line;
+    int col;
+} Token;
+
+typedef enum {
+    EXPR_LITERAL, EXPR_VAR, EXPR_BINOP, EXPR_UNARY, EXPR_CALL, EXPR_MEMBER,
+    EXPR_ARRAY_GET, EXPR_DICT_GET, EXPR_TIME_GET, EXPR_TIME_SLEEP
+} ExprType;
+
+typedef enum {
+    STMT_EXPR, STMT_SAY, STMT_VAR, STMT_ARRAY, STMT_ARRAY_SET, STMT_DICT,
+    STMT_DICT_SET, STMT_JOB, STMT_IF, STMT_REPEAT, STMT_OUT, STMT_FILE,
+    STMT_IMPORT, STMT_ASSIGN
+} StmtType;
+
+typedef enum {
+    PREC_NONE,
+    PREC_ASSIGN,
+    PREC_EQUALITY,
+    PREC_COMPARISON,
+    PREC_TERM,
+    PREC_FACTOR,
+    PREC_UNARY,
+    PREC_CALL,
+    PREC_PRIMARY
+} Precedence;
+
+// ============================================================================
 // CROSS-PLATFORM TIME & SLEEP
 // ============================================================================
 long long get_time_ms() {
@@ -184,6 +228,14 @@ typedef struct sObjString {
 
 typedef struct { Object obj; Value* items; int capacity; int count; } ObjArray;
 typedef struct { Object obj; Table table; } ObjDict;
+
+// Missing function forward declarations
+Value make_null(void);
+Value make_bool(int b);
+Value make_int(long long i);
+Value make_float(double f);
+void mark_value(Value val);
+void run_file(const char* path, Env* env);
 
 // ============================================================================
 // BYTECODE STRUCTURES
@@ -398,7 +450,7 @@ void init_vm() {
     vm.import_capacity = 0;
 }
 
-#define OBJ_VAL(obj) ((Value){VAL_OBJ, {.obj = (Object*)(obj)}})
+#define OBJ_VAL(o) ((Value){VAL_OBJ, {.obj = (Object*)(o)}})
 
 void push(Value value) {
     *vm.stack_top = value;
@@ -412,6 +464,16 @@ Value pop() {
 
 Value peek(int distance) {
     return vm.stack_top[-1 - distance];
+}
+
+int had_runtime_error = 0;
+void runtime_error(const char* format, ...) {
+    va_list args;
+    va_start(args, format);
+    vfprintf(stderr, format, args);
+    va_end(args);
+    fputs("\n", stderr);
+    had_runtime_error = 1;
 }
 
 // ============================================================================
@@ -699,28 +761,28 @@ Token make_token(TokenType type, int start, int length) {
 
 int is_alpha(char c) { return isalpha(c) || c == '_'; }
 int is_digit(char c) { return isdigit(c); }
-char advance() { lexer.col++; return lexer.source[lexer.current++]; }
-char peek() { return lexer.source[lexer.current]; }
-char peek_next() { return lexer.current + 1 < strlen(lexer.source) ? lexer.source[lexer.current + 1] : '\0'; }
-int match(char expected) { if (peek() != expected) return 0; advance(); return 1; }
+char lexer_advance() { lexer.col++; return lexer.source[lexer.current++]; }
+char lexer_peek() { return lexer.source[lexer.current]; }
+char lexer_peek_next() { return lexer.current + 1 < strlen(lexer.source) ? lexer.source[lexer.current + 1] : '\0'; }
+int lexer_match(char expected) { if (lexer_peek() != expected) return 0; lexer_advance(); return 1; }
 
 void skip_whitespace() {
     while (1) {
-        char c = peek();
-        if (c == ' ' || c == '\r' || c == '\t') { advance(); }
-        else if (c == 'n' && peek_next() == 'o' && strncmp(lexer.source + lexer.current, "note", 4) == 0) {
+        char c = lexer_peek();
+        if (c == ' ' || c == '\r' || c == '\t') { lexer_advance(); }
+        else if (c == 'n' && lexer_peek_next() == 'o' && strncmp(lexer.source + lexer.current, "note", 4) == 0) {
             lexer.current += 4; lexer.col += 4;
-            while (peek() == ' ' || peek() == '\t') advance();
-            if (peek() == '[') {
-                int depth = 1; advance();
-                while (peek() != '\0' && depth > 0) {
-                    if (peek() == '[') depth++;
-                    else if (peek() == ']') depth--;
-                    if (peek() == '\n') { lexer.line++; lexer.col = 0; }
-                    advance();
+            while (lexer_peek() == ' ' || lexer_peek() == '\t') lexer_advance();
+            if (lexer_peek() == '[') {
+                int depth = 1; lexer_advance();
+                while (lexer_peek() != '\0' && depth > 0) {
+                    if (lexer_peek() == '[') depth++;
+                    else if (lexer_peek() == ']') depth--;
+                    if (lexer_peek() == '\n') { lexer.line++; lexer.col = 0; }
+                    lexer_advance();
                 }
             } else {
-                while (peek() != '\n' && peek() != '\0') advance();
+                while (lexer_peek() != '\n' && lexer_peek() != '\0') lexer_advance();
             }
         } else break;
     }
@@ -729,9 +791,9 @@ void skip_whitespace() {
 Token next_token() {
     skip_whitespace();
     int start = lexer.current;
-    if (peek() == '\0') return make_token(TOKEN_EOF, start, 0);
+    if (lexer_peek() == '\0') return make_token(TOKEN_EOF, start, 0);
 
-    char c = advance();
+    char c = lexer_advance();
     if (c == '\n') { lexer.line++; lexer.col = 1; return make_token(TOKEN_NEWLINE, start, 1); }
     if (c == '(') return make_token(TOKEN_LPAREN, start, 1); if (c == ')') return make_token(TOKEN_RPAREN, start, 1);
     if (c == '[') return make_token(TOKEN_LBRACKET, start, 1); if (c == ']') return make_token(TOKEN_RBRACKET, start, 1);
@@ -740,33 +802,33 @@ Token next_token() {
     if (c == '.') return make_token(TOKEN_DOT, start, 1); if (c == '+') return make_token(TOKEN_PLUS, start, 1);
     if (c == '-') return make_token(TOKEN_MINUS, start, 1); if (c == '*') return make_token(TOKEN_STAR, start, 1);
     if (c == '/') return make_token(TOKEN_SLASH, start, 1);
-    if (c == '=') return match('=') ? make_token(TOKEN_EQEQ, start, 2) : make_token(TOKEN_EQ, start, 1);
-    if (c == '!') return match('=') ? make_token(TOKEN_BANGEQ, start, 2) : make_token(TOKEN_EOF, start, 1);
-    if (c == '<') return match('=') ? make_token(TOKEN_LESSEQ, start, 2) : make_token(TOKEN_LESS, start, 1);
-    if (c == '>') return match('=') ? make_token(TOKEN_GREATEREQ, start, 2) : make_token(TOKEN_GREATER, start, 1);
+    if (c == '=') return lexer_match('=') ? make_token(TOKEN_EQEQ, start, 2) : make_token(TOKEN_EQ, start, 1);
+    if (c == '!') return lexer_match('=') ? make_token(TOKEN_BANGEQ, start, 2) : make_token(TOKEN_EOF, start, 1);
+    if (c == '<') return lexer_match('=') ? make_token(TOKEN_LESSEQ, start, 2) : make_token(TOKEN_LESS, start, 1);
+    if (c == '>') return lexer_match('=') ? make_token(TOKEN_GREATEREQ, start, 2) : make_token(TOKEN_GREATER, start, 1);
 
     if (c == '"') {
-        while (peek() != '"' && peek() != '\0') {
-            if (peek() == '\n') { lexer.line++; lexer.col = 1; }
-            advance();
+        while (lexer_peek() != '"' && lexer_peek() != '\0') {
+            if (lexer_peek() == '\n') { lexer.line++; lexer.col = 1; }
+            lexer_advance();
         }
-        if (peek() == '\0') return make_token(TOKEN_EOF, start, 0);
-        advance();
+        if (lexer_peek() == '\0') return make_token(TOKEN_EOF, start, 0);
+        lexer_advance();
         return make_token(TOKEN_STRING, start + 1, lexer.current - start - 2);
     }
 
     if (is_digit(c)) {
         int is_dec = 0;
-        while (is_digit(peek())) advance();
-        if (peek() == '.' && is_digit(peek_next())) {
-            is_dec = 1; advance();
-            while (is_digit(peek())) advance();
+        while (is_digit(lexer_peek())) lexer_advance();
+        if (lexer_peek() == '.' && is_digit(lexer_peek_next())) {
+            is_dec = 1; lexer_advance();
+            while (is_digit(lexer_peek())) lexer_advance();
         }
         return make_token(is_dec ? TOKEN_DECIMAL : TOKEN_NUMBER, start, lexer.current - start);
     }
 
     if (is_alpha(c)) {
-        while (is_alpha(peek()) || is_digit(peek())) advance();
+        while (is_alpha(lexer_peek()) || is_digit(lexer_peek())) lexer_advance();
         int len = lexer.current - start;
         char* text = (char*)ast_alloc(len + 1);
         strncpy(text, lexer.source + start, len);
