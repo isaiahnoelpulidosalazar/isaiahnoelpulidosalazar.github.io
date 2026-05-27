@@ -28,14 +28,14 @@ typedef enum {
     TOKEN_GET, TOKEN_ARRAY, TOKEN_DICTIONARY, TOKEN_JOB, TOKEN_IF, TOKEN_ELSE, TOKEN_REPEAT,
     TOKEN_FOREVER, TOKEN_OUT, TOKEN_FILE, TOKEN_CREATE, TOKEN_UPDATE, TOKEN_DELETE, TOKEN_SET,
     TOKEN_TRUE, TOKEN_FALSE, TOKEN_IMPORT, TOKEN_AS, TOKEN_TIME, TOKEN_SLEEP
-} TokenType;
+} EaseTokenType;
 
 typedef struct {
-    TokenType type;
+    EaseTokenType type;
     char* text;
     int line;
     int col;
-} Token;
+} EaseToken;
 
 typedef enum {
     EXPR_LITERAL, EXPR_VAR, EXPR_BINOP, EXPR_UNARY, EXPR_CALL, EXPR_MEMBER,
@@ -749,8 +749,8 @@ typedef struct { const char* source; int current; int line; int col; } Lexer;
 Lexer lexer;
 void init_lexer(const char* source) { lexer.source = source; lexer.current = 0; lexer.line = 1; lexer.col = 1; }
 
-Token make_token(TokenType type, int start, int length) {
-    Token t;
+EaseToken make_token(EaseTokenType type, int start, int length) {
+    EaseToken t;
     t.type = type;
     t.text = (char*)ast_alloc(length + 1);
     strncpy(t.text, lexer.source + start, length);
@@ -788,7 +788,7 @@ void skip_whitespace() {
     }
 }
 
-Token next_token() {
+EaseToken next_token() {
     skip_whitespace();
     int start = lexer.current;
     if (lexer_peek() == '\0') return make_token(TOKEN_EOF, start, 0);
@@ -833,7 +833,7 @@ Token next_token() {
         char* text = (char*)ast_alloc(len + 1);
         strncpy(text, lexer.source + start, len);
         
-        TokenType type = TOKEN_IDENTIFIER;
+        EaseTokenType type = TOKEN_IDENTIFIER;
         if (strcmp(text, "say") == 0) type = TOKEN_SAY; else if (strcmp(text, "var") == 0) type = TOKEN_VAR;
         else if (strcmp(text, "text") == 0) type = TOKEN_TEXT; else if (strcmp(text, "number") == 0) type = TOKEN_NUMBER_KW;
         else if (strcmp(text, "decimal") == 0) type = TOKEN_DECIMAL_KW; else if (strcmp(text, "boolean") == 0) type = TOKEN_BOOLEAN_KW;
@@ -859,8 +859,8 @@ typedef struct sExpr {
     ExprType type; int line;
     union {
         Value literal; char* name;
-        struct { struct sExpr* left; TokenType op; struct sExpr* right; } bin;
-        struct { TokenType op; struct sExpr* right; } unary;
+        struct { struct sExpr* left; EaseTokenType op; struct sExpr* right; } bin;
+        struct { EaseTokenType op; struct sExpr* right; } unary;
         struct { struct sExpr* callee; struct sExpr** args; int count; } call;
         struct { struct sExpr* object; char* prop; } member;
         struct { char* name; struct sExpr* index; } array_get;
@@ -891,7 +891,7 @@ Expr* make_expr(ExprType type, int line) { Expr* e = (Expr*)ast_alloc(sizeof(Exp
 Stmt* make_stmt(StmtType type, int line) { Stmt* s = (Stmt*)ast_alloc(sizeof(Stmt)); s->type = type; s->line = line; return s; }
 Expr* make_error_expr(); Stmt* make_error_stmt();
 
-Token parser_curr, parser_prev;
+EaseToken parser_curr, parser_prev;
 int had_error = 0;
 
 void advance_parser() {
@@ -899,27 +899,27 @@ void advance_parser() {
     parser_curr = next_token();
 }
 
-void error_at(Token* token, const char* message) {
+void error_at(EaseToken* token, const char* message) {
     if (had_error) return;
     fprintf(stderr, "Parse Error line %d: %s. Got '%s'\n", token->line, message, token->text);
     had_error = 1;
 }
 
-int match_token(TokenType type) {
+int match_token(EaseTokenType type) {
     if (parser_curr.type == type) { advance_parser(); return 1; }
     return 0;
 }
 
-void consume(TokenType type, const char* err) {
+void consume(EaseTokenType type, const char* err) {
     if (parser_curr.type == type) { advance_parser(); return; }
     error_at(&parser_curr, err);
 }
 
 void skip_newlines() { while (parser_curr.type == TOKEN_NEWLINE) advance_parser(); }
 
-Token peek_next_token_parser() {
-    Lexer saved = lexer; Token curr = parser_curr; Token prev = parser_prev;
-    advance_parser(); Token next = parser_curr;
+EaseToken peek_next_token_parser() {
+    Lexer saved = lexer; EaseToken curr = parser_curr; EaseToken prev = parser_prev;
+    advance_parser(); EaseToken next = parser_curr;
     lexer = saved; parser_curr = curr; parser_prev = prev;
     return next;
 }
@@ -938,7 +938,7 @@ void synchronize() {
     }
 }
 
-int is_expr_start(TokenType type) {
+int is_expr_start(EaseTokenType type) {
     switch (type) {
         case TOKEN_IDENTIFIER: case TOKEN_NUMBER: case TOKEN_DECIMAL: case TOKEN_STRING:
         case TOKEN_TRUE: case TOKEN_FALSE: case TOKEN_MINUS: case TOKEN_LPAREN:
@@ -970,12 +970,12 @@ Expr* parse_variable() {
 
 Expr* parse_grouping() { Expr* e = parse_expr(PREC_ASSIGN); consume(TOKEN_RPAREN, "Expected ')' after expression"); return e; }
 Expr* parse_unary() {
-    TokenType op = parser_prev.type; Expr* e = make_expr(EXPR_UNARY, parser_prev.line);
+    EaseTokenType op = parser_prev.type; Expr* e = make_expr(EXPR_UNARY, parser_prev.line);
     e->as.unary.op = op; e->as.unary.right = parse_expr(PREC_UNARY); return e;
 }
 
 Expr* parse_binary(Expr* left) {
-    TokenType op = parser_prev.type; Precedence prec = PREC_NONE;
+    EaseTokenType op = parser_prev.type; Precedence prec = PREC_NONE;
     if (op == TOKEN_PLUS || op == TOKEN_MINUS) prec = PREC_TERM; else if (op == TOKEN_STAR || op == TOKEN_SLASH) prec = PREC_FACTOR;
     else if (op == TOKEN_EQEQ || op == TOKEN_BANGEQ) prec = PREC_EQUALITY;
     else if (op == TOKEN_LESS || op == TOKEN_LESSEQ || op == TOKEN_GREATER || op == TOKEN_GREATEREQ) prec = PREC_COMPARISON;
@@ -1019,7 +1019,7 @@ Expr* parse_time() {
 }
 
 typedef struct { Expr* (*prefix)(); Expr* (*infix)(Expr*); Precedence prec; } ParseRule;
-ParseRule* get_rule(TokenType type);
+ParseRule* get_rule(EaseTokenType type);
 
 Expr* parse_expr(Precedence prec) {
     advance_parser();
@@ -1065,7 +1065,7 @@ ParseRule rules[] = {
     [TOKEN_ARRAY]     = {parse_array_get, NULL, PREC_NONE}, [TOKEN_DICTIONARY]= {parse_dict_get, NULL, PREC_NONE},
     [TOKEN_TIME]      = {parse_time, NULL, PREC_NONE},
 };
-ParseRule* get_rule(TokenType type) {
+ParseRule* get_rule(EaseTokenType type) {
     if (type >= sizeof(rules) / sizeof(rules[0])) { static ParseRule empty = {NULL, NULL, PREC_NONE}; return &empty; }
     return &rules[type];
 }
@@ -1099,7 +1099,7 @@ Stmt* parse_statement() {
         return s;
     }
     if (parser_curr.type == TOKEN_ARRAY) {
-        Token next = peek_next_token_parser();
+        EaseToken next = peek_next_token_parser();
         if (next.type == TOKEN_SET) {
             advance_parser(); advance_parser();
             if (parser_curr.type != TOKEN_IDENTIFIER) { error_at(&parser_curr, "Expected array name"); return make_error_stmt(); }
@@ -1126,7 +1126,7 @@ Stmt* parse_statement() {
         }
     }
     if (parser_curr.type == TOKEN_DICTIONARY) {
-        Token next = peek_next_token_parser();
+        EaseToken next = peek_next_token_parser();
         if (next.type == TOKEN_SET) {
             advance_parser(); advance_parser();
             if (parser_curr.type != TOKEN_IDENTIFIER) { error_at(&parser_curr, "Expected dict name"); return make_error_stmt(); }
@@ -2007,7 +2007,7 @@ void run_file(const char* path, Env* env) {
     char* source = safe_alloc(size + 1);
     size_t read_bytes = fread(source, 1, size, f); source[read_bytes] = '\0'; fclose(f);
     
-    Lexer old_lexer = lexer; Token old_curr = parser_curr; Token old_prev = parser_prev;
+    Lexer old_lexer = lexer; EaseToken old_curr = parser_curr; EaseToken old_prev = parser_prev;
     run_script(source, env);
     lexer = old_lexer; parser_curr = old_curr; parser_prev = old_prev;
     
