@@ -22,7 +22,7 @@
 typedef enum {
     TOKEN_EOF, TOKEN_NEWLINE, TOKEN_LPAREN, TOKEN_RPAREN, TOKEN_LBRACKET, TOKEN_RBRACKET,
     TOKEN_LBRACE, TOKEN_RBRACE, TOKEN_COMMA, TOKEN_COLON, TOKEN_DOT, TOKEN_PLUS, TOKEN_MINUS,
-    TOKEN_STAR, TOKEN_SLASH, TOKEN_EQEQ, TOKEN_EQ, TOKEN_BANGEQ, TOKEN_LESSEQ, TOKEN_LESS,
+    TOKEN_STAR, TOKEN_SLASH, TOKEN_PERCENT, TOKEN_EQEQ, TOKEN_EQ, TOKEN_BANGEQ, TOKEN_LESSEQ, TOKEN_LESS,
     TOKEN_GREATEREQ, TOKEN_GREATER, TOKEN_STRING, TOKEN_DECIMAL, TOKEN_NUMBER, TOKEN_IDENTIFIER,
     TOKEN_SAY, TOKEN_VAR, TOKEN_TEXT, TOKEN_NUMBER_KW, TOKEN_DECIMAL_KW, TOKEN_BOOLEAN_KW,
     TOKEN_GET, TOKEN_ARRAY, TOKEN_DICTIONARY, TOKEN_JOB, TOKEN_IF, TOKEN_ELSE, TOKEN_REPEAT,
@@ -261,6 +261,7 @@ typedef enum {
     OP_SUBTRACT,
     OP_MULTIPLY,
     OP_DIVIDE,
+    OP_MODULO,
     OP_NOT,
     OP_NEGATE,
     OP_JUMP,
@@ -805,6 +806,7 @@ EaseToken next_token() {
     if (c == '.') return make_token(TOKEN_DOT, start, 1); if (c == '+') return make_token(TOKEN_PLUS, start, 1);
     if (c == '-') return make_token(TOKEN_MINUS, start, 1); if (c == '*') return make_token(TOKEN_STAR, start, 1);
     if (c == '/') return make_token(TOKEN_SLASH, start, 1);
+    if (c == '%') return make_token(TOKEN_PERCENT, start, 1);
     if (c == '=') return lexer_match('=') ? make_token(TOKEN_EQEQ, start, 2) : make_token(TOKEN_EQ, start, 1);
     if (c == '!') return lexer_match('=') ? make_token(TOKEN_BANGEQ, start, 2) : make_token(TOKEN_EOF, start, 1);
     if (c == '<') return lexer_match('=') ? make_token(TOKEN_LESSEQ, start, 2) : make_token(TOKEN_LESS, start, 1);
@@ -980,6 +982,7 @@ Expr* parse_unary() {
 Expr* parse_binary(Expr* left) {
     EaseTokenType op = parser_prev.type; Precedence prec = PREC_NONE;
     if (op == TOKEN_PLUS || op == TOKEN_MINUS) prec = PREC_TERM; else if (op == TOKEN_STAR || op == TOKEN_SLASH) prec = PREC_FACTOR;
+    else if (op == TOKEN_PERCENT) prec = PREC_FACTOR;
     else if (op == TOKEN_EQEQ || op == TOKEN_BANGEQ) prec = PREC_EQUALITY;
     else if (op == TOKEN_LESS || op == TOKEN_LESSEQ || op == TOKEN_GREATER || op == TOKEN_GREATEREQ) prec = PREC_COMPARISON;
     Expr* right = parse_expr((Precedence)(prec + 1)); Expr* e = make_expr(EXPR_BINOP, parser_prev.line);
@@ -1059,6 +1062,7 @@ ParseRule rules[] = {
     [TOKEN_LPAREN]    = {parse_grouping, NULL, PREC_CALL}, [TOKEN_DOT]       = {NULL, parse_dot, PREC_CALL},
     [TOKEN_MINUS]     = {parse_unary, parse_binary, PREC_TERM}, [TOKEN_PLUS]      = {NULL, parse_binary, PREC_TERM},
     [TOKEN_SLASH]     = {NULL, parse_binary, PREC_FACTOR}, [TOKEN_STAR]      = {NULL, parse_binary, PREC_FACTOR},
+    [TOKEN_PERCENT]   = {NULL, parse_binary, PREC_FACTOR},
     [TOKEN_EQEQ]      = {NULL, parse_binary, PREC_EQUALITY}, [TOKEN_BANGEQ]    = {NULL, parse_binary, PREC_EQUALITY},
     [TOKEN_LESS]      = {NULL, parse_binary, PREC_COMPARISON}, [TOKEN_LESSEQ]    = {NULL, parse_binary, PREC_COMPARISON},
     [TOKEN_GREATER]   = {NULL, parse_binary, PREC_COMPARISON}, [TOKEN_GREATEREQ] = {NULL, parse_binary, PREC_COMPARISON},
@@ -1292,6 +1296,7 @@ void compile_expr(Compiler* compiler, Expr* expr) {
                 case TOKEN_MINUS:     write_chunk(compiler->chunk, OP_SUBTRACT, expr->line); break;
                 case TOKEN_STAR:      write_chunk(compiler->chunk, OP_MULTIPLY, expr->line); break;
                 case TOKEN_SLASH:     write_chunk(compiler->chunk, OP_DIVIDE, expr->line); break;
+                case TOKEN_PERCENT:   write_chunk(compiler->chunk, OP_MODULO, expr->line); break;
                 case TOKEN_EQEQ:      write_chunk(compiler->chunk, OP_EQUAL, expr->line); break;
                 case TOKEN_BANGEQ:    write_chunk(compiler->chunk, OP_EQUAL, expr->line); write_chunk(compiler->chunk, OP_NOT, expr->line); break;
                 case TOKEN_LESS:      write_chunk(compiler->chunk, OP_LESS, expr->line); break;
@@ -1670,6 +1675,26 @@ InterpretResult run() {
             case OP_SUBTRACT: BINARY_OP(make_int, -); break;
             case OP_MULTIPLY: BINARY_OP(make_int, *); break;
             case OP_DIVIDE:   BINARY_OP(make_int, /); break;
+            case OP_MODULO: {
+                if (peek(0).type != VAL_INT && peek(0).type != VAL_FLOAT) {
+                    runtime_error("Operands must be numbers.");
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+                if (peek(1).type != VAL_INT && peek(1).type != VAL_FLOAT) {
+                    runtime_error("Operands must be numbers.");
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+                Value b = pop();
+                Value a = pop();
+                long long a_val = a.type == VAL_INT ? a.as.integer : (long long)a.as.floating;
+                long long b_val = b.type == VAL_INT ? b.as.integer : (long long)b.as.floating;
+                if (b_val == 0) {
+                    runtime_error("Division by zero.");
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+                push(make_int(a_val % b_val));
+                break;
+            }
             case OP_EQUAL: {
                 Value b = pop(); Value a = pop();
                 push(make_bool(values_equal(a, b)));
