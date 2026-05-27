@@ -3,6 +3,8 @@
 #include <string.h>
 #include <ctype.h>
 #include <stdarg.h>
+#include <stdint.h>
+#include <stdbool.h>
 
 #ifdef _MSC_VER
 #define strcasecmp _stricmp
@@ -83,7 +85,7 @@ char* safe_strdup(const char* s) {
 }
 
 // ============================================================================
-// AST MEMORY ARENA (PREVENTS PERMANENT AST LEAKS)
+// AST MEMORY ARENA
 // ============================================================================
 typedef struct ArenaBlock {
     char data[65536];
@@ -93,7 +95,7 @@ typedef struct ArenaBlock {
 ArenaBlock* arena = NULL;
 
 void* ast_alloc(size_t size) {
-    size = (size + 7) & ~7; // align
+    size = (size + 7) & ~7;
     if (!arena || arena->offset + size > 65536) {
         ArenaBlock* block = (ArenaBlock*)malloc(sizeof(ArenaBlock));
         block->offset = 0;
@@ -156,50 +158,380 @@ typedef struct {
     } as;
 } Value;
 
-typedef struct sEnv {
-    Object obj;
-    struct { char* name; Value val; }* entries;
+// Forward declared structures for the Hash Table implementation
+typedef struct {
+    struct sObjString* key;
+    Value value;
+} Entry;
+
+typedef struct {
     int count;
     int capacity;
+    Entry* entries;
+} Table;
+
+typedef struct sEnv {
+    Object obj;
+    Table variables;
     struct sEnv* parent;
 } Env;
 
-typedef struct { Object obj; char* chars; } ObjString;
+typedef struct sObjString {
+    Object obj;
+    char* chars;
+    uint32_t hash;
+} ObjString;
+
 typedef struct { Object obj; Value* items; int capacity; int count; } ObjArray;
-typedef struct { char* key; Value val; } DictEntry;
-typedef struct { Object obj; DictEntry* entries; int capacity; int count; } ObjDict;
-typedef struct { Object obj; char* name; char** params; int param_count; struct sStmt** body; int body_count; Env* closure; } ObjJob;
+typedef struct { Object obj; Table table; } ObjDict;
+
+// ============================================================================
+// BYTECODE STRUCTURES
+// ============================================================================
+typedef enum {
+    OP_CONSTANT,
+    OP_NULL,
+    OP_TRUE,
+    OP_FALSE,
+    OP_POP,
+    OP_DUP,
+    OP_GET_GLOBAL,
+    OP_DEFINE_GLOBAL,
+    OP_SET_GLOBAL,
+    OP_GET_PROPERTY,
+    OP_EQUAL,
+    OP_GREATER,
+    OP_LESS,
+    OP_ADD,
+    OP_SUBTRACT,
+    OP_MULTIPLY,
+    OP_DIVIDE,
+    OP_NOT,
+    OP_NEGATE,
+    OP_JUMP,
+    OP_JUMP_IF_FALSE,
+    OP_LOOP,
+    OP_CALL,
+    OP_RETURN,
+    OP_CLOSURE,
+    OP_ARRAY,
+    OP_ARRAY_GET,
+    OP_ARRAY_SET,
+    OP_DICT,
+    OP_DICT_GET,
+    OP_DICT_SET,
+    OP_GET_INPUT,
+    OP_SAY,
+    OP_FILE,
+    OP_TIME_GET,
+    OP_TIME_SLEEP,
+    OP_IMPORT,
+} OpCode;
+
+typedef struct {
+    int count;
+    int capacity;
+    uint8_t* code;
+    int* lines;
+    Value* constants;
+    int constant_count;
+    int constant_capacity;
+} Chunk;
+
+typedef struct {
+    Object obj;
+    ObjString* name;
+    int arity;
+    ObjString** params;
+    Chunk chunk;
+    Env* closure;
+} ObjJob;
+
 typedef struct { Object obj; Env* env; } ObjModule;
 
 // ============================================================================
-// VIRTUAL MACHINE & GARBAGE COLLECTION
+// HASH TABLE IMPLEMENTATION
 // ============================================================================
+void init_table(Table* table) {
+    table->count = 0;
+    table->capacity = 0;
+    table->entries = NULL;
+}
+
+void free_table(Table* table) {
+    safe_free(table->entries);
+    init_table(table);
+}
+
+static Entry* find_entry(Entry* entries, int capacity, ObjString* key) {
+    uint32_t index = key->hash % capacity;
+    Entry* tombstone = NULL;
+    for (;;) {
+        Entry* entry = &entries[index];
+        if (entry->key == NULL) {
+            if (entry->value.type == VAL_NULL) {
+                return tombstone != NULL ? tombstone : entry;
+            } else {
+                if (tombstone == NULL) tombstone = entry;
+            }
+        } else if (entry->key == key) {
+            return entry;
+        }
+        index = (index + 1) % capacity;
+    }
+}
+
+int table_get(Table* table, ObjString* key, Value* value) {
+    if (table->count == 0) return 0;
+    Entry* entry = find_entry(table->entries, table->capacity, key);
+    if (entry->key == NULL) return 0;
+    *value = entry->value;
+    return 1;
+}
+
+static void adjust_capacity(Table* table, int capacity) {
+    Entry* entries = (Entry*)safe_alloc(sizeof(Entry) * capacity);
+    for (int i = 0; i < capacity; i++) {
+        entries[i].key = NULL;
+        entries[i].value.type = VAL_NULL;
+    }
+    table->count = 0;
+    for (int i = 0; i < table->capacity; i++) {
+        Entry* entry = &table->entries[i];
+        if (entry->key == NULL) continue;
+        Entry* dest = find_entry(entries, capacity, entry->key);
+        dest->key = entry->key;
+        dest->value = entry->value;
+        table->count++;
+    }
+    safe_free(table->entries);
+    table->entries = entries;
+    table->capacity = capacity;
+}
+
+int table_set(Table* table, ObjString* key, Value value) {
+    if (table->count + 1 > table->capacity * 0.75) {
+        int capacity = table->capacity < 8 ? 8 : table->capacity * 2;
+        adjust_capacity(table, capacity);
+    }
+    Entry* entry = find_entry(table->entries, table->capacity, key);
+    int is_new_key = entry->key == NULL;
+    if (is_new_key && entry->value.type == VAL_NULL) table->count++;
+    entry->key = key;
+    entry->value = value;
+    return is_new_key;
+}
+
+int table_delete(Table* table, ObjString* key) {
+    if (table->count == 0) return 0;
+    Entry* entry = find_entry(table->entries, table->capacity, key);
+    if (entry->key == NULL) return 0;
+    entry->key = NULL;
+    entry->value.type = VAL_BOOL;
+    entry->value.as.boolean = 1;
+    return 1;
+}
+
+ObjString* table_find_string(Table* table, const char* chars, int length, uint32_t hash) {
+    if (table->count == 0) return NULL;
+    uint32_t index = hash % table->capacity;
+    for (;;) {
+        Entry* entry = &table->entries[index];
+        if (entry->key == NULL) {
+            if (entry->value.type == VAL_NULL) return NULL;
+        } else if (strlen(entry->key->chars) == length &&
+                   entry->key->hash == hash &&
+                   memcmp(entry->key->chars, chars, length) == 0) {
+            return entry->key;
+        }
+        index = (index + 1) % table->capacity;
+    }
+}
+
+// ============================================================================
+// STACK-BASED VIRTUAL MACHINE
+// ============================================================================
+#define STACK_MAX 1024
+#define FRAMES_MAX 64
+
 typedef struct {
+    ObjJob* job;
+    uint8_t* ip;
+    Value* slots;
+} CallFrame;
+
+typedef struct {
+    CallFrame frames[FRAMES_MAX];
+    int frame_count;
+    Value stack[STACK_MAX];
+    Value* stack_top;
+    Table strings;
     Object* objects;
+    size_t next_gc;
+    int gc_paused;
+    Env* env;
     Env** env_stack;
     int env_count;
     int env_capacity;
-    size_t next_gc;
-    int gc_paused;
+    
+    // Circular import tracking stack
+    char** import_stack;
+    int import_count;
+    int import_capacity;
 } VM;
 
 VM vm;
 
 void init_vm() {
+    vm.frame_count = 0;
+    vm.stack_top = vm.stack;
     vm.objects = NULL;
+    vm.next_gc = 1024 * 1024;
+    vm.gc_paused = 0;
+    init_table(&vm.strings);
+    vm.env = NULL;
     vm.env_capacity = 64;
     vm.env_stack = (Env**)safe_alloc(sizeof(Env*) * vm.env_capacity);
     vm.env_count = 0;
-    vm.next_gc = 1024 * 1024; // 1 MB
-    vm.gc_paused = 0;
+    vm.import_stack = NULL;
+    vm.import_count = 0;
+    vm.import_capacity = 0;
 }
 
-void mark_value(Value val);
+#define OBJ_VAL(obj) ((Value){VAL_OBJ, {.obj = (Object*)(obj)}})
+
+void push(Value value) {
+    *vm.stack_top = value;
+    vm.stack_top++;
+}
+
+Value pop() {
+    vm.stack_top--;
+    return *vm.stack_top;
+}
+
+Value peek(int distance) {
+    return vm.stack_top[-1 - distance];
+}
+
+// ============================================================================
+// STRING INTERNING & HASH FUNCTION
+// ============================================================================
+uint32_t hash_string(const char* key, int length) {
+    uint32_t hash = 2166136261u;
+    for (int i = 0; i < length; i++) {
+        hash ^= (uint8_t)key[i];
+        hash *= 16777619u;
+    }
+    return hash;
+}
+
+Object* allocate_object(size_t size, ObjType type);
+
+ObjString* allocate_string(const char* chars, int length) {
+    uint32_t hash = hash_string(chars, length);
+    ObjString* interned = table_find_string(&vm.strings, chars, length, hash);
+    if (interned != NULL) return interned;
+
+    ObjString* string = (ObjString*)allocate_object(sizeof(ObjString), OBJ_STRING);
+    string->chars = (char*)safe_alloc(length + 1);
+    memcpy(string->chars, chars, length);
+    string->chars[length] = '\0';
+    string->hash = hash;
+
+    push(OBJ_VAL(string)); // Root string on stack to protect from potential resize GC
+    table_set(&vm.strings, string, make_null());
+    pop();
+
+    return string;
+}
+
+// ============================================================================
+// ENVIRONMENT HANDLERS
+// ============================================================================
+Env* create_env(Env* parent) {
+    Env* env = (Env*)allocate_object(sizeof(Env), OBJ_ENV);
+    init_table(&env->variables);
+    env->parent = parent;
+    if (vm.env_count >= vm.env_capacity) {
+        vm.env_capacity *= 2;
+        vm.env_stack = (Env**)safe_realloc(vm.env_stack, sizeof(Env*) * vm.env_capacity);
+    }
+    vm.env_stack[vm.env_count++] = env;
+    return env;
+}
+
+void pop_env() { if (vm.env_count > 0) vm.env_count--; }
+
+void env_define(Env* env, const char* name, Value val) {
+    ObjString* key = allocate_string(name, strlen(name));
+    table_set(&env->variables, key, val);
+}
+
+int env_set(Env* env, const char* name, Value val) {
+    ObjString* key = allocate_string(name, strlen(name));
+    Env* curr = env;
+    while (curr) {
+        Value dummy;
+        if (table_get(&curr->variables, key, &dummy)) {
+            table_set(&curr->variables, key, val);
+            return 1;
+        }
+        curr = curr->parent;
+    }
+    return 0;
+}
+
+Value env_get(Env* env, const char* name) {
+    ObjString* key = allocate_string(name, strlen(name));
+    Env* curr = env;
+    while (curr) {
+        Value val;
+        if (table_get(&curr->variables, key, &val)) {
+            return val;
+        }
+        curr = curr->parent;
+    }
+    return make_null();
+}
+
+// ============================================================================
+// GARBAGE COLLECTION
+// ============================================================================
+void mark_object(Object* obj);
+
+void mark_table(Table* table) {
+    for (int i = 0; i < table->capacity; i++) {
+        Entry* entry = &table->entries[i];
+        if (entry->key != NULL) {
+            mark_object((Object*)entry->key);
+            mark_value(entry->value);
+        }
+    }
+}
+
 void mark_env(Env* env) {
     if (!env || env->obj.marked) return;
     env->obj.marked = 1;
-    for (int i = 0; i < env->count; i++) mark_value(env->entries[i].val);
+    mark_table(&env->variables);
     if (env->parent) mark_env(env->parent);
+}
+
+void init_chunk(Chunk* chunk) {
+    chunk->count = 0;
+    chunk->capacity = 0;
+    chunk->code = NULL;
+    chunk->lines = NULL;
+    chunk->constants = NULL;
+    chunk->constant_count = 0;
+    chunk->constant_capacity = 0;
+}
+
+void free_chunk(Chunk* chunk) {
+    safe_free(chunk->code);
+    safe_free(chunk->lines);
+    safe_free(chunk->constants);
+    init_chunk(chunk);
 }
 
 void mark_object(Object* obj) {
@@ -210,11 +542,19 @@ void mark_object(Object* obj) {
         for (int i = 0; i < arr->count; i++) mark_value(arr->items[i]);
     } else if (obj->type == OBJ_DICT) {
         ObjDict* dict = (ObjDict*)obj;
-        for (int i = 0; i < dict->count; i++) mark_value(dict->entries[i].val);
+        mark_table(&dict->table);
     } else if (obj->type == OBJ_MODULE) {
         mark_env(((ObjModule*)obj)->env);
     } else if (obj->type == OBJ_JOB) {
-        mark_env(((ObjJob*)obj)->closure);
+        ObjJob* job = (ObjJob*)obj;
+        mark_object((Object*)job->name);
+        for (int i = 0; i < job->arity; i++) {
+            mark_object((Object*)job->params[i]);
+        }
+        for (int i = 0; i < job->chunk.constant_count; i++) {
+            mark_value(job->chunk.constants[i]);
+        }
+        mark_env(job->closure);
     } else if (obj->type == OBJ_ENV) {
         mark_env((Env*)obj);
     }
@@ -224,12 +564,31 @@ void mark_value(Value val) {
     if (val.type == VAL_OBJ) mark_object(val.as.obj);
 }
 
+void table_remove_white(Table* table) {
+    for (int i = 0; i < table->capacity; i++) {
+        Entry* entry = &table->entries[i];
+        if (entry->key != NULL && !entry->key->obj.marked) {
+            table_delete(table, entry->key);
+        }
+    }
+}
+
 void gc_collect() {
     if (vm.gc_paused) return;
     
-    for (int i = 0; i < vm.env_count; i++) {
-        mark_object((Object*)vm.env_stack[i]);
+    // Mark temporary values residing securely on the evaluation stack
+    for (Value* slot = vm.stack; slot < vm.stack_top; slot++) {
+        mark_value(*slot);
     }
+    
+    // Mark frames active jobs
+    for (int i = 0; i < vm.frame_count; i++) {
+        mark_object((Object*)vm.frames[i].job);
+    }
+    
+    if (vm.env != NULL) mark_env(vm.env);
+    
+    table_remove_white(&vm.strings);
     
     Object** object = &vm.objects;
     while (*object != NULL) {
@@ -243,12 +602,14 @@ void gc_collect() {
                 safe_free(((ObjArray*)unreached)->items);
             } else if (unreached->type == OBJ_DICT) {
                 ObjDict* dict = (ObjDict*)unreached;
-                for (int i = 0; i < dict->count; i++) safe_free(dict->entries[i].key);
-                safe_free(dict->entries);
+                free_table(&dict->table);
             } else if (unreached->type == OBJ_ENV) {
                 Env* env = (Env*)unreached;
-                for (int i = 0; i < env->count; i++) safe_free(env->entries[i].name);
-                safe_free(env->entries);
+                free_table(&env->variables);
+            } else if (unreached->type == OBJ_JOB) {
+                ObjJob* job = (ObjJob*)unreached;
+                free_chunk(&job->chunk);
+                safe_free(job->params);
             }
             
             safe_free(unreached);
@@ -271,13 +632,6 @@ Object* allocate_object(size_t size, ObjType type) {
     return obj;
 }
 
-Value make_string(const char* chars) {
-    ObjString* str = (ObjString*)allocate_object(sizeof(ObjString), OBJ_STRING);
-    str->chars = safe_strdup(chars);
-    Value v; v.type = VAL_OBJ; v.as.obj = (Object*)str;
-    return v;
-}
-
 Value make_array() {
     ObjArray* arr = (ObjArray*)allocate_object(sizeof(ObjArray), OBJ_ARRAY);
     arr->items = NULL; arr->capacity = 0; arr->count = 0;
@@ -287,7 +641,7 @@ Value make_array() {
 
 Value make_dict() {
     ObjDict* dict = (ObjDict*)allocate_object(sizeof(ObjDict), OBJ_DICT);
-    dict->entries = NULL; dict->capacity = 0; dict->count = 0;
+    init_table(&dict->table);
     Value v; v.type = VAL_OBJ; v.as.obj = (Object*)dict;
     return v;
 }
@@ -297,81 +651,37 @@ Value make_bool(int b) { Value v; v.type = VAL_BOOL; v.as.boolean = b; return v;
 Value make_int(long long i) { Value v; v.type = VAL_INT; v.as.integer = i; return v; }
 Value make_float(double f) { Value v; v.type = VAL_FLOAT; v.as.floating = f; return v; }
 
-Env* create_env(Env* parent) {
-    Env* env = (Env*)allocate_object(sizeof(Env), OBJ_ENV);
-    env->entries = NULL;
-    env->count = 0;
-    env->capacity = 0;
-    env->parent = parent;
-    
-    if (vm.env_count >= vm.env_capacity) {
-        vm.env_capacity *= 2;
-        vm.env_stack = (Env**)safe_realloc(vm.env_stack, sizeof(Env*) * vm.env_capacity);
+// ============================================================================
+// BYTECODE COMPILER UTILITIES
+// ============================================================================
+void write_chunk(Chunk* chunk, uint8_t byte, int line) {
+    if (chunk->count + 1 > chunk->capacity) {
+        int capacity = chunk->capacity < 8 ? 8 : chunk->capacity * 2;
+        chunk->code = safe_realloc(chunk->code, sizeof(uint8_t) * capacity);
+        chunk->lines = safe_realloc(chunk->lines, sizeof(int) * capacity);
+        chunk->capacity = capacity;
     }
-    vm.env_stack[vm.env_count++] = env;
-    return env;
+    chunk->code[chunk->count] = byte;
+    chunk->lines[chunk->count] = line;
+    chunk->count++;
 }
 
-void pop_env() { if (vm.env_count > 0) vm.env_count--; }
-
-void env_define(Env* env, const char* name, Value val) {
-    for (int i = 0; i < env->count; i++) {
-        if (strcmp(env->entries[i].name, name) == 0) {
-            env->entries[i].val = val;
-            return;
-        }
+int add_constant(Chunk* chunk, Value value) {
+    push(value); // Root constant during allocation
+    if (chunk->constant_count + 1 > chunk->constant_capacity) {
+        int capacity = chunk->constant_capacity < 8 ? 8 : chunk->constant_capacity * 2;
+        chunk->constants = safe_realloc(chunk->constants, sizeof(Value) * capacity);
+        chunk->constant_capacity = capacity;
     }
-    if (env->count >= env->capacity) {
-        env->capacity = env->capacity < 8 ? 8 : env->capacity * 2;
-        env->entries = safe_realloc(env->entries, sizeof(*env->entries) * env->capacity);
-    }
-    env->entries[env->count].name = safe_strdup(name);
-    env->entries[env->count].val = val;
-    env->count++;
-}
-
-int env_set(Env* env, const char* name, Value val) {
-    Env* curr = env;
-    while (curr) {
-        for (int i = 0; i < curr->count; i++) {
-            if (strcmp(curr->entries[i].name, name) == 0) {
-                curr->entries[i].val = val;
-                return 1;
-            }
-        }
-        curr = curr->parent;
-    }
-    return 0;
-}
-
-Value env_get(Env* env, const char* name) {
-    Env* curr = env;
-    while (curr) {
-        for (int i = 0; i < curr->count; i++) {
-            if (strcmp(curr->entries[i].name, name) == 0) {
-                return curr->entries[i].val;
-            }
-        }
-        curr = curr->parent;
-    }
-    return make_null();
+    chunk->constants[chunk->constant_count] = value;
+    int index = chunk->constant_count++;
+    pop();
+    return index;
 }
 
 // ============================================================================
 // LEXER
 // ============================================================================
-typedef enum {
-    TOKEN_EOF, TOKEN_NEWLINE, TOKEN_IDENTIFIER, TOKEN_NUMBER, TOKEN_DECIMAL, TOKEN_STRING,
-    TOKEN_PLUS, TOKEN_MINUS, TOKEN_STAR, TOKEN_SLASH, TOKEN_EQ, TOKEN_EQEQ, TOKEN_BANGEQ,
-    TOKEN_LESS, TOKEN_LESSEQ, TOKEN_GREATER, TOKEN_GREATEREQ, TOKEN_LBRACKET, TOKEN_RBRACKET,
-    TOKEN_LPAREN, TOKEN_RPAREN, TOKEN_LBRACE, TOKEN_RBRACE, TOKEN_COMMA, TOKEN_COLON, TOKEN_DOT,
-    TOKEN_SAY, TOKEN_VAR, TOKEN_TEXT, TOKEN_NUMBER_KW, TOKEN_DECIMAL_KW, TOKEN_BOOLEAN_KW,
-    TOKEN_GET, TOKEN_ARRAY, TOKEN_DICTIONARY, TOKEN_JOB, TOKEN_IF, TOKEN_ELSE, TOKEN_REPEAT, 
-    TOKEN_FOREVER, TOKEN_OUT, TOKEN_FILE, TOKEN_CREATE, TOKEN_UPDATE, TOKEN_DELETE, TOKEN_SET,
-    TOKEN_TRUE, TOKEN_FALSE, TOKEN_IMPORT, TOKEN_AS, TOKEN_TIME, TOKEN_SLEEP
-} TokenType;
-
-typedef struct { TokenType type; char* text; int line, col; } Token;
 typedef struct { const char* source; int current; int line; int col; } Lexer;
 
 Lexer lexer;
@@ -481,9 +791,8 @@ Token next_token() {
 }
 
 // ============================================================================
-// PARSER AND AST
+// PARSER AND AST BUILDER
 // ============================================================================
-typedef enum { EXPR_LITERAL, EXPR_VAR, EXPR_BINOP, EXPR_UNARY, EXPR_CALL, EXPR_MEMBER, EXPR_ARRAY_GET, EXPR_DICT_GET, EXPR_TIME_GET, EXPR_TIME_SLEEP } ExprType;
 typedef struct sExpr {
     ExprType type; int line;
     union {
@@ -498,7 +807,6 @@ typedef struct sExpr {
     } as;
 } Expr;
 
-typedef enum { STMT_EXPR, STMT_SAY, STMT_VAR, STMT_ARRAY, STMT_DICT, STMT_JOB, STMT_IF, STMT_REPEAT, STMT_OUT, STMT_FILE, STMT_ASSIGN, STMT_ARRAY_SET, STMT_DICT_SET, STMT_IMPORT } StmtType;
 typedef struct sStmt {
     StmtType type; int line;
     union {
@@ -577,8 +885,6 @@ int is_expr_start(TokenType type) {
     }
 }
 
-typedef enum { PREC_NONE, PREC_ASSIGN, PREC_OR, PREC_AND, PREC_EQUALITY, PREC_COMPARISON, PREC_TERM, PREC_FACTOR, PREC_UNARY, PREC_CALL, PREC_PRIMARY } Precedence;
-
 Expr* parse_expr(Precedence prec); Stmt* parse_statement();
 
 Expr* make_error_expr() { Expr* e = make_expr(EXPR_LITERAL, parser_curr.line); e->as.literal = make_null(); return e; }
@@ -588,7 +894,7 @@ Expr* parse_literal() {
     Expr* e = make_expr(EXPR_LITERAL, parser_prev.line);
     if (parser_prev.type == TOKEN_NUMBER) e->as.literal = make_int(atoll(parser_prev.text));
     else if (parser_prev.type == TOKEN_DECIMAL) e->as.literal = make_float(atof(parser_prev.text));
-    else if (parser_prev.type == TOKEN_STRING) { e->as.literal = make_string(parser_prev.text); e->as.literal.as.obj->is_constant = 1; }
+    else if (parser_prev.type == TOKEN_STRING) { e->as.literal = OBJ_VAL(allocate_string(parser_prev.text, strlen(parser_prev.text))); e->as.literal.as.obj->is_constant = 1; }
     else if (parser_prev.type == TOKEN_TRUE) e->as.literal = make_bool(1);
     else if (parser_prev.type == TOKEN_FALSE) e->as.literal = make_bool(0);
     return e;
@@ -661,9 +967,6 @@ Expr* parse_expr(Precedence prec) {
     
     while (1) {
         ParseRule* infixRule = get_rule(parser_curr.type);
-        
-        // Treat space-separated list of expressions as function call arguments
-        // If the token has no infix behavior but starts a new expression, it must be an argument!
         if (prec <= PREC_CALL && infixRule->infix == NULL && is_expr_start(parser_curr.type)) {
             Expr* call = make_expr(EXPR_CALL, parser_prev.line);
             call->as.call.callee = left;
@@ -677,13 +980,11 @@ Expr* parse_expr(Precedence prec) {
             left = call;
             continue;
         }
-        
         if (prec <= infixRule->prec && infixRule->prec != PREC_NONE) {
             advance_parser();
             left = infixRule->infix(left);
             continue;
         }
-        
         break;
     }
     return left;
@@ -726,12 +1027,10 @@ Stmt* parse_statement() {
         if (parser_curr.type == TOKEN_TEXT || parser_curr.type == TOKEN_NUMBER_KW || parser_curr.type == TOKEN_DECIMAL_KW || parser_curr.type == TOKEN_BOOLEAN_KW) advance_parser();
         if (parser_curr.type != TOKEN_IDENTIFIER) { error_at(&parser_curr, "Expected variable name"); return make_error_stmt(); }
         char* name = ast_strdup(parser_curr.text); advance_parser();
-        
         if (match_token(TOKEN_EQ)) {
             error_at(&parser_prev, "Variable declarations do not use '='. Use 'var <optional type> <name> <value>'");
             return make_error_stmt();
         }
-
         Stmt* s = make_stmt(STMT_VAR, line); s->as.var_decl.name = name;
         if (match_token(TOKEN_GET)) { s->as.var_decl.is_get = 1; s->as.var_decl.initializer = NULL; }
         else { s->as.var_decl.is_get = 0; s->as.var_decl.initializer = parse_expr(PREC_ASSIGN); }
@@ -850,28 +1149,323 @@ Stmt* parse_statement() {
 }
 
 // ============================================================================
-// EXECUTION ENGINE
+// BYTECODE COMPILER (AST -> FLAT CHUNKS)
 // ============================================================================
-typedef struct CallFrame { char* name; int line; struct CallFrame* prev; } CallFrame;
-CallFrame* current_frame = NULL;
-int had_runtime_error = 0;
+typedef struct { Chunk* chunk; } Compiler;
 
-void runtime_error(const char* format, ...) {
-    if (had_runtime_error) return;
-    had_runtime_error = 1;
-    fprintf(stderr, "Runtime Error:\n");
-    va_list args; va_start(args, format); vfprintf(stderr, format, args); va_end(args);
-    fprintf(stderr, "\n\n");
-    CallFrame* frame = current_frame;
-    while (frame) {
-        if (strcmp(frame->name, "main") == 0) fprintf(stderr, "at %s line %d\n", frame->name, frame->line);
-        else fprintf(stderr, "at %s() line %d\n", frame->name, frame->line);
-        frame = frame->prev;
+void compile_expr(Compiler* compiler, Expr* expr);
+void compile_stmt(Compiler* compiler, Stmt* stmt);
+
+int emit_jump(Compiler* compiler, uint8_t instruction, int line) {
+    write_chunk(compiler->chunk, instruction, line);
+    write_chunk(compiler->chunk, 0xff, line);
+    write_chunk(compiler->chunk, 0xff, line);
+    return compiler->chunk->count - 2;
+}
+
+void patch_jump(Compiler* compiler, int offset) {
+    int jump = compiler->chunk->count - offset - 2;
+    if (jump > 65535) {
+        fprintf(stderr, "Jump offset overflow.\n");
+        exit(1);
+    }
+    compiler->chunk->code[offset] = (jump >> 8) & 0xff;
+    compiler->chunk->code[offset + 1] = jump & 0xff;
+}
+
+void emit_loop(Compiler* compiler, int loop_start, int line) {
+    write_chunk(compiler->chunk, OP_LOOP, line);
+    int offset = compiler->chunk->count - loop_start + 2;
+    if (offset > 65535) {
+        fprintf(stderr, "Loop offset overflow.\n");
+        exit(1);
+    }
+    write_chunk(compiler->chunk, (offset >> 8) & 0xff, line);
+    write_chunk(compiler->chunk, offset & 0xff, line);
+}
+
+void compile_expr(Compiler* compiler, Expr* expr) {
+    switch (expr->type) {
+        case EXPR_LITERAL: {
+            Value val = expr->as.literal;
+            if (val.type == VAL_NULL) {
+                write_chunk(compiler->chunk, OP_NULL, expr->line);
+            } else if (val.type == VAL_BOOL) {
+                write_chunk(compiler->chunk, val.as.boolean ? OP_TRUE : OP_FALSE, expr->line);
+            } else {
+                int constant = add_constant(compiler->chunk, val);
+                write_chunk(compiler->chunk, OP_CONSTANT, expr->line);
+                write_chunk(compiler->chunk, constant, expr->line);
+            }
+            break;
+        }
+        case EXPR_VAR: {
+            ObjString* name = allocate_string(expr->as.name, strlen(expr->as.name));
+            int constant = add_constant(compiler->chunk, OBJ_VAL(name));
+            write_chunk(compiler->chunk, OP_GET_GLOBAL, expr->line);
+            write_chunk(compiler->chunk, constant, expr->line);
+            break;
+        }
+        case EXPR_BINOP: {
+            compile_expr(compiler, expr->as.bin.left);
+            compile_expr(compiler, expr->as.bin.right);
+            switch (expr->as.bin.op) {
+                case TOKEN_PLUS:      write_chunk(compiler->chunk, OP_ADD, expr->line); break;
+                case TOKEN_MINUS:     write_chunk(compiler->chunk, OP_SUBTRACT, expr->line); break;
+                case TOKEN_STAR:      write_chunk(compiler->chunk, OP_MULTIPLY, expr->line); break;
+                case TOKEN_SLASH:     write_chunk(compiler->chunk, OP_DIVIDE, expr->line); break;
+                case TOKEN_EQEQ:      write_chunk(compiler->chunk, OP_EQUAL, expr->line); break;
+                case TOKEN_BANGEQ:    write_chunk(compiler->chunk, OP_EQUAL, expr->line); write_chunk(compiler->chunk, OP_NOT, expr->line); break;
+                case TOKEN_LESS:      write_chunk(compiler->chunk, OP_LESS, expr->line); break;
+                case TOKEN_LESSEQ:    write_chunk(compiler->chunk, OP_GREATER, expr->line); write_chunk(compiler->chunk, OP_NOT, expr->line); break;
+                case TOKEN_GREATER:   write_chunk(compiler->chunk, OP_GREATER, expr->line); break;
+                case TOKEN_GREATEREQ: write_chunk(compiler->chunk, OP_LESS, expr->line); write_chunk(compiler->chunk, OP_NOT, expr->line); break;
+                default: break;
+            }
+            break;
+        }
+        case EXPR_UNARY: {
+            compile_expr(compiler, expr->as.unary.right);
+            if (expr->as.unary.op == TOKEN_MINUS) {
+                write_chunk(compiler->chunk, OP_NEGATE, expr->line);
+            }
+            break;
+        }
+        case EXPR_CALL: {
+            compile_expr(compiler, expr->as.call.callee);
+            for (int i = 0; i < expr->as.call.count; i++) {
+                compile_expr(compiler, expr->as.call.args[i]);
+            }
+            write_chunk(compiler->chunk, OP_CALL, expr->line);
+            write_chunk(compiler->chunk, expr->as.call.count, expr->line);
+            break;
+        }
+        case EXPR_MEMBER: {
+            compile_expr(compiler, expr->as.member.object);
+            ObjString* prop = allocate_string(expr->as.member.prop, strlen(expr->as.member.prop));
+            int constant = add_constant(compiler->chunk, OBJ_VAL(prop));
+            write_chunk(compiler->chunk, OP_GET_PROPERTY, expr->line);
+            write_chunk(compiler->chunk, constant, expr->line);
+            break;
+        }
+        case EXPR_ARRAY_GET: {
+            ObjString* name = allocate_string(expr->as.array_get.name, strlen(expr->as.array_get.name));
+            int name_const = add_constant(compiler->chunk, OBJ_VAL(name));
+            write_chunk(compiler->chunk, OP_GET_GLOBAL, expr->line);
+            write_chunk(compiler->chunk, name_const, expr->line);
+            compile_expr(compiler, expr->as.array_get.index);
+            write_chunk(compiler->chunk, OP_ARRAY_GET, expr->line);
+            break;
+        }
+        case EXPR_DICT_GET: {
+            ObjString* name = allocate_string(expr->as.dict_get.name, strlen(expr->as.dict_get.name));
+            int name_const = add_constant(compiler->chunk, OBJ_VAL(name));
+            write_chunk(compiler->chunk, OP_GET_GLOBAL, expr->line);
+            write_chunk(compiler->chunk, name_const, expr->line);
+            ObjString* key = allocate_string(expr->as.dict_get.key, strlen(expr->as.dict_get.key));
+            int key_const = add_constant(compiler->chunk, OBJ_VAL(key));
+            write_chunk(compiler->chunk, OP_CONSTANT, expr->line);
+            write_chunk(compiler->chunk, key_const, expr->line);
+            write_chunk(compiler->chunk, OP_DICT_GET, expr->line);
+            break;
+        }
+        case EXPR_TIME_GET:   write_chunk(compiler->chunk, OP_TIME_GET, expr->line); break;
+        case EXPR_TIME_SLEEP: compile_expr(compiler, expr->as.time_sleep.ms); write_chunk(compiler->chunk, OP_TIME_SLEEP, expr->line); break;
+        default: break;
     }
 }
 
-typedef enum { EXEC_NORMAL, EXEC_RETURN, EXEC_BREAK } ExecType;
-typedef struct { ExecType type; Value val; } ExecResult;
+void compile_stmt(Compiler* compiler, Stmt* stmt) {
+    switch (stmt->type) {
+        case STMT_EXPR: compile_expr(compiler, stmt->as.expr); write_chunk(compiler->chunk, OP_POP, stmt->line); break;
+        case STMT_SAY:  compile_expr(compiler, stmt->as.expr); write_chunk(compiler->chunk, OP_SAY, stmt->line); break;
+        case STMT_VAR: {
+            if (stmt->as.var_decl.is_get) {
+                write_chunk(compiler->chunk, OP_GET_INPUT, stmt->line);
+            } else {
+                compile_expr(compiler, stmt->as.var_decl.initializer);
+            }
+            ObjString* name = allocate_string(stmt->as.var_decl.name, strlen(stmt->as.var_decl.name));
+            int constant = add_constant(compiler->chunk, OBJ_VAL(name));
+            write_chunk(compiler->chunk, OP_DEFINE_GLOBAL, stmt->line);
+            write_chunk(compiler->chunk, constant, stmt->line);
+            break;
+        }
+        case STMT_ASSIGN: {
+            compile_expr(compiler, stmt->as.assign_stmt.value);
+            ObjString* name = allocate_string(stmt->as.assign_stmt.name, strlen(stmt->as.assign_stmt.name));
+            int constant = add_constant(compiler->chunk, OBJ_VAL(name));
+            write_chunk(compiler->chunk, OP_SET_GLOBAL, stmt->line);
+            write_chunk(compiler->chunk, constant, stmt->line);
+            break;
+        }
+        case STMT_ARRAY: {
+            for (int i = 0; i < stmt->as.arr_decl.count; i++) {
+                compile_expr(compiler, stmt->as.arr_decl.elements[i]);
+            }
+            write_chunk(compiler->chunk, OP_ARRAY, stmt->line);
+            write_chunk(compiler->chunk, stmt->as.arr_decl.count, stmt->line);
+            ObjString* name = allocate_string(stmt->as.arr_decl.name, strlen(stmt->as.arr_decl.name));
+            int constant = add_constant(compiler->chunk, OBJ_VAL(name));
+            write_chunk(compiler->chunk, OP_DEFINE_GLOBAL, stmt->line);
+            write_chunk(compiler->chunk, constant, stmt->line);
+            break;
+        }
+        case STMT_ARRAY_SET: {
+            ObjString* name = allocate_string(stmt->as.array_set.name, strlen(stmt->as.array_set.name));
+            int name_const = add_constant(compiler->chunk, OBJ_VAL(name));
+            write_chunk(compiler->chunk, OP_GET_GLOBAL, stmt->line);
+            write_chunk(compiler->chunk, name_const, stmt->line);
+            compile_expr(compiler, stmt->as.array_set.index);
+            compile_expr(compiler, stmt->as.array_set.value);
+            write_chunk(compiler->chunk, OP_ARRAY_SET, stmt->line);
+            break;
+        }
+        case STMT_DICT: {
+            for (int i = 0; i < stmt->as.dict_decl.count; i++) {
+                ObjString* key = allocate_string(stmt->as.dict_decl.keys[i], strlen(stmt->as.dict_decl.keys[i]));
+                int key_const = add_constant(compiler->chunk, OBJ_VAL(key));
+                write_chunk(compiler->chunk, OP_CONSTANT, stmt->line);
+                write_chunk(compiler->chunk, key_const, stmt->line);
+                compile_expr(compiler, stmt->as.dict_decl.values[i]);
+            }
+            write_chunk(compiler->chunk, OP_DICT, stmt->line);
+            write_chunk(compiler->chunk, stmt->as.dict_decl.count, stmt->line);
+            ObjString* name = allocate_string(stmt->as.dict_decl.name, strlen(stmt->as.dict_decl.name));
+            int constant = add_constant(compiler->chunk, OBJ_VAL(name));
+            write_chunk(compiler->chunk, OP_DEFINE_GLOBAL, stmt->line);
+            write_chunk(compiler->chunk, constant, stmt->line);
+            break;
+        }
+        case STMT_DICT_SET: {
+            ObjString* name = allocate_string(stmt->as.dict_set.name, strlen(stmt->as.dict_set.name));
+            int name_const = add_constant(compiler->chunk, OBJ_VAL(name));
+            write_chunk(compiler->chunk, OP_GET_GLOBAL, stmt->line);
+            write_chunk(compiler->chunk, name_const, stmt->line);
+            ObjString* key = allocate_string(stmt->as.dict_set.key, strlen(stmt->as.dict_set.key));
+            int key_const = add_constant(compiler->chunk, OBJ_VAL(key));
+            write_chunk(compiler->chunk, OP_CONSTANT, stmt->line);
+            write_chunk(compiler->chunk, key_const, stmt->line);
+            compile_expr(compiler, stmt->as.dict_set.value);
+            write_chunk(compiler->chunk, OP_DICT_SET, stmt->line);
+            break;
+        }
+        case STMT_JOB: {
+            ObjJob* job = (ObjJob*)allocate_object(sizeof(ObjJob), OBJ_JOB);
+            job->name = allocate_string(stmt->as.job_decl.name, strlen(stmt->as.job_decl.name));
+            job->arity = stmt->as.job_decl.param_count;
+            job->params = (ObjString**)safe_alloc(sizeof(ObjString*) * job->arity);
+            for (int i = 0; i < job->arity; i++) {
+                job->params[i] = allocate_string(stmt->as.job_decl.params[i], strlen(stmt->as.job_decl.params[i]));
+            }
+            init_chunk(&job->chunk);
+            job->closure = NULL;
+            
+            Compiler sub_compiler = {&job->chunk};
+            for (int i = 0; i < stmt->as.job_decl.body_count; i++) {
+                compile_stmt(&sub_compiler, stmt->as.job_decl.body[i]);
+            }
+            write_chunk(&job->chunk, OP_NULL, stmt->line);
+            write_chunk(&job->chunk, OP_RETURN, stmt->line);
+            
+            int constant = add_constant(compiler->chunk, OBJ_VAL(job));
+            write_chunk(compiler->chunk, OP_CLOSURE, stmt->line);
+            write_chunk(compiler->chunk, constant, stmt->line);
+            
+            int name_const = add_constant(compiler->chunk, OBJ_VAL(job->name));
+            write_chunk(compiler->chunk, OP_DEFINE_GLOBAL, stmt->line);
+            write_chunk(compiler->chunk, name_const, stmt->line);
+            break;
+        }
+        case STMT_OUT: {
+            if (stmt->as.expr != NULL) {
+                compile_expr(compiler, stmt->as.expr);
+            } else {
+                write_chunk(compiler->chunk, OP_NULL, stmt->line);
+            }
+            write_chunk(compiler->chunk, OP_RETURN, stmt->line);
+            break;
+        }
+        case STMT_IF: {
+            compile_expr(compiler, stmt->as.if_stmt.cond);
+            int then_jump = emit_jump(compiler, OP_JUMP_IF_FALSE, stmt->line);
+            write_chunk(compiler->chunk, OP_POP, stmt->line);
+            for (int i = 0; i < stmt->as.if_stmt.then_c; i++) {
+                compile_stmt(compiler, stmt->as.if_stmt.then_b[i]);
+            }
+            int else_jump = emit_jump(compiler, OP_JUMP, stmt->line);
+            patch_jump(compiler, then_jump);
+            write_chunk(compiler->chunk, OP_POP, stmt->line);
+            if (stmt->as.if_stmt.else_b != NULL) {
+                for (int i = 0; i < stmt->as.if_stmt.else_c; i++) {
+                    compile_stmt(compiler, stmt->as.if_stmt.else_b[i]);
+                }
+            }
+            patch_jump(compiler, else_jump);
+            break;
+        }
+        case STMT_REPEAT: {
+            int loop_start = compiler->chunk->count;
+            if (stmt->as.repeat_stmt.forever) {
+                for (int i = 0; i < stmt->as.repeat_stmt.body_count; i++) {
+                    compile_stmt(compiler, stmt->as.repeat_stmt.body[i]);
+                }
+                emit_loop(compiler, loop_start, stmt->line);
+            } else {
+                compile_expr(compiler, stmt->as.repeat_stmt.count);
+                int repeat_start = compiler->chunk->count;
+                write_chunk(compiler->chunk, OP_DUP, stmt->line);
+                write_chunk(compiler->chunk, OP_CONSTANT, stmt->line);
+                int zero_const = add_constant(compiler->chunk, make_int(0));
+                write_chunk(compiler->chunk, zero_const, stmt->line);
+                write_chunk(compiler->chunk, OP_GREATER, stmt->line);
+                int exit_jump = emit_jump(compiler, OP_JUMP_IF_FALSE, stmt->line);
+                write_chunk(compiler->chunk, OP_POP, stmt->line);
+                for (int i = 0; i < stmt->as.repeat_stmt.body_count; i++) {
+                    compile_stmt(compiler, stmt->as.repeat_stmt.body[i]);
+                }
+                write_chunk(compiler->chunk, OP_CONSTANT, stmt->line);
+                int one_const = add_constant(compiler->chunk, make_int(1));
+                write_chunk(compiler->chunk, one_const, stmt->line);
+                write_chunk(compiler->chunk, OP_SUBTRACT, stmt->line);
+                emit_loop(compiler, repeat_start, stmt->line);
+                patch_jump(compiler, exit_jump);
+                write_chunk(compiler->chunk, OP_POP, stmt->line);
+                write_chunk(compiler->chunk, OP_POP, stmt->line);
+            }
+            break;
+        }
+        case STMT_FILE: {
+            compile_expr(compiler, stmt->as.file_stmt.file);
+            if (stmt->as.file_stmt.content != NULL) {
+                compile_expr(compiler, stmt->as.file_stmt.content);
+            } else {
+                write_chunk(compiler->chunk, OP_NULL, stmt->line);
+            }
+            int action_const = add_constant(compiler->chunk, OBJ_VAL(allocate_string(stmt->as.file_stmt.action, strlen(stmt->as.file_stmt.action))));
+            write_chunk(compiler->chunk, OP_CONSTANT, stmt->line);
+            write_chunk(compiler->chunk, action_const, stmt->line);
+            write_chunk(compiler->chunk, OP_FILE, stmt->line);
+            break;
+        }
+        case STMT_IMPORT: {
+            ObjString* path = allocate_string(stmt->as.import_stmt.path, strlen(stmt->as.import_stmt.path));
+            ObjString* alias = stmt->as.import_stmt.alias != NULL ? allocate_string(stmt->as.import_stmt.alias, strlen(stmt->as.import_stmt.alias)) : NULL;
+            int path_const = add_constant(compiler->chunk, OBJ_VAL(path));
+            int alias_const = add_constant(compiler->chunk, alias != NULL ? OBJ_VAL(alias) : make_null());
+            write_chunk(compiler->chunk, OP_IMPORT, stmt->line);
+            write_chunk(compiler->chunk, path_const, stmt->line);
+            write_chunk(compiler->chunk, alias_const, stmt->line);
+            break;
+        }
+        default: break;
+    }
+}
+
+// ============================================================================
+// STACK VM INTERPRET LOOP
+// ============================================================================
+typedef enum { INTERPRET_OK, INTERPRET_COMPILE_ERROR, INTERPRET_RUNTIME_ERROR } InterpretResult;
 
 char* value_to_string(Value val) {
     char buffer[512];
@@ -900,243 +1494,401 @@ int values_equal(Value a, Value b) {
     if (a.type == VAL_INT) return a.as.integer == b.as.integer;
     if (a.type == VAL_FLOAT) return a.as.floating == b.as.floating;
     if (a.type == VAL_OBJ) {
-        if (a.as.obj->type == OBJ_STRING && b.as.obj->type == OBJ_STRING) return strcmp(((ObjString*)a.as.obj)->chars, ((ObjString*)b.as.obj)->chars) == 0;
+        if (a.as.obj->type == OBJ_STRING && b.as.obj->type == OBJ_STRING) return a.as.obj == b.as.obj; // Interned String pointer compare
         return a.as.obj == b.as.obj;
     }
     return 0;
 }
 
-ExecResult exec(Stmt* stmt, Env* env);
+InterpretResult run() {
+    CallFrame* frame = &vm.frames[vm.frame_count - 1];
+    
+#define READ_BYTE() (*frame->ip++)
+#define READ_SHORT() (frame->ip += 2, (uint16_t)((frame->ip[-2] << 8) | frame->ip[-1]))
+#define READ_CONSTANT() (frame->job->chunk.constants[READ_BYTE()])
+#define READ_STRING() (READ_CONSTANT().as.obj)
 
-Value eval(Expr* expr, Env* env) {
-    if (had_runtime_error) return make_null();
-    if (current_frame) current_frame->line = expr->line;
-    if (expr->type == EXPR_LITERAL) return expr->as.literal;
-    if (expr->type == EXPR_VAR) {
-        Value val = env_get(env, expr->as.name);
-        if (val.type == VAL_NULL) runtime_error("Undefined variable '%s'.", expr->as.name);
-        return val;
-    }
-    if (expr->type == EXPR_UNARY) {
-        Value right = eval(expr->as.unary.right, env);
-        if (expr->as.unary.op == TOKEN_MINUS) {
-            if (right.type == VAL_INT) return make_int(-right.as.integer);
-            if (right.type == VAL_FLOAT) return make_float(-right.as.floating);
-        }
-        return make_null();
-    }
-    if (expr->type == EXPR_BINOP) {
-        Value left = eval(expr->as.bin.left, env); Value right = eval(expr->as.bin.right, env);
-        TokenType op = expr->as.bin.op;
-        if (op == TOKEN_EQEQ) return make_bool(values_equal(left, right));
-        if (op == TOKEN_BANGEQ) return make_bool(!values_equal(left, right));
-        
-        if (left.type == VAL_OBJ && left.as.obj->type == OBJ_STRING && op == TOKEN_PLUS) {
-            char* s1 = ((ObjString*)left.as.obj)->chars; char* s2 = value_to_string(right);
-            char* res = (char*)safe_alloc(strlen(s1) + strlen(s2) + 1);
-            strcpy(res, s1); strcat(res, s2); safe_free(s2);
-            Value ret = make_string(res); safe_free(res); return ret;
-        }
-        
-        double l = left.type == VAL_FLOAT ? left.as.floating : (double)left.as.integer;
-        double r = right.type == VAL_FLOAT ? right.as.floating : (double)right.as.integer;
-        int is_int = (left.type == VAL_INT && right.type == VAL_INT);
-        
-        if (op == TOKEN_PLUS) return is_int ? make_int(left.as.integer + right.as.integer) : make_float(l + r);
-        if (op == TOKEN_MINUS) return is_int ? make_int(left.as.integer - right.as.integer) : make_float(l - r);
-        if (op == TOKEN_STAR) return is_int ? make_int(left.as.integer * right.as.integer) : make_float(l * r);
-        if (op == TOKEN_SLASH) {
-            if (r == 0) { runtime_error("Division by zero."); return make_null(); }
-            return is_int ? make_int(left.as.integer / right.as.integer) : make_float(l / r);
-        }
-        if (op == TOKEN_LESS) return make_bool(l < r); if (op == TOKEN_LESSEQ) return make_bool(l <= r);
-        if (op == TOKEN_GREATER) return make_bool(l > r); if (op == TOKEN_GREATEREQ) return make_bool(l >= r);
-    }
-    if (expr->type == EXPR_CALL) {
-        Value callee = eval(expr->as.call.callee, env);
-        if (callee.type != VAL_OBJ || callee.as.obj->type != OBJ_JOB) { runtime_error("Can only call jobs."); return make_null(); }
-        ObjJob* job = (ObjJob*)callee.as.obj;
-        if (expr->as.call.count != job->param_count) { runtime_error("Expected %d arguments but got %d.", job->param_count, expr->as.call.count); return make_null(); }
-        
-        Env* local = create_env(job->closure);
-        for (int i = 0; i < job->param_count; i++) env_define(local, job->params[i], eval(expr->as.call.args[i], env));
-        
-        CallFrame frame; frame.name = job->name; frame.line = expr->line; frame.prev = current_frame; current_frame = &frame;
-        ExecResult res = {EXEC_NORMAL, make_null()};
-        for (int i = 0; i < job->body_count; i++) {
-            res = exec(job->body[i], local);
-            if (res.type != EXEC_NORMAL || had_runtime_error) break;
-        }
-        current_frame = frame.prev; pop_env(); return res.val;
-    }
-    if (expr->type == EXPR_ARRAY_GET) {
-        Value obj = env_get(env, expr->as.array_get.name); Value idx = eval(expr->as.array_get.index, env);
-        if (obj.type == VAL_OBJ && obj.as.obj->type == OBJ_ARRAY) {
-            ObjArray* arr = (ObjArray*)obj.as.obj;
-            if (idx.type != VAL_INT) { runtime_error("Array index must be an integer."); return make_null(); }
-            if (idx.as.integer < 0 || idx.as.integer >= arr->count) { runtime_error("Index out of bounds."); return make_null(); }
-            return arr->items[idx.as.integer];
-        }
-        runtime_error("Cannot get index from non-array."); return make_null();
-    }
-    if (expr->type == EXPR_DICT_GET) {
-        Value obj = env_get(env, expr->as.dict_get.name);
-        if (obj.type == VAL_OBJ && obj.as.obj->type == OBJ_DICT) {
-            ObjDict* dict = (ObjDict*)obj.as.obj;
-            for (int i = 0; i < dict->count; i++) {
-                if (strcmp(dict->entries[i].key, expr->as.dict_get.key) == 0) return dict->entries[i].val;
-            }
-            return make_null();
-        }
-        runtime_error("Cannot get key from non-dictionary."); return make_null();
-    }
-    if (expr->type == EXPR_MEMBER) {
-        Value obj = eval(expr->as.member.object, env);
-        if (obj.type == VAL_OBJ && obj.as.obj->type == OBJ_MODULE) return env_get(((ObjModule*)obj.as.obj)->env, expr->as.member.prop);
-        runtime_error("Cannot access property of non-module."); return make_null();
-    }
-    if (expr->type == EXPR_TIME_GET) {
-        return make_int(get_time_ms());
-    }
-    if (expr->type == EXPR_TIME_SLEEP) {
-        Value ms_val = eval(expr->as.time_sleep.ms, env);
-        if (ms_val.type != VAL_INT && ms_val.type != VAL_FLOAT) {
-            runtime_error("Sleep duration must be a number.");
-            return make_null();
-        }
-        long long ms = (ms_val.type == VAL_INT) ? ms_val.as.integer : (long long)ms_val.as.floating;
-        if (ms > 0) sleep_ms(ms);
-        return make_null();
-    }
-    return make_null();
-}
+#define BINARY_OP(value_type, op) \
+    do { \
+        if (peek(0).type != VAL_INT && peek(0).type != VAL_FLOAT) { \
+            runtime_error("Operands must be numbers."); \
+            return INTERPRET_RUNTIME_ERROR; \
+        } \
+        if (peek(1).type != VAL_INT && peek(1).type != VAL_FLOAT) { \
+            runtime_error("Operands must be numbers."); \
+            return INTERPRET_RUNTIME_ERROR; \
+        } \
+        Value b = pop(); \
+        Value a = pop(); \
+        double a_val = a.type == VAL_FLOAT ? a.as.floating : (double)a.as.integer; \
+        double b_val = b.type == VAL_FLOAT ? b.as.floating : (double)b.as.integer; \
+        int is_int = (a.type == VAL_INT && b.type == VAL_INT); \
+        if (is_int && #op[0] != '/') { \
+            if (strcmp(#op, "+") == 0) push(value_type(a.as.integer + b.as.integer)); \
+            else if (strcmp(#op, "-") == 0) push(value_type(a.as.integer - b.as.integer)); \
+            else if (strcmp(#op, "*") == 0) push(value_type(a.as.integer * b.as.integer)); \
+        } else { \
+            if (strcmp(#op, "/") == 0) { \
+                if (b_val == 0) { runtime_error("Division by zero."); return INTERPRET_RUNTIME_ERROR; } \
+            } \
+            if (strcmp(#op, "+") == 0) push(make_float(a_val + b_val)); \
+            else if (strcmp(#op, "-") == 0) push(make_float(a_val - b_val)); \
+            else if (strcmp(#op, "*") == 0) push(make_float(a_val * b_val)); \
+            else if (strcmp(#op, "/") == 0) push(make_float(a_val / b_val)); \
+        } \
+    } while (false)
 
-void run_file(const char* path, Env* env);
+#define BINARY_COMP_OP(op) \
+    do { \
+        if (peek(0).type != VAL_INT && peek(0).type != VAL_FLOAT) { \
+            runtime_error("Operands must be numbers."); \
+            return INTERPRET_RUNTIME_ERROR; \
+        } \
+        if (peek(1).type != VAL_INT && peek(1).type != VAL_FLOAT) { \
+            runtime_error("Operands must be numbers."); \
+            return INTERPRET_RUNTIME_ERROR; \
+        } \
+        Value b = pop(); \
+        Value a = pop(); \
+        double a_val = a.type == VAL_FLOAT ? a.as.floating : (double)a.as.integer; \
+        double b_val = b.type == VAL_FLOAT ? b.as.floating : (double)b.as.integer; \
+        push(make_bool(a_val op b_val)); \
+    } while (false)
 
-ExecResult exec(Stmt* stmt, Env* env) {
-    if (had_runtime_error) return (ExecResult){EXEC_NORMAL, make_null()};
-    if (current_frame) current_frame->line = stmt->line;
-    if (bytes_allocated > vm.next_gc) gc_collect();
-    ExecResult res = {EXEC_NORMAL, make_null()};
-
-    if (stmt->type == STMT_EXPR) eval(stmt->as.expr, env);
-    else if (stmt->type == STMT_SAY) {
-        Value val = eval(stmt->as.expr, env);
-        if (!had_runtime_error) {
-            char* s = value_to_string(val);
-            printf("%s\n", s); safe_free(s);
-        }
-    } else if (stmt->type == STMT_VAR) {
-        Value val = make_null();
-        if (stmt->as.var_decl.is_get) {
-            char buf[512];
-            if (fgets(buf, sizeof(buf), stdin)) { buf[strcspn(buf, "\r\n")] = '\0'; val = make_string(buf); }
-        } else val = eval(stmt->as.var_decl.initializer, env);
-        env_define(env, stmt->as.var_decl.name, val);
-    } else if (stmt->type == STMT_ARRAY) {
-        Value arr_val = make_array(); ObjArray* arr = (ObjArray*)arr_val.as.obj;
-        for (int i = 0; i < stmt->as.arr_decl.count; i++) {
-            if (arr->count >= arr->capacity) {
-                arr->capacity = arr->capacity < 4 ? 8 : arr->capacity * 2;
-                arr->items = safe_realloc(arr->items, sizeof(Value) * arr->capacity);
+    for (;;) {
+        if (had_runtime_error) return INTERPRET_RUNTIME_ERROR;
+        uint8_t instruction = READ_BYTE();
+        switch (instruction) {
+            case OP_CONSTANT: push(READ_CONSTANT()); break;
+            case OP_NULL:  push(make_null()); break;
+            case OP_TRUE:  push(make_bool(1)); break;
+            case OP_FALSE: push(make_bool(0)); break;
+            case OP_POP:   pop(); break;
+            case OP_DUP:   push(peek(0)); break;
+            case OP_NEGATE: {
+                if (peek(0).type == VAL_INT) { push(make_int(-pop().as.integer)); }
+                else if (peek(0).type == VAL_FLOAT) { push(make_float(-pop().as.floating)); }
+                else { runtime_error("Operand must be a number."); return INTERPRET_RUNTIME_ERROR; }
+                break;
             }
-            arr->items[arr->count++] = eval(stmt->as.arr_decl.elements[i], env);
-        }
-        env_define(env, stmt->as.arr_decl.name, arr_val);
-    } else if (stmt->type == STMT_DICT) {
-        Value dict_val = make_dict(); ObjDict* dict = (ObjDict*)dict_val.as.obj;
-        for (int i = 0; i < stmt->as.dict_decl.count; i++) {
-            Value v = eval(stmt->as.dict_decl.values[i], env);
-            if (dict->count >= dict->capacity) {
-                dict->capacity = dict->capacity < 4 ? 8 : dict->capacity * 2;
-                dict->entries = safe_realloc(dict->entries, sizeof(DictEntry) * dict->capacity);
-            }
-            dict->entries[dict->count].key = safe_strdup(stmt->as.dict_decl.keys[i]);
-            dict->entries[dict->count].val = v; dict->count++;
-        }
-        env_define(env, stmt->as.dict_decl.name, dict_val);
-    } else if (stmt->type == STMT_JOB) {
-        ObjJob* job = (ObjJob*)allocate_object(sizeof(ObjJob), OBJ_JOB);
-        job->name = stmt->as.job_decl.name; job->params = stmt->as.job_decl.params;
-        job->param_count = stmt->as.job_decl.param_count; job->body = stmt->as.job_decl.body;
-        job->body_count = stmt->as.job_decl.body_count; job->closure = env;
-        Value job_val; job_val.type = VAL_OBJ; job_val.as.obj = (Object*)job;
-        env_define(env, job->name, job_val);
-    } else if (stmt->type == STMT_IF) {
-        if (is_truthy(eval(stmt->as.if_stmt.cond, env))) {
-            for (int i = 0; i < stmt->as.if_stmt.then_c; i++) {
-                res = exec(stmt->as.if_stmt.then_b[i], env);
-                if (res.type != EXEC_NORMAL || had_runtime_error) return res;
-            }
-        } else if (stmt->as.if_stmt.else_b) {
-            for (int i = 0; i < stmt->as.if_stmt.else_c; i++) {
-                res = exec(stmt->as.if_stmt.else_b[i], env);
-                if (res.type != EXEC_NORMAL || had_runtime_error) return res;
-            }
-        }
-    } else if (stmt->type == STMT_REPEAT) {
-        long long count = stmt->as.repeat_stmt.forever ? -1 : eval(stmt->as.repeat_stmt.count, env).as.integer;
-        while (count == -1 || count > 0) {
-            for (int i = 0; i < stmt->as.repeat_stmt.body_count; i++) {
-                res = exec(stmt->as.repeat_stmt.body[i], env);
-                if (had_runtime_error) return res;
-                if (res.type == EXEC_RETURN) return res;
-                if (res.type == EXEC_BREAK) { res.type = EXEC_NORMAL; return res; }
-            }
-            if (count > 0) count--;
-        }
-    } else if (stmt->type == STMT_OUT) {
-        res.type = EXEC_RETURN; res.val = stmt->as.expr ? eval(stmt->as.expr, env) : make_null(); return res;
-    } else if (stmt->type == STMT_FILE) {
-        Value fval = eval(stmt->as.file_stmt.file, env); char* fname = value_to_string(fval);
-        if (strcmp(stmt->as.file_stmt.action, "create") == 0 || strcmp(stmt->as.file_stmt.action, "update") == 0) {
-            FILE* f = fopen(fname, strcmp(stmt->as.file_stmt.action, "create") == 0 ? "w" : "a");
-            if (f) {
-                Value content = eval(stmt->as.file_stmt.content, env); char* cstr = value_to_string(content);
-                fprintf(f, "%s", cstr); safe_free(cstr); fclose(f);
-            } else runtime_error("Could not open file %s.", fname);
-        } else if (strcmp(stmt->as.file_stmt.action, "delete") == 0) remove(fname);
-        safe_free(fname);
-    } else if (stmt->type == STMT_ASSIGN) {
-        Value val = eval(stmt->as.assign_stmt.value, env);
-        if (!env_set(env, stmt->as.assign_stmt.name, val)) runtime_error("Undefined variable '%s'.", stmt->as.assign_stmt.name);
-    } else if (stmt->type == STMT_ARRAY_SET) {
-        Value arr_val = env_get(env, stmt->as.array_set.name); Value idx = eval(stmt->as.array_set.index, env); Value val = eval(stmt->as.array_set.value, env);
-        if (arr_val.type == VAL_OBJ && arr_val.as.obj->type == OBJ_ARRAY) {
-            ObjArray* arr = (ObjArray*)arr_val.as.obj;
-            if (idx.type != VAL_INT) { runtime_error("Array index must be integer."); return res; }
-            if (idx.as.integer < 0 || idx.as.integer >= arr->count) { runtime_error("Array index out of bounds."); return res; }
-            arr->items[idx.as.integer] = val;
-        } else runtime_error("Cannot set index on non-array.");
-    } else if (stmt->type == STMT_DICT_SET) {
-        Value dict_val = env_get(env, stmt->as.dict_set.name); Value val = eval(stmt->as.dict_set.value, env);
-        if (dict_val.type == VAL_OBJ && dict_val.as.obj->type == OBJ_DICT) {
-            ObjDict* dict = (ObjDict*)dict_val.as.obj; int found = 0;
-            for (int i = 0; i < dict->count; i++) {
-                if (strcmp(dict->entries[i].key, stmt->as.dict_set.key) == 0) { dict->entries[i].val = val; found = 1; break; }
-            }
-            if (!found) {
-                if (dict->count >= dict->capacity) {
-                    dict->capacity = dict->capacity < 4 ? 8 : dict->capacity * 2;
-                    dict->entries = safe_realloc(dict->entries, sizeof(DictEntry) * dict->capacity);
+            case OP_NOT: push(make_bool(!is_truthy(pop()))); break;
+            case OP_ADD: {
+                if (peek(0).type == VAL_OBJ && peek(0).as.obj->type == OBJ_STRING &&
+                    peek(1).type == VAL_OBJ && peek(1).as.obj->type == OBJ_STRING) {
+                    ObjString* b = (ObjString*)pop().as.obj;
+                    ObjString* a = (ObjString*)pop().as.obj;
+                    int len = strlen(a->chars) + strlen(b->chars);
+                    char* joined = (char*)safe_alloc(len + 1);
+                    strcpy(joined, a->chars); strcat(joined, b->chars);
+                    ObjString* res = allocate_string(joined, len);
+                    safe_free(joined);
+                    push(OBJ_VAL(res));
+                } else {
+                    BINARY_OP(make_int, +);
                 }
-                dict->entries[dict->count].key = safe_strdup(stmt->as.dict_set.key);
-                dict->entries[dict->count].val = val; dict->count++;
+                break;
             }
-        } else runtime_error("Cannot set key on non-dictionary.");
-    } else if (stmt->type == STMT_IMPORT) {
-        Env* mod_env = create_env(NULL); run_file(stmt->as.import_stmt.path, mod_env);
-        ObjModule* mod = (ObjModule*)allocate_object(sizeof(ObjModule), OBJ_MODULE); mod->env = mod_env;
-        Value mod_val; mod_val.type = VAL_OBJ; mod_val.as.obj = (Object*)mod;
-        char* alias = stmt->as.import_stmt.alias;
-        if (!alias) {
-            char* last = strrchr(stmt->as.import_stmt.path, '/'); char* base = last ? last + 1 : stmt->as.import_stmt.path;
-            char* dot = strchr(base, '.');
-            if (dot) { int len = dot - base; char* a = safe_alloc(len + 1); strncpy(a, base, len); env_define(env, a, mod_val); safe_free(a); }
-            else env_define(env, base, mod_val);
-        } else env_define(env, alias, mod_val);
+            case OP_SUBTRACT: BINARY_OP(make_int, -); break;
+            case OP_MULTIPLY: BINARY_OP(make_int, *); break;
+            case OP_DIVIDE:   BINARY_OP(make_int, /); break;
+            case OP_EQUAL: {
+                Value b = pop(); Value a = pop();
+                push(make_bool(values_equal(a, b)));
+                break;
+            }
+            case OP_GREATER: BINARY_COMP_OP(>); break;
+            case OP_LESS:    BINARY_COMP_OP(<); break;
+            case OP_JUMP_IF_FALSE: {
+                uint16_t offset = READ_SHORT();
+                if (!is_truthy(peek(0))) frame->ip += offset;
+                break;
+            }
+            case OP_JUMP: {
+                uint16_t offset = READ_SHORT();
+                frame->ip += offset;
+                break;
+            }
+            case OP_LOOP: {
+                uint16_t offset = READ_SHORT();
+                frame->ip -= offset;
+                break;
+            }
+            case OP_GET_GLOBAL: {
+                ObjString* name = (ObjString*)READ_STRING();
+                Value value = env_get(vm.env, name->chars);
+                if (value.type == VAL_NULL) {
+                    runtime_error("Undefined variable '%s'.", name->chars);
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+                push(value);
+                break;
+            }
+            case OP_DEFINE_GLOBAL: {
+                ObjString* name = (ObjString*)READ_STRING();
+                Value val = pop();
+                env_define(vm.env, name->chars, val);
+                break;
+            }
+            case OP_SET_GLOBAL: {
+                ObjString* name = (ObjString*)READ_STRING();
+                Value val = peek(0);
+                if (!env_set(vm.env, name->chars, val)) {
+                    runtime_error("Undefined variable '%s'.", name->chars);
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+                break;
+            }
+            case OP_CLOSURE: {
+                ObjJob* job = (ObjJob*)READ_STRING();
+                ObjJob* closure = (ObjJob*)allocate_object(sizeof(ObjJob), OBJ_JOB);
+                closure->name = job->name;
+                closure->arity = job->arity;
+                closure->params = job->params;
+                closure->chunk = job->chunk;
+                closure->closure = vm.env;
+                push(OBJ_VAL(closure));
+                break;
+            }
+            case OP_CALL: {
+                int arg_count = READ_BYTE();
+                Value callee = peek(arg_count);
+                if (callee.type != VAL_OBJ || callee.as.obj->type != OBJ_JOB) {
+                    runtime_error("Can only call jobs.");
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+                ObjJob* job = (ObjJob*)callee.as.obj;
+                if (arg_count != job->arity) {
+                    runtime_error("Expected %d arguments but got %d.", job->arity, arg_count);
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+                if (vm.frame_count >= FRAMES_MAX) {
+                    runtime_error("Stack overflow.");
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+                
+                Env* local = create_env(job->closure);
+                for (int i = 0; i < job->arity; i++) {
+                    Value arg = peek(job->arity - 1 - i);
+                    env_define(local, job->params[i]->chars, arg);
+                }
+                vm.env = local;
+                CallFrame* new_frame = &vm.frames[vm.frame_count++];
+                new_frame->job = job;
+                new_frame->ip = job->chunk.code;
+                new_frame->slots = vm.stack_top - arg_count - 1;
+                frame = new_frame;
+                break;
+            }
+            case OP_RETURN: {
+                Value result = pop();
+                vm.frame_count--;
+                vm.stack_top = frame->slots;
+                if (vm.env->parent != NULL) {
+                    vm.env = vm.env->parent;
+                }
+                pop_env();
+                if (vm.frame_count == 0) return INTERPRET_OK;
+                push(result);
+                frame = &vm.frames[vm.frame_count - 1];
+                break;
+            }
+            case OP_ARRAY: {
+                int count = READ_BYTE();
+                Value arr_val = make_array();
+                ObjArray* arr = (ObjArray*)arr_val.as.obj;
+                arr->count = count; arr->capacity = count;
+                arr->items = (Value*)safe_alloc(sizeof(Value) * count);
+                for (int i = 0; i < count; i++) {
+                    arr->items[i] = peek(count - 1 - i);
+                }
+                for (int i = 0; i < count; i++) pop();
+                push(arr_val);
+                break;
+            }
+            case OP_ARRAY_GET: {
+                Value idx = pop(); Value obj = pop();
+                if (obj.type != VAL_OBJ || obj.as.obj->type != OBJ_ARRAY) {
+                    runtime_error("Cannot get index from non-array.");
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+                ObjArray* arr = (ObjArray*)obj.as.obj;
+                if (idx.type != VAL_INT) {
+                    runtime_error("Array index must be an integer.");
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+                if (idx.as.integer < 0 || idx.as.integer >= arr->count) {
+                    runtime_error("Index out of bounds.");
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+                push(arr->items[idx.as.integer]);
+                break;
+            }
+            case OP_ARRAY_SET: {
+                Value val = pop(); Value idx = pop(); Value obj = pop();
+                if (obj.type != VAL_OBJ || obj.as.obj->type != OBJ_ARRAY) {
+                    runtime_error("Cannot set index on non-array.");
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+                ObjArray* arr = (ObjArray*)obj.as.obj;
+                if (idx.type != VAL_INT) {
+                    runtime_error("Array index must be integer.");
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+                if (idx.as.integer < 0 || idx.as.integer >= arr->count) {
+                    runtime_error("Array index out of bounds.");
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+                arr->items[idx.as.integer] = val;
+                push(val);
+                break;
+            }
+            case OP_DICT: {
+                int count = READ_BYTE();
+                Value dict_val = make_dict();
+                ObjDict* dict = (ObjDict*)dict_val.as.obj;
+                for (int i = 0; i < count; i++) {
+                    Value v = peek((count - 1 - i) * 2);
+                    Value k = peek((count - 1 - i) * 2 + 1);
+                    if (k.type != VAL_OBJ || k.as.obj->type != OBJ_STRING) {
+                        runtime_error("Dictionary keys must be strings.");
+                        return INTERPRET_RUNTIME_ERROR;
+                    }
+                    table_set(&dict->table, (ObjString*)k.as.obj, v);
+                }
+                for (int i = 0; i < count * 2; i++) pop();
+                push(dict_val);
+                break;
+            }
+            case OP_DICT_GET: {
+                Value key = pop(); Value obj = pop();
+                if (obj.type != VAL_OBJ || obj.as.obj->type != OBJ_DICT) {
+                    runtime_error("Cannot get key from non-dictionary.");
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+                ObjDict* dict = (ObjDict*)obj.as.obj;
+                if (key.type != VAL_OBJ || key.as.obj->type != OBJ_STRING) {
+                    runtime_error("Dictionary keys must be strings.");
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+                Value val;
+                if (table_get(&dict->table, (ObjString*)key.as.obj, &val)) push(val);
+                else push(make_null());
+                break;
+            }
+            case OP_DICT_SET: {
+                Value val = pop(); Value key = pop(); Value obj = pop();
+                if (obj.type != VAL_OBJ || obj.as.obj->type != OBJ_DICT) {
+                    runtime_error("Cannot set key on non-dictionary.");
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+                ObjDict* dict = (ObjDict*)obj.as.obj;
+                if (key.type != VAL_OBJ || key.as.obj->type != OBJ_STRING) {
+                    runtime_error("Dictionary keys must be strings.");
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+                table_set(&dict->table, (ObjString*)key.as.obj, val);
+                push(val);
+                break;
+            }
+            case OP_GET_PROPERTY: {
+                ObjString* prop = (ObjString*)READ_STRING(); Value obj = pop();
+                if (obj.type != VAL_OBJ || obj.as.obj->type != OBJ_MODULE) {
+                    runtime_error("Cannot access property of non-module.");
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+                ObjModule* mod = (ObjModule*)obj.as.obj;
+                push(env_get(mod->env, prop->chars));
+                break;
+            }
+            case OP_GET_INPUT: {
+                char buf[512];
+                if (fgets(buf, sizeof(buf), stdin)) {
+                    buf[strcspn(buf, "\r\n")] = '\0';
+                    push(OBJ_VAL(allocate_string(buf, strlen(buf))));
+                } else push(make_null());
+                break;
+            }
+            case OP_SAY: {
+                Value val = pop(); char* s = value_to_string(val);
+                printf("%s\n", s); safe_free(s);
+                break;
+            }
+            case OP_FILE: {
+                ObjString* action = (ObjString*)pop().as.obj; Value content = pop(); Value file = pop();
+                char* fname = value_to_string(file);
+                if (strcmp(action->chars, "create") == 0 || strcmp(action->chars, "update") == 0) {
+                    FILE* f = fopen(fname, strcmp(action->chars, "create") == 0 ? "w" : "a");
+                    if (f) {
+                        char* cstr = value_to_string(content);
+                        fprintf(f, "%s", cstr); safe_free(cstr); fclose(f);
+                    } else {
+                        runtime_error("Could not open file %s.", fname); safe_free(fname);
+                        return INTERPRET_RUNTIME_ERROR;
+                    }
+                } else if (strcmp(action->chars, "delete") == 0) remove(fname);
+                safe_free(fname);
+                break;
+            }
+            case OP_TIME_GET:   push(make_int(get_time_ms())); break;
+            case OP_TIME_SLEEP: {
+                Value ms_val = pop();
+                if (ms_val.type != VAL_INT && ms_val.type != VAL_FLOAT) { runtime_error("Sleep duration must be a number."); return INTERPRET_RUNTIME_ERROR; }
+                long long ms = (ms_val.type == VAL_INT) ? ms_val.as.integer : (long long)ms_val.as.floating;
+                if (ms > 0) sleep_ms(ms);
+                push(make_null());
+                break;
+            }
+            case OP_IMPORT: {
+                Value alias_val = pop(); ObjString* path = (ObjString*)pop().as.obj;
+                
+                // Circular Import Protection Check
+                for (int i = 0; i < vm.import_count; i++) {
+                    if (strcmp(vm.import_stack[i], path->chars) == 0) {
+                        runtime_error("Circular import detected: '%s'.", path->chars);
+                        return INTERPRET_RUNTIME_ERROR;
+                    }
+                }
+                
+                // Push to compiler protection stack
+                if (vm.import_count >= vm.import_capacity) {
+                    vm.import_capacity = vm.import_capacity < 8 ? 8 : vm.import_capacity * 2;
+                    vm.import_stack = safe_realloc(vm.import_stack, sizeof(char*) * vm.import_capacity);
+                }
+                vm.import_stack[vm.import_count++] = safe_strdup(path->chars);
+                
+                Env* mod_env = create_env(NULL);
+                run_file(path->chars, mod_env);
+                
+                // Pop import stack
+                vm.import_count--;
+                safe_free(vm.import_stack[vm.import_count]);
+                
+                ObjModule* mod = (ObjModule*)allocate_object(sizeof(ObjModule), OBJ_MODULE);
+                mod->env = mod_env; Value mod_val = OBJ_VAL(mod);
+                if (alias_val.type != VAL_NULL) {
+                    ObjString* alias = (ObjString*)alias_val.as.obj;
+                    env_define(vm.env, alias->chars, mod_val);
+                } else {
+                    char* last = strrchr(path->chars, '/'); char* base = last ? last + 1 : path->chars;
+                    char* dot = strchr(base, '.');
+                    if (dot) {
+                        int len = dot - base; char* a = safe_alloc(len + 1);
+                        strncpy(a, base, len); env_define(vm.env, a, mod_val); safe_free(a);
+                    } else {
+                        env_define(vm.env, base, mod_val);
+                    }
+                }
+                break;
+            }
+            default: break;
+        }
     }
-    return res;
+#undef READ_BYTE
+#undef READ_SHORT
+#undef READ_CONSTANT
+#undef READ_STRING
+#undef BINARY_OP
+#undef BINARY_COMP_OP
 }
 
 // ============================================================================
@@ -1155,13 +1907,34 @@ void run_script(const char* source, Env* env) {
         skip_newlines();
     }
     
-    CallFrame main_frame = {"main", 1, NULL};
-    current_frame = &main_frame;
+    if (had_error) return;
+    
+    ObjJob* script_job = (ObjJob*)allocate_object(sizeof(ObjJob), OBJ_JOB);
+    script_job->name = allocate_string("main_script", 11);
+    script_job->arity = 0;
+    script_job->params = NULL;
+    init_chunk(&script_job->chunk);
+    script_job->closure = env;
+    
+    Compiler compiler = {&script_job->chunk};
     for (int i = 0; i < stmt_count; i++) {
-        if (had_error || had_runtime_error) break;
-        exec(stmts[i], env);
+        compile_stmt(&compiler, stmts[i]);
     }
-    current_frame = NULL;
+    write_chunk(&script_job->chunk, OP_NULL, 1);
+    write_chunk(&script_job->chunk, OP_RETURN, 1);
+    
+    vm.env = env;
+    CallFrame* frame = &vm.frames[vm.frame_count++];
+    frame->job = script_job;
+    frame->ip = script_job->chunk.code;
+    frame->slots = vm.stack_top;
+    
+    push(OBJ_VAL(script_job));
+    
+    run();
+    
+    vm.frame_count = 0;
+    vm.stack_top = vm.stack;
 }
 
 void run_file(const char* path, Env* env) {
@@ -1170,7 +1943,7 @@ void run_file(const char* path, Env* env) {
     fseek(f, 0, SEEK_END); long size = ftell(f); fseek(f, 0, SEEK_SET);
     
     char* source = safe_alloc(size + 1);
-    fread(source, 1, size, f); source[size] = '\0'; fclose(f);
+    size_t read_bytes = fread(source, 1, size, f); source[read_bytes] = '\0'; fclose(f);
     
     Lexer old_lexer = lexer; Token old_curr = parser_curr; Token old_prev = parser_prev;
     run_script(source, env);
@@ -1190,10 +1963,17 @@ int main(int argc, char** argv) {
     pop_env();
     vm.gc_paused = 0; vm.next_gc = 0;
     
+    // De-mark all constant tracking to safely sweep remaining strings
     Object* curr = vm.objects;
     while(curr) { curr->is_constant = 0; curr = curr->next; }
     gc_collect();
+    
     safe_free(vm.env_stack);
+    free_table(&vm.strings);
+    for (int i = 0; i < vm.import_count; i++) {
+        safe_free(vm.import_stack[i]);
+    }
+    safe_free(vm.import_stack);
     
     free_ast();
     
