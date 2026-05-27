@@ -60,6 +60,9 @@ typedef enum {
     PREC_PRIMARY
 } Precedence;
 
+// Parser state to handle spacing ambiguities
+int allow_implicit_call = 1;
+
 // ============================================================================
 // CROSS-PLATFORM TIME & SLEEP
 // ============================================================================
@@ -229,7 +232,7 @@ typedef struct sObjString {
 typedef struct { Object obj; Value* items; int capacity; int count; } ObjArray;
 typedef struct { Object obj; Table table; } ObjDict;
 
-// Missing function forward declarations
+// Forward declarations
 Value make_null(void);
 Value make_bool(int b);
 Value make_int(long long i);
@@ -925,7 +928,6 @@ EaseToken peek_next_token_parser() {
 }
 
 void synchronize() {
-    had_error = 0;
     while (parser_curr.type != TOKEN_EOF) {
         if (parser_prev.type == TOKEN_NEWLINE) return;
         switch (parser_curr.type) {
@@ -1029,7 +1031,7 @@ Expr* parse_expr(Precedence prec) {
     
     while (1) {
         ParseRule* infixRule = get_rule(parser_curr.type);
-        if (prec <= PREC_CALL && infixRule->infix == NULL && is_expr_start(parser_curr.type)) {
+        if (allow_implicit_call && prec <= PREC_CALL && infixRule->infix == NULL && is_expr_start(parser_curr.type)) {
             Expr* call = make_expr(EXPR_CALL, parser_prev.line);
             call->as.call.callee = left;
             call->as.call.args = NULL;
@@ -1104,7 +1106,12 @@ Stmt* parse_statement() {
             advance_parser(); advance_parser();
             if (parser_curr.type != TOKEN_IDENTIFIER) { error_at(&parser_curr, "Expected array name"); return make_error_stmt(); }
             char* name = ast_strdup(parser_curr.text); advance_parser();
-            Expr* index = parse_expr(PREC_ASSIGN); Expr* value = parse_expr(PREC_ASSIGN);
+            
+            allow_implicit_call = 0;
+            Expr* index = parse_expr(PREC_ASSIGN); 
+            allow_implicit_call = 1;
+            
+            Expr* value = parse_expr(PREC_ASSIGN);
             Stmt* s = make_stmt(STMT_ARRAY_SET, line); s->as.array_set.name = name; s->as.array_set.index = index; s->as.array_set.value = value;
             return s;
         } else if (next.type != TOKEN_GET) {
@@ -1185,7 +1192,11 @@ Stmt* parse_statement() {
         Stmt* s = make_stmt(STMT_FILE, line);
         if (match_token(TOKEN_CREATE)) s->as.file_stmt.action = "create"; else if (match_token(TOKEN_UPDATE)) s->as.file_stmt.action = "update";
         else if (match_token(TOKEN_DELETE)) s->as.file_stmt.action = "delete"; else { error_at(&parser_curr, "Expected create/update/delete"); return make_error_stmt(); }
+        
+        allow_implicit_call = 0;
         s->as.file_stmt.file = parse_expr(PREC_ASSIGN);
+        allow_implicit_call = 1;
+        
         if (strcmp(s->as.file_stmt.action, "delete") != 0) {
             skip_newlines();
             if (match_token(TOKEN_LBRACKET)) { skip_newlines(); s->as.file_stmt.content = parse_expr(PREC_ASSIGN); skip_newlines(); consume(TOKEN_RBRACKET, "Expected ']'"); }
@@ -1957,6 +1968,7 @@ InterpretResult run() {
 // RUNNER LOGIC
 // ============================================================================
 void run_script(const char* source, Env* env) {
+    had_error = 0;
     init_lexer(source);
     advance_parser();
     
