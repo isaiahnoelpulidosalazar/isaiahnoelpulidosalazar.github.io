@@ -162,17 +162,17 @@ job get_iso_string epoch_ms [
 ]
 
 note Convenient jobs to get today's values directly
-job get_today_date [] [
+job get_today_date [
     var now time get
     out get_date_string now
 ]
 
-job get_today_time [] [
+job get_today_time [
     var now time get
     out get_time_string now
 ]
 
-job get_today_iso [] [
+job get_today_iso [
     var now time get
     out get_iso_string now
 ]

@@ -1169,10 +1169,14 @@ Stmt* parse_statement() {
         if (parser_curr.type != TOKEN_IDENTIFIER) { error_at(&parser_curr, "Expected job name"); return make_error_stmt(); }
         Stmt* s = make_stmt(STMT_JOB, line); s->as.job_decl.name = ast_strdup(parser_curr.text); advance_parser();
         s->as.job_decl.params = NULL; s->as.job_decl.param_count = 0; skip_newlines();
-        while (parser_curr.type == TOKEN_IDENTIFIER) {
-            s->as.job_decl.params = AST_REALLOC_ARRAY(s->as.job_decl.params, char*, s->as.job_decl.param_count, s->as.job_decl.param_count + 1);
-            s->as.job_decl.params[s->as.job_decl.param_count++] = ast_strdup(parser_curr.text); advance_parser();
-            skip_newlines(); if (!match_token(TOKEN_COMMA)) break; skip_newlines();
+        
+        // If the very next token is '[', we have zero parameters
+        if (parser_curr.type != TOKEN_LBRACKET) {
+            while (parser_curr.type == TOKEN_IDENTIFIER) {
+                s->as.job_decl.params = AST_REALLOC_ARRAY(s->as.job_decl.params, char*, s->as.job_decl.param_count, s->as.job_decl.param_count + 1);
+                s->as.job_decl.params[s->as.job_decl.param_count++] = ast_strdup(parser_curr.text); advance_parser();
+                skip_newlines(); if (!match_token(TOKEN_COMMA)) break; skip_newlines();
+            }
         }
         skip_newlines(); s->as.job_decl.body = parse_block(&s->as.job_decl.body_count); return s;
     }
@@ -1576,6 +1580,7 @@ int values_equal(Value a, Value b) {
 
 InterpretResult run() {
     CallFrame* frame = &vm.frames[vm.frame_count - 1];
+    int sentinel_frame = vm.frame_count - 1;
     
 #define READ_BYTE() (*frame->ip++)
 #define READ_SHORT() (frame->ip += 2, (uint16_t)((frame->ip[-2] << 8) | frame->ip[-1]))
@@ -1694,6 +1699,23 @@ InterpretResult run() {
                     runtime_error("Undefined variable '%s'.", name->chars);
                     return INTERPRET_RUNTIME_ERROR;
                 }
+                if (value.type == VAL_OBJ && value.as.obj->type == OBJ_JOB) {
+                    ObjJob* job = (ObjJob*)value.as.obj;
+                    if (job->arity == 0) {
+                        if (vm.frame_count >= FRAMES_MAX) {
+                            runtime_error("Stack overflow.");
+                            return INTERPRET_RUNTIME_ERROR;
+                        }
+                        Env* local = create_env(job->closure);
+                        vm.env = local;
+                        CallFrame* new_frame = &vm.frames[vm.frame_count++];
+                        new_frame->job = job;
+                        new_frame->ip = job->chunk.code;
+                        new_frame->slots = vm.stack_top;
+                        frame = new_frame;
+                        break;
+                    }
+                }
                 push(value);
                 break;
             }
@@ -1761,7 +1783,12 @@ InterpretResult run() {
                     vm.env = vm.env->parent;
                 }
                 pop_env();
-                if (vm.frame_count == 0) return INTERPRET_OK;
+                if (vm.frame_count <= sentinel_frame) {
+                    if (vm.frame_count > 0) {
+                        push(result);
+                    }
+                    return INTERPRET_OK;
+                }
                 push(result);
                 frame = &vm.frames[vm.frame_count - 1];
                 break;
@@ -1871,7 +1898,25 @@ InterpretResult run() {
                     return INTERPRET_RUNTIME_ERROR;
                 }
                 ObjModule* mod = (ObjModule*)obj.as.obj;
-                push(env_get(mod->env, prop->chars));
+                Value value = env_get(mod->env, prop->chars);
+                if (value.type == VAL_OBJ && value.as.obj->type == OBJ_JOB) {
+                    ObjJob* job = (ObjJob*)value.as.obj;
+                    if (job->arity == 0) {
+                        if (vm.frame_count >= FRAMES_MAX) {
+                            runtime_error("Stack overflow.");
+                            return INTERPRET_RUNTIME_ERROR;
+                        }
+                        Env* local = create_env(job->closure);
+                        vm.env = local;
+                        CallFrame* new_frame = &vm.frames[vm.frame_count++];
+                        new_frame->job = job;
+                        new_frame->ip = job->chunk.code;
+                        new_frame->slots = vm.stack_top;
+                        frame = new_frame;
+                        break;
+                    }
+                }
+                push(value);
                 break;
             }
             case OP_GET_INPUT: {
@@ -1932,6 +1977,11 @@ InterpretResult run() {
                 
                 Env* mod_env = create_env(NULL);
                 run_file(path->chars, mod_env);
+                
+                if (had_error) {
+                    runtime_error("Failed to compile imported module '%s'.", path->chars);
+                    return INTERPRET_RUNTIME_ERROR;
+                }
                 
                 // Pop import stack
                 vm.import_count--;
@@ -1998,6 +2048,10 @@ void run_script(const char* source, Env* env) {
     write_chunk(&script_job->chunk, OP_NULL, 1);
     write_chunk(&script_job->chunk, OP_RETURN, 1);
     
+    Env* saved_env = vm.env;
+    int saved_frame_count = vm.frame_count;
+    Value* saved_stack_top = vm.stack_top;
+    
     vm.env = env;
     CallFrame* frame = &vm.frames[vm.frame_count++];
     frame->job = script_job;
@@ -2008,8 +2062,14 @@ void run_script(const char* source, Env* env) {
     
     run();
     
-    vm.frame_count = 0;
-    vm.stack_top = vm.stack;
+    vm.env = saved_env;
+    if (saved_frame_count == 0) {
+        vm.frame_count = 0;
+        vm.stack_top = vm.stack;
+    } else {
+        vm.frame_count = saved_frame_count;
+        vm.stack_top = saved_stack_top;
+    }
 }
 
 void run_file(const char* path, Env* env) {
