@@ -835,6 +835,7 @@ EaseToken next_token() {
         int len = lexer.current - start;
         char* text = (char*)ast_alloc(len + 1);
         strncpy(text, lexer.source + start, len);
+        text[len] = '\0';
         
         EaseTokenType type = TOKEN_IDENTIFIER;
         if (strcmp(text, "say") == 0) type = TOKEN_SAY; else if (strcmp(text, "var") == 0) type = TOKEN_VAR;
