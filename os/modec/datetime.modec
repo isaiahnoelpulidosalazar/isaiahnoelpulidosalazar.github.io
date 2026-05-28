@@ -1,10 +1,8 @@
 note [
-    ===========================================================================
-    EaseC DateTime Library (UTC)
-    ===========================================================================
+    easec datetime module (UTC)
 ]
 
-note Helper to pad numbers with a leading zero if they are single digits
+note Pad number with leading zero if single digits
 job pad val [
     if val < 10 [
         out "0" + val
@@ -12,7 +10,7 @@ job pad val [
     out "" + val
 ]
 
-note Primary job that decomposes Epoch Milliseconds into UTC DateTime components
+note Convert Epoch milliseconds to UTC components
 job get_utc_dict epoch_ms [
     var total_seconds epoch_ms / 1000
     var second total_seconds % 60
@@ -131,7 +129,7 @@ job get_utc_dict epoch_ms [
     ]
 ]
 
-note Returns UTC Date string as YYYY-MM-DD
+note Return UTC date string as YYYY-MM-DD
 job get_date_string epoch_ms [
     var dt get_utc_dict epoch_ms
     var y dictionary get dt year
@@ -140,7 +138,7 @@ job get_date_string epoch_ms [
     out y + "-" + m + "-" + d
 ]
 
-note Returns UTC Time string as HH:MM:SS
+note Return UTC time string as HH:MM:SS
 job get_time_string epoch_ms [
     var dt get_utc_dict epoch_ms
     var h pad (dictionary get dt hour)
@@ -149,7 +147,7 @@ job get_time_string epoch_ms [
     out h + ":" + min + ":" + s
 ]
 
-note Returns ISO 8601 DateTime string (YYYY-MM-DD HH:MM:SS)
+note Return ISO 8601 datetime string (YYYY-MM-DD HH:MM:SS)
 job get_iso_string epoch_ms [
     var dt get_utc_dict epoch_ms
     var y dictionary get dt year
@@ -161,7 +159,6 @@ job get_iso_string epoch_ms [
     out y + "-" + m + "-" + d + " " + h + ":" + min + ":" + s
 ]
 
-note Convenient jobs to get today's values directly
 job get_today_date [
     var now time get
     out get_date_string now
