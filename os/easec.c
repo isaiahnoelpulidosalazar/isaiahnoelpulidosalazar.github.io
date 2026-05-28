@@ -16,9 +16,6 @@
 #endif
 #include <time.h>
 
-// ============================================================================
-// FORWARD DECLARATIONS & TYPES
-// ============================================================================
 typedef enum {
     TOKEN_EOF, TOKEN_NEWLINE, TOKEN_LPAREN, TOKEN_RPAREN, TOKEN_LBRACKET, TOKEN_RBRACKET,
     TOKEN_LBRACE, TOKEN_RBRACE, TOKEN_COMMA, TOKEN_COLON, TOKEN_DOT, TOKEN_PLUS, TOKEN_MINUS,
@@ -60,12 +57,8 @@ typedef enum {
     PREC_PRIMARY
 } Precedence;
 
-// Parser state to handle spacing ambiguities
 int allow_implicit_call = 1;
 
-// ============================================================================
-// CROSS-PLATFORM TIME & SLEEP
-// ============================================================================
 long long get_time_ms() {
 #ifdef _MSC_VER
     struct __timeb64 timebuffer;
@@ -89,9 +82,6 @@ void sleep_ms(long long ms) {
 #endif
 }
 
-// ============================================================================
-// MEMORY HANDLING & BOUNDS CHECKING
-// ============================================================================
 size_t bytes_allocated = 0;
 
 void* safe_alloc(size_t size) {
@@ -131,9 +121,6 @@ char* safe_strdup(const char* s) {
     return copy;
 }
 
-// ============================================================================
-// AST MEMORY ARENA
-// ============================================================================
 typedef struct ArenaBlock {
     char data[65536];
     int offset;
@@ -182,9 +169,6 @@ void free_ast() {
     arena = NULL;
 }
 
-// ============================================================================
-// TYPES & GC OBJECTS
-// ============================================================================
 typedef enum { VAL_NULL, VAL_BOOL, VAL_INT, VAL_FLOAT, VAL_OBJ } ValType;
 typedef enum { OBJ_STRING, OBJ_ARRAY, OBJ_DICT, OBJ_JOB, OBJ_MODULE, OBJ_ENV } ObjType;
 
@@ -205,7 +189,6 @@ typedef struct {
     } as;
 } Value;
 
-// Forward declared structures for the Hash Table implementation
 typedef struct {
     struct sObjString* key;
     Value value;
@@ -232,7 +215,6 @@ typedef struct sObjString {
 typedef struct { Object obj; Value* items; int capacity; int count; } ObjArray;
 typedef struct { Object obj; Table table; } ObjDict;
 
-// Forward declarations
 Value make_null(void);
 Value make_bool(int b);
 Value make_int(long long i);
@@ -240,9 +222,6 @@ Value make_float(double f);
 void mark_value(Value val);
 void run_file(const char* path, Env* env);
 
-// ============================================================================
-// BYTECODE STRUCTURES
-// ============================================================================
 typedef enum {
     OP_CONSTANT,
     OP_NULL,
@@ -305,9 +284,6 @@ typedef struct {
 
 typedef struct { Object obj; Env* env; } ObjModule;
 
-// ============================================================================
-// HASH TABLE IMPLEMENTATION
-// ============================================================================
 void init_table(Table* table) {
     table->count = 0;
     table->capacity = 0;
@@ -404,9 +380,6 @@ ObjString* table_find_string(Table* table, const char* chars, int length, uint32
     }
 }
 
-// ============================================================================
-// STACK-BASED VIRTUAL MACHINE
-// ============================================================================
 #define STACK_MAX 1024
 #define FRAMES_MAX 64
 
@@ -414,7 +387,7 @@ typedef struct {
     ObjJob* job;
     uint8_t* ip;
     Value* slots;
-    Env* env;     // Track the exact environment assigned to this frame
+    Env* env;
 } CallFrame;
 
 typedef struct {
@@ -431,8 +404,7 @@ typedef struct {
     int env_count;
     int env_capacity;
     
-    // Circular import tracking stack
-    char** import_stack;
+        char** import_stack;
     int import_count;
     int import_capacity;
 } VM;
@@ -481,9 +453,6 @@ void runtime_error(const char* format, ...) {
     had_runtime_error = 1;
 }
 
-// ============================================================================
-// STRING INTERNING & HASH FUNCTION
-// ============================================================================
 uint32_t hash_string(const char* key, int length) {
     uint32_t hash = 2166136261u;
     for (int i = 0; i < length; i++) {
@@ -506,16 +475,13 @@ ObjString* allocate_string(const char* chars, int length) {
     string->chars[length] = '\0';
     string->hash = hash;
 
-    push(OBJ_VAL(string)); // Root string on stack to protect from potential resize GC
+    push(OBJ_VAL(string));
     table_set(&vm.strings, string, make_null());
     pop();
 
     return string;
 }
 
-// ============================================================================
-// ENVIRONMENT HANDLERS
-// ============================================================================
 Env* create_env(Env* parent) {
     Env* env = (Env*)allocate_object(sizeof(Env), OBJ_ENV);
     init_table(&env->variables);
@@ -562,9 +528,6 @@ Value env_get(Env* env, const char* name) {
     return make_null();
 }
 
-// ============================================================================
-// GARBAGE COLLECTION
-// ============================================================================
 void mark_object(Object* obj);
 
 void mark_table(Table* table) {
@@ -643,13 +606,11 @@ void table_remove_white(Table* table) {
 void gc_collect() {
     if (vm.gc_paused) return;
     
-    // Mark temporary values residing securely on the evaluation stack
-    for (Value* slot = vm.stack; slot < vm.stack_top; slot++) {
+        for (Value* slot = vm.stack; slot < vm.stack_top; slot++) {
         mark_value(*slot);
     }
     
-    // Mark frames active jobs
-    for (int i = 0; i < vm.frame_count; i++) {
+        for (int i = 0; i < vm.frame_count; i++) {
         mark_object((Object*)vm.frames[i].job);
         if (vm.frames[i].env != NULL) mark_env(vm.frames[i].env);
     }
@@ -719,9 +680,6 @@ Value make_bool(int b) { Value v; v.type = VAL_BOOL; v.as.boolean = b; return v;
 Value make_int(long long i) { Value v; v.type = VAL_INT; v.as.integer = i; return v; }
 Value make_float(double f) { Value v; v.type = VAL_FLOAT; v.as.floating = f; return v; }
 
-// ============================================================================
-// BYTECODE COMPILER UTILITIES
-// ============================================================================
 void write_chunk(Chunk* chunk, uint8_t byte, int line) {
     if (chunk->count + 1 > chunk->capacity) {
         int capacity = chunk->capacity < 8 ? 8 : chunk->capacity * 2;
@@ -735,7 +693,7 @@ void write_chunk(Chunk* chunk, uint8_t byte, int line) {
 }
 
 int add_constant(Chunk* chunk, Value value) {
-    push(value); // Root constant during allocation
+    push(value);
     if (chunk->constant_count + 1 > chunk->constant_capacity) {
         int capacity = chunk->constant_capacity < 8 ? 8 : chunk->constant_capacity * 2;
         chunk->constants = safe_realloc(chunk->constants, sizeof(Value) * capacity);
@@ -747,9 +705,6 @@ int add_constant(Chunk* chunk, Value value) {
     return index;
 }
 
-// ============================================================================
-// LEXER
-// ============================================================================
 typedef struct { const char* source; int current; int line; int col; } Lexer;
 
 Lexer lexer;
@@ -860,9 +815,6 @@ EaseToken next_token() {
     return make_token(TOKEN_EOF, start, 0);
 }
 
-// ============================================================================
-// PARSER AND AST BUILDER
-// ============================================================================
 typedef struct sExpr {
     ExprType type; int line;
     union {
@@ -1176,8 +1128,7 @@ Stmt* parse_statement() {
         Stmt* s = make_stmt(STMT_JOB, line); s->as.job_decl.name = ast_strdup(parser_curr.text); advance_parser();
         s->as.job_decl.params = NULL; s->as.job_decl.param_count = 0; skip_newlines();
         
-        // If the very next token is '[', we have zero parameters
-        if (parser_curr.type != TOKEN_LBRACKET) {
+                if (parser_curr.type != TOKEN_LBRACKET) {
             while (parser_curr.type == TOKEN_IDENTIFIER) {
                 s->as.job_decl.params = AST_REALLOC_ARRAY(s->as.job_decl.params, char*, s->as.job_decl.param_count, s->as.job_decl.param_count + 1);
                 s->as.job_decl.params[s->as.job_decl.param_count++] = ast_strdup(parser_curr.text); advance_parser();
@@ -1232,9 +1183,6 @@ Stmt* parse_statement() {
     Stmt* s = make_stmt(STMT_EXPR, line); s->as.expr = expr; return s;
 }
 
-// ============================================================================
-// BYTECODE COMPILER (AST -> FLAT CHUNKS)
-// ============================================================================
 typedef struct { Chunk* chunk; } Compiler;
 
 void compile_expr(Compiler* compiler, Expr* expr);
@@ -1549,9 +1497,6 @@ void compile_stmt(Compiler* compiler, Stmt* stmt) {
     }
 }
 
-// ============================================================================
-// STACK VM INTERPRET LOOP
-// ============================================================================
 typedef enum { INTERPRET_OK, INTERPRET_COMPILE_ERROR, INTERPRET_RUNTIME_ERROR } InterpretResult;
 
 char* value_to_string(Value val) {
@@ -1581,7 +1526,7 @@ int values_equal(Value a, Value b) {
     if (a.type == VAL_INT) return a.as.integer == b.as.integer;
     if (a.type == VAL_FLOAT) return a.as.floating == b.as.floating;
     if (a.type == VAL_OBJ) {
-        if (a.as.obj->type == OBJ_STRING && b.as.obj->type == OBJ_STRING) return a.as.obj == b.as.obj; // Interned String pointer compare
+        if (a.as.obj->type == OBJ_STRING && b.as.obj->type == OBJ_STRING) return a.as.obj == b.as.obj;
         return a.as.obj == b.as.obj;
     }
     return 0;
@@ -1746,7 +1691,7 @@ InterpretResult run() {
                         new_frame->job = job;
                         new_frame->ip = job->chunk.code;
                         new_frame->slots = vm.stack_top;
-                        new_frame->env = local;  // Remember the frame environment
+                        new_frame->env = local;
                         frame = new_frame;
                         break;
                     }
@@ -1807,7 +1752,7 @@ InterpretResult run() {
                 new_frame->job = job;
                 new_frame->ip = job->chunk.code;
                 new_frame->slots = vm.stack_top - arg_count - 1;
-                new_frame->env = local;  // Remember the frame environment
+                new_frame->env = local;
                 frame = new_frame;
                 break;
             }
@@ -1824,7 +1769,7 @@ InterpretResult run() {
                 }
                 push(result);
                 frame = &vm.frames[vm.frame_count - 1];
-                vm.env = frame->env; // Restore strict caller's environment
+                vm.env = frame->env;
                 break;
             }
             case OP_ARRAY: {
@@ -1946,7 +1891,7 @@ InterpretResult run() {
                         new_frame->job = job;
                         new_frame->ip = job->chunk.code;
                         new_frame->slots = vm.stack_top;
-                        new_frame->env = local;  // Remember the frame environment
+                        new_frame->env = local;
                         frame = new_frame;
                         break;
                     }
@@ -1997,7 +1942,6 @@ InterpretResult run() {
                 Value path_val = peek(1);
                 ObjString* path = (ObjString*)path_val.as.obj;
                 
-                // Circular Import Protection Check
                 for (int i = 0; i < vm.import_count; i++) {
                     if (strcmp(vm.import_stack[i], path->chars) == 0) {
                         runtime_error("Circular import detected: '%s'.", path->chars);
@@ -2005,7 +1949,6 @@ InterpretResult run() {
                     }
                 }
                 
-                // Push to compiler protection stack
                 if (vm.import_count >= vm.import_capacity) {
                     vm.import_capacity = vm.import_capacity < 8 ? 8 : vm.import_capacity * 2;
                     vm.import_stack = safe_realloc(vm.import_stack, sizeof(char*) * vm.import_capacity);
@@ -2020,13 +1963,12 @@ InterpretResult run() {
                     return INTERPRET_RUNTIME_ERROR;
                 }
                 
-                // Pop import stack
                 vm.import_count--;
                 safe_free(vm.import_stack[vm.import_count]);
                 
-                push(OBJ_VAL((Object*)mod_env)); // Root mod_env to protect it from GC during module allocation
+                push(OBJ_VAL((Object*)mod_env));
                 ObjModule* mod = (ObjModule*)allocate_object(sizeof(ObjModule), OBJ_MODULE);
-                pop(); // Unprotect
+                pop();
                 
                 mod->env = mod_env; Value mod_val = OBJ_VAL(mod);
                 if (alias_val.type != VAL_NULL) {
@@ -2043,8 +1985,8 @@ InterpretResult run() {
                     }
                 }
                 
-                pop(); // Cleanup alias_val
-                pop(); // Cleanup path_val
+                pop();
+                pop();
                 break;
             }
             default: break;
@@ -2058,9 +2000,6 @@ InterpretResult run() {
 #undef BINARY_COMP_OP
 }
 
-// ============================================================================
-// RUNNER LOGIC
-// ============================================================================
 void run_script(const char* source, Env* env) {
     had_error = 0;
     init_lexer(source);
@@ -2100,7 +2039,7 @@ void run_script(const char* source, Env* env) {
     frame->job = script_job;
     frame->ip = script_job->chunk.code;
     frame->slots = vm.stack_top;
-    frame->env = env;   // Initialize root execution environment
+    frame->env = env;
     
     push(OBJ_VAL(script_job));
     
@@ -2142,7 +2081,6 @@ int main(int argc, char** argv) {
     pop_env();
     vm.gc_paused = 0; vm.next_gc = 0;
     
-    // De-mark all constant tracking to safely sweep remaining strings
     Object* curr = vm.objects;
     while(curr) { curr->is_constant = 0; curr = curr->next; }
     gc_collect();
