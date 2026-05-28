@@ -414,6 +414,7 @@ typedef struct {
     ObjJob* job;
     uint8_t* ip;
     Value* slots;
+    Env* env;     // Track the exact environment assigned to this frame
 } CallFrame;
 
 typedef struct {
@@ -650,6 +651,7 @@ void gc_collect() {
     // Mark frames active jobs
     for (int i = 0; i < vm.frame_count; i++) {
         mark_object((Object*)vm.frames[i].job);
+        if (vm.frames[i].env != NULL) mark_env(vm.frames[i].env);
     }
     
     if (vm.env != NULL) mark_env(vm.env);
@@ -1744,6 +1746,7 @@ InterpretResult run() {
                         new_frame->job = job;
                         new_frame->ip = job->chunk.code;
                         new_frame->slots = vm.stack_top;
+                        new_frame->env = local;  // Remember the frame environment
                         frame = new_frame;
                         break;
                     }
@@ -1804,6 +1807,7 @@ InterpretResult run() {
                 new_frame->job = job;
                 new_frame->ip = job->chunk.code;
                 new_frame->slots = vm.stack_top - arg_count - 1;
+                new_frame->env = local;  // Remember the frame environment
                 frame = new_frame;
                 break;
             }
@@ -1811,9 +1815,6 @@ InterpretResult run() {
                 Value result = pop();
                 vm.frame_count--;
                 vm.stack_top = frame->slots;
-                if (vm.env->parent != NULL) {
-                    vm.env = vm.env->parent;
-                }
                 pop_env();
                 if (vm.frame_count <= sentinel_frame) {
                     if (vm.frame_count > 0) {
@@ -1823,6 +1824,7 @@ InterpretResult run() {
                 }
                 push(result);
                 frame = &vm.frames[vm.frame_count - 1];
+                vm.env = frame->env; // Restore strict caller's environment
                 break;
             }
             case OP_ARRAY: {
@@ -1944,6 +1946,7 @@ InterpretResult run() {
                         new_frame->job = job;
                         new_frame->ip = job->chunk.code;
                         new_frame->slots = vm.stack_top;
+                        new_frame->env = local;  // Remember the frame environment
                         frame = new_frame;
                         break;
                     }
@@ -2097,6 +2100,7 @@ void run_script(const char* source, Env* env) {
     frame->job = script_job;
     frame->ip = script_job->chunk.code;
     frame->slots = vm.stack_top;
+    frame->env = env;   // Initialize root execution environment
     
     push(OBJ_VAL(script_job));
     
