@@ -1536,9 +1536,11 @@ void compile_stmt(Compiler* compiler, Stmt* stmt) {
             ObjString* alias = stmt->as.import_stmt.alias != NULL ? allocate_string(stmt->as.import_stmt.alias, strlen(stmt->as.import_stmt.alias)) : NULL;
             int path_const = add_constant(compiler->chunk, OBJ_VAL(path));
             int alias_const = add_constant(compiler->chunk, alias != NULL ? OBJ_VAL(alias) : make_null());
-            write_chunk(compiler->chunk, OP_IMPORT, stmt->line);
+            write_chunk(compiler->chunk, OP_CONSTANT, stmt->line);
             write_chunk(compiler->chunk, path_const, stmt->line);
+            write_chunk(compiler->chunk, OP_CONSTANT, stmt->line);
             write_chunk(compiler->chunk, alias_const, stmt->line);
+            write_chunk(compiler->chunk, OP_IMPORT, stmt->line);
             break;
         }
         default: break;
@@ -1657,15 +1659,20 @@ InterpretResult run() {
             }
             case OP_NOT: push(make_bool(!is_truthy(pop()))); break;
             case OP_ADD: {
-                if (peek(0).type == VAL_OBJ && peek(0).as.obj->type == OBJ_STRING &&
-                    peek(1).type == VAL_OBJ && peek(1).as.obj->type == OBJ_STRING) {
-                    ObjString* b = (ObjString*)pop().as.obj;
-                    ObjString* a = (ObjString*)pop().as.obj;
-                    int len = strlen(a->chars) + strlen(b->chars);
+                if ((peek(0).type == VAL_OBJ && peek(0).as.obj->type == OBJ_STRING) ||
+                    (peek(1).type == VAL_OBJ && peek(1).as.obj->type == OBJ_STRING)) {
+                    Value b = pop();
+                    Value a = pop();
+                    char* b_str = value_to_string(b);
+                    char* a_str = value_to_string(a);
+                    int len = strlen(a_str) + strlen(b_str);
                     char* joined = (char*)safe_alloc(len + 1);
-                    strcpy(joined, a->chars); strcat(joined, b->chars);
+                    strcpy(joined, a_str); 
+                    strcat(joined, b_str);
                     ObjString* res = allocate_string(joined, len);
                     safe_free(joined);
+                    safe_free(b_str);
+                    safe_free(a_str);
                     push(OBJ_VAL(res));
                 } else {
                     BINARY_OP(make_int, +);
@@ -1983,7 +1990,9 @@ InterpretResult run() {
                 break;
             }
             case OP_IMPORT: {
-                Value alias_val = pop(); ObjString* path = (ObjString*)pop().as.obj;
+                Value alias_val = peek(0);
+                Value path_val = peek(1);
+                ObjString* path = (ObjString*)path_val.as.obj;
                 
                 // Circular Import Protection Check
                 for (int i = 0; i < vm.import_count; i++) {
@@ -2012,7 +2021,10 @@ InterpretResult run() {
                 vm.import_count--;
                 safe_free(vm.import_stack[vm.import_count]);
                 
+                push(OBJ_VAL((Object*)mod_env)); // Root mod_env to protect it from GC during module allocation
                 ObjModule* mod = (ObjModule*)allocate_object(sizeof(ObjModule), OBJ_MODULE);
+                pop(); // Unprotect
+                
                 mod->env = mod_env; Value mod_val = OBJ_VAL(mod);
                 if (alias_val.type != VAL_NULL) {
                     ObjString* alias = (ObjString*)alias_val.as.obj;
@@ -2027,6 +2039,9 @@ InterpretResult run() {
                         env_define(vm.env, base, mod_val);
                     }
                 }
+                
+                pop(); // Cleanup alias_val
+                pop(); // Cleanup path_val
                 break;
             }
             default: break;
