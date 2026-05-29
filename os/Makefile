@@ -1,10 +1,9 @@
 CC = gcc
 AS = nasm
-LD = ld
+LD = gcc
 
 CFLAGS = -m32 -ffreestanding -O2 -Wall -Wextra -I. -nostdlib -fno-builtin -fno-stack-protector -DBAREMETAL
-# Changed -m32 to -m elf_i386 to provide the correct emulation mode to ld
-LDFLAGS = -m elf_i386 -T linker.ld -nostdlib
+LDFLAGS = -m32 -ffreestanding -O2 -nostdlib -T linker.ld
 
 OBJS = boot.o kernel.o easec.o
 
@@ -20,7 +19,7 @@ easec.o: easec.c
 	$(CC) $(CFLAGS) -c easec.c -o easec.o
 
 inpsos.bin: $(OBJS)
-	$(LD) $(LDFLAGS) -o inpsos.bin $(OBJS)
+	$(LD) $(LDFLAGS) -o inpsos.bin $(OBJS) -lgcc
 
 clean:
 	rm -f *.o inpsos.bin
