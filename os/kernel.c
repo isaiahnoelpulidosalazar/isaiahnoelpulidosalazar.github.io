@@ -801,7 +801,6 @@ void run_install() {
     memset(dma_sector_buffer, 0, 512); memcpy(dma_sector_buffer, "INPSOS_INSTALLED", 16);
     if (!ahci_write(active_port, 1, 0, 1, (uint16_t*)dma_sector_buffer)) { 
         print_string("Error: Local layout boot sector write failure.\n"); 
-        print_string("Hint: Make sure a secondary writable SATA Hard Disk is attached to the VM!\n");
         return; 
     }
 
