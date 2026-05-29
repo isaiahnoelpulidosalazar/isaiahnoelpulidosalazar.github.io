@@ -8,11 +8,11 @@ FILE* stderr = (FILE*)1;
 FILE* stdin  = (FILE*)2;
 FILE* stdout = (FILE*)3;
 
-uint8_t kheap[16 * 1024 * 1024]; 
+uint8_t kheap[16 * 1024 * 1024]; // 16MB kernel heap
 size_t heap_offset = 0;
 
 void* kmalloc(size_t size) {
-    size = (size + 3) & ~3; 
+    size = (size + 3) & ~3; // 4-byte alignment
     if (heap_offset + sizeof(size_t) + size > sizeof(kheap)) return NULL;
     
     size_t* header = (size_t*)&kheap[heap_offset];
@@ -159,6 +159,25 @@ double atof(const char* s) {
         s++;
     }
     return res * factor * sign;
+}
+
+/* -------------------------------------------------------------
+   Standard Formatting and Stream Function Mocks
+   ------------------------------------------------------------- */
+
+size_t fread(void* ptr, size_t size, size_t nmemb, FILE* stream) {
+    (void)ptr; (void)size; (void)nmemb; (void)stream;
+    return 0;
+}
+
+int fseek(FILE* stream, long offset, int whence) {
+    (void)stream; (void)offset; (void)whence;
+    return 0;
+}
+
+long ftell(FILE* stream) {
+    (void)stream;
+    return 0;
 }
 
 /* -------------------------------------------------------------
@@ -474,18 +493,19 @@ void find_ahci_device() {
     print_string("Probing PCI Bus for AHCI storage controllers...\n");
     HBAMem* hba_mem = (HBAMem*)get_ahci_base(); 
     if (hba_mem) {
-        hba_mem->ghc |= (1 << 31); 
+        hba_mem->ghc |= (1 << 31); // AE (AHCI Enable Globally)
         uint32_t pi = hba_mem->pi;
         
         for (int i = 0; i < 32; i++) {
             if (pi & (1 << i)) {
                 HBAPort* port = &hba_mem->ports[i];
                 
-                if (!(port->cmd & (1 << 1))) port->cmd |= (1 << 1); 
-                if (!(port->cmd & (1 << 2))) port->cmd |= (1 << 2); 
-                for(volatile int delay=0; delay<100000; delay++);
+                // Force Spin-up and Power-On Native Drive
+                if (!(port->cmd & (1 << 1))) port->cmd |= (1 << 1); // POD
+                if (!(port->cmd & (1 << 2))) port->cmd |= (1 << 2); // SUD
+                for(volatile int delay=0; delay<100000; delay++); // Spin-up delay
                 
-                port->serr = 0xFFFFFFFF; 
+                port->serr = 0xFFFFFFFF; // Clear any pending boot errors
 
                 if ((port->ssts & 0x0F) == 3 && port->sig == SATA_SIG_ATA) {
                     active_port = port;
@@ -586,7 +606,7 @@ uint32_t global_multiboot_magic = 0;
 uint32_t global_multiboot_addr = 0;
 
 /* -------------------------------------------------------------
-   Flat Native Filesystem Structure definitions
+   Dynamic Multi-File Native Filesystem (Physical Disk Storage)
    ------------------------------------------------------------- */
 
 #define MAX_FILES 24
@@ -679,12 +699,13 @@ int fclose(FILE* stream) {
         dma_dir_table.entries[slot].file_size = f->size;
         
         uint32_t sectors_to_write = (f->size + 511) / 512;
+        static char temp_sector[512] __attribute__((aligned(16)));
         
         for (uint32_t s = 0; s < sectors_to_write; s++) {
-            memset(dma_sector_buffer, 0, 512);
+            memset(temp_sector, 0, 512);
             size_t chunk = (f->size - s * 512) > 512 ? 512 : (f->size - s * 512);
-            memcpy(dma_sector_buffer, f->buffer + s * 512, chunk);
-            ahci_write(active_port, dma_dir_table.entries[slot].start_lba + s, 0, 1, (uint16_t*)dma_sector_buffer);
+            memcpy(temp_sector, f->buffer + s * 512, chunk);
+            ahci_write(active_port, dma_dir_table.entries[slot].start_lba + s, 0, 1, (uint16_t*)temp_sector);
         }
         ahci_write(active_port, 2, 0, 2, (uint16_t*)&dma_dir_table); // Write 2 sectors to cover up to 24 files
     }
@@ -780,6 +801,7 @@ void run_install() {
     memset(dma_sector_buffer, 0, 512); memcpy(dma_sector_buffer, "INPSOS_INSTALLED", 16);
     if (!ahci_write(active_port, 1, 0, 1, (uint16_t*)dma_sector_buffer)) { 
         print_string("Error: Local layout boot sector write failure.\n"); 
+        print_string("Hint: Make sure a secondary writable SATA Hard Disk is attached to the VM!\n");
         return; 
     }
 
@@ -877,23 +899,27 @@ void kernel_main(uint32_t magic, uint32_t addr) {
             if (!installed) {
                 print_string("Please run command 'install' to setup onto local hardware.\n");
             } else {
-                if (strcmp(command_buf, "clear") == 0) clear_screen();
-                else if (strcmp(command_buf, "restart") == 0) sys_reboot();
-                else if (strcmp(command_buf, "shutdown") == 0) sys_shutdown();
-                else {
-                    if (active_port) {
-                        memset(&dma_dir_table, 0, sizeof(DirectoryTable));
-                        if (ahci_read(active_port, 2, 0, 2, (uint16_t*)&dma_dir_table)) {
-                            int found = 0;
-                            for (int i = 0; i < MAX_FILES; i++) {
-                                if (strcmp(dma_dir_table.entries[i].filename, command_buf) == 0) {
-                                    run_easec(command_buf);
-                                    found = 1; break;
-                                }
+                // Command processing is fully driven dynamically off target LBA sectors
+                if (active_port) {
+                    memset(&dma_dir_table, 0, sizeof(DirectoryTable));
+                    if (ahci_read(active_port, 2, 0, 2, (uint16_t*)&dma_dir_table)) {
+                        int found = 0;
+                        for (int i = 0; i < MAX_FILES; i++) {
+                            if (strcmp(dma_dir_table.entries[i].filename, command_buf) == 0) {
+                                run_easec(command_buf);
+                                found = 1; break;
                             }
-                            if (!found && strlen(command_buf) > 0) printf("Error: Command or script file '%s' not recognized.\n", command_buf);
-                        } else print_string("Error: Could not read local file records from disk.\n");
-                    }
+                        }
+                        if (!found && strlen(command_buf) > 0) {
+                            // Hardcoded kernel fallbacks for system utilities
+                            if (strcmp(command_buf, "clear") == 0) clear_screen();
+                            else if (strcmp(command_buf, "restart") == 0) sys_reboot();
+                            else if (strcmp(command_buf, "shutdown") == 0) sys_shutdown();
+                            else {
+                                printf("Error: Command or script file '%s' not recognized.\n", command_buf);
+                            }
+                        }
+                    } else print_string("Error: Could not read local file records from disk.\n");
                 }
             }
         }
