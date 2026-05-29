@@ -1,39 +1,35 @@
 #include "freestanding.h"
 
 /* -------------------------------------------------------------
-   Hardened Memory Allocation (Tracks Block Sizes)
+   Standard Library Fallback Implementations
    ------------------------------------------------------------- */
 
 FILE* stderr = (FILE*)1;
 FILE* stdin  = (FILE*)2;
 FILE* stdout = (FILE*)3;
 
-// Expanded to 16MB to ensure the Easec compiler has plenty of breathing room
-uint8_t kheap[16 * 1024 * 1024]; 
+uint8_t kheap[16 * 1024 * 1024]; // Expanded 16MB kernel heap
 size_t heap_offset = 0;
 
 void* kmalloc(size_t size) {
     size = (size + 3) & ~3; // 4-byte alignment
-    // We add sizeof(size_t) to securely store the size of the allocation in a header
     if (heap_offset + sizeof(size_t) + size > sizeof(kheap)) return NULL;
     
     size_t* header = (size_t*)&kheap[heap_offset];
     *header = size; 
     heap_offset += sizeof(size_t) + size;
-    
-    return (void*)(header + 1); // Return memory just after the size header
+    return (void*)(header + 1);
 }
 
 void* krealloc(void* ptr, size_t new_size) {
     if (!ptr) return kmalloc(new_size);
-    if (new_size == 0) return NULL; // No-op for free
+    if (new_size == 0) return NULL; 
 
     size_t* header = (size_t*)ptr - 1;
     size_t old_size = *header;
 
     void* new_ptr = kmalloc(new_size);
     if (new_ptr) {
-        // Prevent copying out-of-bounds by taking the minimum of old/new size
         memcpy(new_ptr, ptr, old_size < new_size ? old_size : new_size);
     }
     return new_ptr;
@@ -245,7 +241,6 @@ static void itoa(long long value, char* str, int base) {
     str[len] = '\0';
 }
 
-/* Prevent variadic stack corruption by accurately typing bytes based on the format flag */
 int vsnprintf(char* str, size_t size, const char* format, va_list args) {
     size_t written = 0;
     while (*format && written < size - 1) {
@@ -260,15 +255,13 @@ int vsnprintf(char* str, size_t size, const char* format, va_list args) {
                 char num_buf[32]; itoa(val, num_buf, 10);
                 char* n = num_buf; while (*n && written < size - 1) str[written++] = *n++;
             } else if (*format == 'g' || *format == 'f') {
-                // VERY IMPORTANT: Consume 8 bytes for double to prevent CPU stack corruption
-                double val = va_arg(args, double);
+                double val = va_arg(args, double); // Safe now that FPU is enabled
                 long long int_part = (long long)val;
                 char num_buf[64]; itoa(int_part, num_buf, 10);
                 char* n = num_buf; while (*n && written < size - 1) str[written++] = *n++;
             } else if (*format == 'l') {
                 format++; if (*format == 'l') format++;
                 if (*format == 'd') {
-                    // Consume 8 bytes for long long
                     long long val = va_arg(args, long long); 
                     char num_buf[64]; itoa(val, num_buf, 10);
                     char* n = num_buf; while (*n && written < size - 1) str[written++] = *n++;
@@ -335,7 +328,7 @@ char* fgets_freestanding(char* str, int num) {
             str[i++] = c;
         }
     }
-    str[i] = '\0'; // Guaranteed null termination
+    str[i] = '\0'; // Guaranteed null termination to prevent parser overflows
     return str;
 }
 
@@ -401,15 +394,16 @@ int ahci_read(HBAPort *port, uint32_t startl, uint32_t starth, uint32_t count, u
     cmdfis[10] = (uint8_t)(starth >> 8);
     cmdfis[12] = count & 0xFF; cmdfis[13] = (count >> 8) & 0xFF;
 
-    while ((port->tfd & (AHCI_DEV_BUSY | AHCI_DEV_DRQ)) && spin < 1000000) spin++;
-    if (spin == 1000000) return 0;
+    while ((port->tfd & (AHCI_DEV_BUSY | AHCI_DEV_DRQ)) && spin < 100000000) spin++;
+    if (spin == 100000000) return 0;
+    
     port->ci = 1 << slot;
 
     int wait = 0;
     while (1) {
         if ((port->ci & (1 << slot)) == 0) break;
         if (port->is & (1 << 30)) return 0;
-        if (wait++ > 5000000) return 0;
+        if (wait++ > 50000000) return 0;
     }
     return 1;
 }
@@ -432,8 +426,8 @@ int ahci_write(HBAPort *port, uint32_t startl, uint32_t starth, uint32_t count, 
     cmdfis[10] = (uint8_t)(starth >> 8);
     cmdfis[12] = count & 0xFF; cmdfis[13] = (count >> 8) & 0xFF;
 
-    while ((port->tfd & (AHCI_DEV_BUSY | AHCI_DEV_DRQ)) && spin < 1000000) spin++;
-    if (spin == 1000000) return 0;
+    while ((port->tfd & (AHCI_DEV_BUSY | AHCI_DEV_DRQ)) && spin < 100000000) spin++;
+    if (spin == 100000000) return 0;
 
     port->ci = 1 << slot;
 
@@ -441,7 +435,7 @@ int ahci_write(HBAPort *port, uint32_t startl, uint32_t starth, uint32_t count, 
     while (1) {
         if ((port->ci & (1 << slot)) == 0) break;
         if (port->is & (1 << 30)) return 0;
-        if (wait++ > 5000000) return 0;
+        if (wait++ > 50000000) return 0;
     }
     return 1;
 }
@@ -482,7 +476,7 @@ void* get_ahci_base() {
                 }
 
                 uint32_t cmd = pci_config_read(bus, slot, 0, 0x04);
-                pci_config_write(bus, slot, 0, 0x04, cmd | 0x02 | 0x04); // Enable Memory Space & Bus Master
+                pci_config_write(bus, slot, 0, 0x04, cmd | 0x02 | 0x04); 
                 return (void*)ahci_address;
             }
         }
@@ -511,12 +505,14 @@ void find_ahci_device() {
                     spin = 0;
                     while ((port->cmd & (1 << 15)) && spin++ < 1000000);
                     
-                    void* clb_mem = malloc(2048);
+                    void* clb_mem = malloc(2048 + 1024);
+                    if (!clb_mem) return;
                     uintptr_t clb_align = (((uintptr_t)clb_mem + 1023) & ~1023);
                     port->clb = (uint32_t)clb_align; port->clbu = 0;
                     memset((void*)clb_align, 0, 1024);
                     
-                    void* fb_mem = malloc(512);
+                    void* fb_mem = malloc(512 + 256);
+                    if (!fb_mem) return;
                     uintptr_t fb_align = (((uintptr_t)fb_mem + 255) & ~255);
                     port->fb = (uint32_t)fb_align; port->fbu = 0;
                     memset((void*)fb_align, 0, 256);
@@ -524,7 +520,8 @@ void find_ahci_device() {
                     HBACommandHeader* cmdheader = (HBACommandHeader*)clb_align;
                     for (int j = 0; j < 32; j++) {
                         cmdheader[j].prdtl = 8;
-                        void* ctba_mem = malloc(512);
+                        void* ctba_mem = malloc(512 + 128);
+                        if (!ctba_mem) return;
                         uintptr_t ctba_align = (((uintptr_t)ctba_mem + 127) & ~127);
                         cmdheader[j].ctba = (uint32_t)ctba_align; cmdheader[j].ctbau = 0;
                         memset((void*)ctba_align, 0, 256);
@@ -627,10 +624,13 @@ void run_easec(const char* filename) {
 
     init_vm();
     void* global_env = create_env(NULL);
-    void* list_str = allocate_string("Dynamic modules detected on SATA disk:\n  list.easec\n  pattern.easec\n  game.easec\n", 200);
+    
+    const char* scan_results = "Dynamic modules detected on SATA disk:\n  list\n  pattern\n  game\n";
+    void* list_str = allocate_string(scan_results, strlen(scan_results));
     env_define(global_env, "sys_list_dir", make_obj_val(list_str));
 
     run_script(file_content, global_env);
+    free(file_content);
 }
 
 void run_install() {
@@ -642,27 +642,49 @@ void run_install() {
 
     DirectoryTable dir_table; memset(&dir_table, 0, sizeof(DirectoryTable));
 
-    strcpy(dir_table.entries[0].filename, "list"); dir_table.entries[0].start_lba = 3; dir_table.entries[0].file_size = 230;
-    strcpy(dir_table.entries[1].filename, "pattern"); dir_table.entries[1].start_lba = 4; dir_table.entries[1].file_size = 110;
-    strcpy(dir_table.entries[2].filename, "game"); dir_table.entries[2].start_lba = 5; dir_table.entries[2].file_size = 250;
+    const char* list_code = "say \"=== inpsos SATA Storage Explorer ===\"\nsay \"Reading file allocation sectors on drive Port 0...\"\nsay \"Local Easec script files:\"\nsay \"  - list\"\nsay \"  - pattern\"\nsay \"  - game\"\n";
+    const char* pattern_code = "say \"=== Asterisk Pattern Loop ===\"\nvar line \"*\"\nrepeat 5 [\nsay line\nline = line + \"*\"\n]\n";
+    const char* game_code = "say \"=== Cave Adventure ===\"\nsay \"You find yourself inside a dark, humid cave. Left or Right?\"\nvar path get\nif path == \"left\" [\nsay \"You discovered a cache of physical gold bullion. You win!\"\n] else [\nsay \"A modular partition collapsed on you. Game over.\"\n]\n";
+
+    strcpy(dir_table.entries[0].filename, "list"); 
+    dir_table.entries[0].start_lba = 3; 
+    dir_table.entries[0].file_size = strlen(list_code);
+    
+    strcpy(dir_table.entries[1].filename, "pattern"); 
+    dir_table.entries[1].start_lba = 4; 
+    dir_table.entries[1].file_size = strlen(pattern_code);
+    
+    strcpy(dir_table.entries[2].filename, "game"); 
+    dir_table.entries[2].start_lba = 5; 
+    dir_table.entries[2].file_size = strlen(game_code);
 
     if (!ahci_write(active_port, 2, 0, 1, (uint16_t*)&dir_table)) { print_string("Error: Directory Table write aborted.\n"); return; }
 
     char file_buffer[512];
-    memset(file_buffer, 0, 512);
-    strcpy(file_buffer, "say \"=== inpsos SATA Storage Explorer ===\"\nsay \"Reading file allocation sectors on drive Port 0...\"\nsay \"Local Easec script files:\"\nsay \"  - list\"\nsay \"  - pattern\"\nsay \"  - game\"\n");
+    memset(file_buffer, 0, 512); strcpy(file_buffer, list_code);
     ahci_write(active_port, 3, 0, 1, (uint16_t*)file_buffer);
 
-    memset(file_buffer, 0, 512);
-    strcpy(file_buffer, "say \"=== Asterisk Pattern Loop ===\"\nvar line \"*\"\nrepeat 5 [\nsay line\nline = line + \"*\"\n]\n");
+    memset(file_buffer, 0, 512); strcpy(file_buffer, pattern_code);
     ahci_write(active_port, 4, 0, 1, (uint16_t*)file_buffer);
 
-    memset(file_buffer, 0, 512);
-    strcpy(file_buffer, "say \"=== Cave Adventure ===\"\nsay \"You find yourself inside a dark, humid cave. Left or Right?\"\nvar path get\nif path == \"left\" [\nsay \"You discovered a cache of physical gold bullion. You win!\"\n] else [\nsay \"A modular partition collapsed on you. Game over.\"\n]\n");
+    memset(file_buffer, 0, 512); strcpy(file_buffer, game_code);
     ahci_write(active_port, 5, 0, 1, (uint16_t*)file_buffer);
 
     print_string("INPSOS installation onto SATA partitions completed.\n");
     print_string("Please detach your installation media and reboot computer.\n");
+}
+
+/* -------------------------------------------------------------
+   Critical CPU Initializers
+   ------------------------------------------------------------- */
+
+void enable_fpu() {
+    uint32_t cr0;
+    __asm__ volatile("mov %%cr0, %0" : "=r"(cr0));
+    cr0 &= ~(1 << 2); // Clear EM bit (Emulation)
+    cr0 |= (1 << 1);  // Set MP bit (Math Present)
+    __asm__ volatile("mov %0, %%cr0" :: "r"(cr0));
+    __asm__ volatile("fninit"); // Initialize the FPU state natively
 }
 
 /* -------------------------------------------------------------
@@ -671,7 +693,8 @@ void run_install() {
 
 void kernel_main(uint32_t magic, uint32_t addr) {
     (void)magic; (void)addr;
-    __asm__ volatile("cli"); // Ensure interrupts are fully locked to prevent triple faults
+    __asm__ volatile("cli");
+    enable_fpu(); // Prevents %g CPU traps inside vsnprintf
 
     clear_screen();
     print_string("=========================================\n");
