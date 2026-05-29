@@ -8,11 +8,11 @@ FILE* stderr = (FILE*)1;
 FILE* stdin  = (FILE*)2;
 FILE* stdout = (FILE*)3;
 
-uint8_t kheap[2 * 1024 * 1024]; 
+uint8_t kheap[2 * 1024 * 1024]; // 2MB kernel heap space
 size_t heap_offset = 0;
 
 void* kmalloc(size_t size) {
-    size = (size + 3) & ~3; 
+    size = (size + 3) & ~3; // 4-byte alignment
     if (heap_offset + size > sizeof(kheap)) return NULL;
     void* ptr = &kheap[heap_offset];
     heap_offset += size;
@@ -91,6 +91,67 @@ char* strncpy(char* dest, const char* src, size_t n) {
     return dest;
 }
 
+size_t strcspn(const char* s, const char* reject) {
+    size_t count = 0;
+    while (*s) {
+        const char* r = reject;
+        while (*r) {
+            if (*s == *r) return count;
+            r++;
+        }
+        s++;
+        count++;
+    }
+    return count;
+}
+
+char* strchr(const char* s, int c) {
+    while (*s) {
+        if (*s == (char)c) return (char*)s;
+        s++;
+    }
+    return NULL;
+}
+
+char* strrchr(const char* s, int c) {
+    char* last = NULL;
+    while (*s) {
+        if (*s == (char)c) last = (char*)s;
+        s++;
+    }
+    return last;
+}
+
+int isdigit(int c) { return c >= '0' && c <= '9'; }
+int isalpha(int c) { return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_'; }
+
+long long atoll(const char* s) {
+    long long res = 0;
+    int sign = 1;
+    if (*s == '-') { sign = -1; s++; }
+    while (*s >= '0' && *s <= '9') {
+        res = res * 10 + (*s - '0');
+        s++;
+    }
+    return res * sign;
+}
+
+double atof(const char* s) {
+    double res = 0.0;
+    double factor = 1.0;
+    int dec_seen = 0;
+    int sign = 1;
+    if (*s == '-') { sign = -1; s++; }
+    while (*s) {
+        if (*s == '.') { dec_seen = 1; s++; continue; }
+        if (*s < '0' || *s > '9') break;
+        if (dec_seen) factor *= 0.1;
+        res = res * 10.0 + (*s - '0');
+        s++;
+    }
+    return res * factor * sign;
+}
+
 /* -------------------------------------------------------------
    Standard Formatting and Stream Function Mocks
    ------------------------------------------------------------- */
@@ -127,7 +188,7 @@ void print_char(char c) {
     if (c == '\n') {
         cursor_x = 0;
         cursor_y++;
-    } else if (c == '\b') { // Properly erase character visually on backspace
+    } else if (c == '\b') {
         if (cursor_x > 0) cursor_x--;
         else if (cursor_y > 0) {
             cursor_y--;
@@ -217,7 +278,6 @@ void outl(uint16_t port, uint32_t val) { __asm__ volatile("outl %0, %1" : : "a"(
    ------------------------------------------------------------- */
 
 char keyboard_get_char() {
-    // Array updated to map 0x0E to '\b' (Backspace key)
     static const char scan_to_ascii[] = {
         0, 0, '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', '\b',
         '\t', 'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '[', ']', '\n',
@@ -245,7 +305,7 @@ char* fgets_freestanding(char* str, int num) {
         } else if (c == '\b') {
             if (i > 0) {
                 i--;
-                print_char('\b'); // Remove the visual character
+                print_char('\b');
             }
         } else if (c != 0) {
             print_char(c);
@@ -385,18 +445,13 @@ void* get_ahci_base() {
             uint8_t prog_if = (class_sub >> 8) & 0xFF;
             
             if (class_code == 0x01 && subclass == 0x06 && prog_if == 0x01) {
-                // Read BAR5
                 uint32_t bar5 = pci_config_read(bus, slot, 0, 0x24);
                 if ((bar5 & 0xFFFFFFF0) == 0) {
-                    // Inject fallback mapping if unassigned by UEFI
                     pci_config_write(bus, slot, 0, 0x24, 0xFEB00000);
                     bar5 = 0xFEB00000;
                 }
-                
-                // Enable Memory Space and Bus Master mapping
                 uint32_t cmd = pci_config_read(bus, slot, 0, 0x04);
                 pci_config_write(bus, slot, 0, 0x04, cmd | 0x06); 
-                
                 return (void*)(bar5 & 0xFFFFFFF0);
             }
         }
@@ -408,7 +463,6 @@ HBAPort* active_port = NULL;
 
 void find_ahci_device() {
     HBAMem* hba_mem = (HBAMem*)get_ahci_base(); 
-    
     if (hba_mem) {
         uint32_t pi = hba_mem->pi;
         for (int i = 0; i < 32; i++) {
@@ -416,14 +470,11 @@ void find_ahci_device() {
                 HBAPort* port = &hba_mem->ports[i];
                 if ((port->ssts & 0x0F) == 3 && port->sig == SATA_SIG_ATA) {
                     active_port = port;
-                    
-                    // Stop controller engines for rebasing
                     port->cmd &= ~(1 << 0);
                     port->cmd &= ~(1 << 4);
                     while (port->cmd & (1 << 14));
                     while (port->cmd & (1 << 15));
                     
-                    // Wire Memory DMA Buffer assignments
                     void* clb_mem = malloc(2048);
                     uintptr_t clb_align = (((uintptr_t)clb_mem + 1023) & ~1023);
                     port->clb = (uint32_t)clb_align; port->clbu = 0;
@@ -442,8 +493,6 @@ void find_ahci_device() {
                         cmdheader[j].ctba = (uint32_t)ctba_align; cmdheader[j].ctbau = 0;
                         memset((void*)ctba_align, 0, 256);
                     }
-                    
-                    // Restart engine
                     port->cmd |= (1 << 4);
                     port->cmd |= (1 << 0);
                     return;
