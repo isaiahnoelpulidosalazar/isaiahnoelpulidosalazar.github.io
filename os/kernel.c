@@ -1,16 +1,18 @@
 #include "freestanding.h"
 
-// Define stream mocks
+/* -------------------------------------------------------------
+   Standard Library Fallback Implementations
+   ------------------------------------------------------------- */
+
 FILE* stderr = (FILE*)1;
 FILE* stdin  = (FILE*)2;
 FILE* stdout = (FILE*)3;
 
-// Heap configuration
-uint8_t kheap[2 * 1024 * 1024]; 
+uint8_t kheap[2 * 1024 * 1024]; // 2MB kernel heap space
 size_t heap_offset = 0;
 
 void* kmalloc(size_t size) {
-    size = (size + 3) & ~3;
+    size = (size + 3) & ~3; // 4-byte alignment
     if (heap_offset + size > sizeof(kheap)) return NULL;
     void* ptr = &kheap[heap_offset];
     heap_offset += size;
@@ -400,7 +402,7 @@ char* fgets(char* str, int num, FILE* stream) {
 }
 
 void sys_reboot() { outb(0x64, 0xFE); }
-void sys_shutdown() { outw(0x604, 0x2000); } // 16-bit write resolves warning
+void sys_shutdown() { outw(0x604, 0x2000); }
 
 /* -------------------------------------------------------------
    AHCI SATA Native Storage Driver Implementation
@@ -579,24 +581,225 @@ int ahci_write(HBAPort *port, uint32_t startl, uint32_t starth, uint32_t count, 
 }
 
 /* -------------------------------------------------------------
-   Timing Fallback Utilities
+   Easec VM Linkage Definitions
    ------------------------------------------------------------- */
 
-long long get_time_ms() {
-    static long long mock_time = 0;
-    return mock_time++;
+typedef enum { VAL_NULL, VAL_BOOL, VAL_INT, VAL_FLOAT, VAL_OBJ } ValType;
+
+typedef struct {
+    ValType type;
+    union {
+        int boolean;
+        long long integer;
+        double floating;
+        void* obj;
+    } as;
+} Value;
+
+extern void init_vm();
+extern void* create_env(void* parent);
+extern void run_script(const char* source, void* env);
+extern void env_define(void* env, const char* name, Value val);
+extern void* allocate_string(const char* chars, int length);
+
+static Value make_bool_val(int b) {
+    Value v; v.type = VAL_BOOL; v.as.boolean = b; return v;
 }
 
-void sleep_ms(long long ms) {
-    for (volatile long long i = 0; i < ms * 10000; i++);
+static Value make_obj_val(void* o) {
+    Value v; v.type = VAL_OBJ; v.as.obj = o; return v;
 }
 
-void exit(int status) {
-    (void)status;
-    print_string("\nKernel exited. System Halted.\n");
-    while (1) {
-        __asm__ volatile("cli; hlt");
+/* -------------------------------------------------------------
+   Flat Filesystem Structure definitions
+   ------------------------------------------------------------- */
+
+#define MAX_FILES 12
+
+typedef struct {
+    char filename[32];
+    uint32_t start_lba;
+    uint32_t file_size;
+} FileEntry;
+
+typedef struct {
+    FileEntry entries[MAX_FILES];
+    uint8_t padding[32]; // Align layout directly to 512-byte sector boundary
+} DirectoryTable;
+
+HBAPort* active_port = NULL;
+
+void find_ahci_device() {
+    HBAMem* hba_mem = (HBAMem*)0xFEB00000; 
+    
+    if (hba_mem) {
+        uint32_t pi = hba_mem->pi;
+        for (int i = 0; i < 32; i++) {
+            if (pi & (1 << i)) {
+                HBAPort* port = &hba_mem->ports[i];
+                if (port->sig == SATA_SIG_ATA) {
+                    active_port = port;
+                    return;
+                }
+            }
+        }
     }
+    active_port = NULL;
+}
+
+int check_installation_state(HBAPort* port) {
+    char sector_buffer[512];
+    memset(sector_buffer, 0, 512);
+    
+    if (ahci_read(port, 1, 0, 1, (uint16_t*)sector_buffer)) {
+        if (memcmp(sector_buffer, "INPSOS_INSTALLED", 16) == 0) {
+            return 1; 
+        }
+    }
+    return 0; 
+}
+
+/* -------------------------------------------------------------
+   Dynamic Hard Drive Scanning Execution (run_easec)
+   ------------------------------------------------------------- */
+
+void run_easec(const char* filename) {
+    if (!active_port) {
+        print_string("Error: Active AHCI port missing.\n");
+        return;
+    }
+
+    // Read Directory Table from Sector LBA 2
+    DirectoryTable dir_table;
+    memset(&dir_table, 0, sizeof(DirectoryTable));
+    if (!ahci_read(active_port, 2, 0, 1, (uint16_t*)&dir_table)) {
+        print_string("Error: Failed to fetch storage directory sector.\n");
+        return;
+    }
+
+    // Search the directory entries
+    FileEntry* target_entry = NULL;
+    for (int i = 0; i < MAX_FILES; i++) {
+        if (strcmp(dir_table.entries[i].filename, filename) == 0) {
+            target_entry = &dir_table.entries[i];
+            break;
+        }
+    }
+
+    if (!target_entry) {
+        printf("Error: Module script '%s' not found on current drive.\n", filename);
+        return;
+    }
+
+    // Map file byte boundaries to exact sector counts
+    uint32_t sectors_to_read = (target_entry->file_size + 511) / 512;
+    char* file_content = (char*)malloc(sectors_to_read * 512 + 1);
+    if (!file_content) {
+        print_string("Error: Frame memory allocation failure.\n");
+        return;
+    }
+
+    // Read the script sectors
+    if (!ahci_read(active_port, target_entry->start_lba, 0, sectors_to_read, (uint16_t*)file_content)) {
+        print_string("Error: AHCI read aborted mid-transmission.\n");
+        free(file_content);
+        return;
+    }
+
+    file_content[target_entry->file_size] = '\0'; // Ensure valid termination
+
+    // Compile and run loaded file
+    init_vm();
+    void* global_env = create_env(NULL);
+
+    // Dynamic environmental registration for list support
+    void* list_str = allocate_string("Dynamic modules detected on SATA disk:\n  /os/list.easec\n  /os/clear.easec\n  /os/restart.easec\n  /os/shutdown.easec\n  /os/create_file.easec\n  /os/delete_file.easec\n  /os/create_folder.easec\n  /os/delete_folder.easec\n  /os/change_directory.easec\n  /os/install.easec", 270);
+    env_define(global_env, "sys_list_dir", make_obj_val(list_str));
+
+    run_script(file_content, global_env);
+    free(file_content);
+}
+
+void run_install() {
+    print_string("Initializing physical installation onto hard disk...\n");
+    if (!active_port) {
+        print_string("Error: Compatible AHCI SATA controller not detected.\n");
+        return;
+    }
+    
+    // 1. Write installation verification signature to Sector LBA 1
+    char write_buffer[512];
+    memset(write_buffer, 0, 512);
+    memcpy(write_buffer, "INPSOS_INSTALLED", 16);
+    if (!ahci_write(active_port, 1, 0, 1, (uint16_t*)write_buffer)) {
+        print_string("Error: Local layout boot sector write failure.\n");
+        return;
+    }
+
+    // 2. Prepare dynamic Directory Table to be written to Sector LBA 2
+    DirectoryTable dir_table;
+    memset(&dir_table, 0, sizeof(DirectoryTable));
+
+    strcpy(dir_table.entries[0].filename, "list.easec");
+    dir_table.entries[0].start_lba = 3;
+    dir_table.entries[0].file_size = 230;
+
+    strcpy(dir_table.entries[1].filename, "pattern.easec");
+    dir_table.entries[1].start_lba = 4;
+    dir_table.entries[1].file_size = 110;
+
+    strcpy(dir_table.entries[2].filename, "game.easec");
+    dir_table.entries[2].start_lba = 5;
+    dir_table.entries[2].file_size = 250;
+
+    if (!ahci_write(active_port, 2, 0, 1, (uint16_t*)&dir_table)) {
+        print_string("Error: Allocation Directory Table write aborted.\n");
+        return;
+    }
+
+    // 3. Write individual file scripts onto physical sector boundaries
+    char file_buffer[512];
+
+    // list.easec code
+    memset(file_buffer, 0, 512);
+    strcpy(file_buffer,
+        "say \"=== inpsos SATA Storage Explorer ===\"\n"
+        "say \"Reading file allocation sectors on drive Port 0...\"\n"
+        "say \"Local Easec script files:\"\n"
+        "say \"  - list.easec    (LBA: 3)\"\n"
+        "say \"  - pattern.easec (LBA: 4)\"\n"
+        "say \"  - game.easec    (LBA: 5)\"\n"
+    );
+    ahci_write(active_port, 3, 0, 1, (uint16_t*)file_buffer);
+
+    // pattern.easec code
+    memset(file_buffer, 0, 512);
+    strcpy(file_buffer,
+        "say \"=== Asterisk Pattern Loop ===\"\n"
+        "var line \"*\"\n"
+        "repeat 5 [\n"
+        "    say line\n"
+        "    line = line + \"*\"\n"
+        "]\n"
+    );
+    ahci_write(active_port, 4, 0, 1, (uint16_t*)file_buffer);
+
+    // game.easec code
+    memset(file_buffer, 0, 512);
+    strcpy(file_buffer,
+        "say \"=== Cave Adventure ===\"\n"
+        "say \"You find yourself inside a dark, humid cave. Left or Right?\"\n"
+        "var path get\n"
+        "if path == \"left\" [\n"
+        "    say \"You discovered a cache of physical gold bullion. You win!\"\n"
+        "] else [\n"
+        "    say \"A modular partition collapsed on you. Game over.\"\n"
+        "]\n"
+    );
+    ahci_write(active_port, 5, 0, 1, (uint16_t*)file_buffer);
+
+    print_string("INPSOS installation onto SATA partitions completed.\n");
+    print_string("Please detach your installation media and reboot computer.\n");
 }
 
 /* -------------------------------------------------------------
@@ -610,19 +813,64 @@ void kernel_main(uint32_t magic, uint32_t addr) {
     print_string("          Welcome to inpsos              \n");
     print_string("=========================================\n");
 
+    find_ahci_device();
+    
+    int installed = 0;
+    if (active_port) {
+        installed = check_installation_state(active_port);
+    }
+
+    if (!installed) {
+        print_string("STATUS: Running from Bootable Live ISO.\n");
+        print_string("Warning: All operating system features are locked.\n");
+        print_string("Please run command 'install' to setup onto local hardware.\n\n");
+    } else {
+        print_string("STATUS: Booted from Physical Drive.\n");
+        print_string("All system operations are unlocked.\n\n");
+    }
+
     while (1) {
         print_string("inpsos> ");
         char command_buf[64];
         fgets_freestanding(command_buf, sizeof(command_buf));
 
-        if (strcmp(command_buf, "clear") == 0) {
-            clear_screen();
-        } else if (strcmp(command_buf, "restart") == 0) {
-            sys_reboot();
-        } else if (strcmp(command_buf, "shutdown") == 0) {
-            sys_shutdown();
+        if (strcmp(command_buf, "install") == 0) {
+            run_install();
         } else {
-            print_string("Executing requested easec module...\n");
+            if (!installed) {
+                print_string("Error: Command locked. This system command is disabled on Live Media.\n");
+                print_string("Please partition disk by running the 'install' utility.\n");
+            } else {
+                // Core physical drive system utilities
+                if (strcmp(command_buf, "clear") == 0) {
+                    clear_screen();
+                } else if (strcmp(command_buf, "restart") == 0) {
+                    sys_reboot();
+                } else if (strcmp(command_buf, "shutdown") == 0) {
+                    sys_shutdown();
+                } else {
+                    // Dynamically scan file layout on physical drive
+                    if (active_port) {
+                        DirectoryTable dir_table;
+                        memset(&dir_table, 0, sizeof(DirectoryTable));
+                        if (ahci_read(active_port, 2, 0, 1, (uint16_t*)&dir_table)) {
+                            int found = 0;
+                            for (int i = 0; i < MAX_FILES; i++) {
+                                if (strcmp(dir_table.entries[i].filename, command_buf) == 0) {
+                                    run_easec(command_buf);
+                                    found = 1;
+                                    break;
+                                }
+                            }
+                            if (!found && strlen(command_buf) > 0) {
+                                printf("Error: Command or script file '%s' not recognized.\n", command_buf);
+                            }
+                        } else {
+                            print_string("Error: Could not read local file records from disk.\n");
+                        }
+                    }
+                }
+            }
         }
     }
 }
