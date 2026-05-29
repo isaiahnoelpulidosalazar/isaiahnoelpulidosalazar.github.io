@@ -8,7 +8,7 @@ FILE* stderr = (FILE*)1;
 FILE* stdin  = (FILE*)2;
 FILE* stdout = (FILE*)3;
 
-uint8_t kheap[16 * 1024 * 1024]; // Expanded 16MB kernel heap
+uint8_t kheap[16 * 1024 * 1024]; // 16MB kernel heap
 size_t heap_offset = 0;
 
 void* kmalloc(size_t size) {
@@ -255,7 +255,7 @@ int vsnprintf(char* str, size_t size, const char* format, va_list args) {
                 char num_buf[32]; itoa(val, num_buf, 10);
                 char* n = num_buf; while (*n && written < size - 1) str[written++] = *n++;
             } else if (*format == 'g' || *format == 'f') {
-                double val = va_arg(args, double); // Safe now that FPU is enabled
+                double val = va_arg(args, double); // Safe now that FPU is enabled natively
                 long long int_part = (long long)val;
                 char num_buf[64]; itoa(int_part, num_buf, 10);
                 char* n = num_buf; while (*n && written < size - 1) str[written++] = *n++;
@@ -394,8 +394,8 @@ int ahci_read(HBAPort *port, uint32_t startl, uint32_t starth, uint32_t count, u
     cmdfis[10] = (uint8_t)(starth >> 8);
     cmdfis[12] = count & 0xFF; cmdfis[13] = (count >> 8) & 0xFF;
 
-    while ((port->tfd & (AHCI_DEV_BUSY | AHCI_DEV_DRQ)) && spin < 100000000) spin++;
-    if (spin == 100000000) return 0;
+    while ((port->tfd & (AHCI_DEV_BUSY | AHCI_DEV_DRQ)) && spin < 1000000) spin++;
+    if (spin == 1000000) return 0;
     
     port->ci = 1 << slot;
 
@@ -426,8 +426,8 @@ int ahci_write(HBAPort *port, uint32_t startl, uint32_t starth, uint32_t count, 
     cmdfis[10] = (uint8_t)(starth >> 8);
     cmdfis[12] = count & 0xFF; cmdfis[13] = (count >> 8) & 0xFF;
 
-    while ((port->tfd & (AHCI_DEV_BUSY | AHCI_DEV_DRQ)) && spin < 100000000) spin++;
-    if (spin == 100000000) return 0;
+    while ((port->tfd & (AHCI_DEV_BUSY | AHCI_DEV_DRQ)) && spin < 1000000) spin++;
+    if (spin == 1000000) return 0;
 
     port->ci = 1 << slot;
 
@@ -584,11 +584,15 @@ typedef struct {
     uint8_t padding[32];
 } DirectoryTable;
 
+/* Static DMA Arrays to securely lock SATA communications out of the CPU stack */
+static char dma_sector_buffer[512] __attribute__((aligned(16)));
+static DirectoryTable dma_dir_table __attribute__((aligned(16)));
+static char dma_script_buffer[65536] __attribute__((aligned(16)));
+
 int check_installation_state(HBAPort* port) {
-    char sector_buffer[512];
-    memset(sector_buffer, 0, 512);
-    if (ahci_read(port, 1, 0, 1, (uint16_t*)sector_buffer)) {
-        if (memcmp(sector_buffer, "INPSOS_INSTALLED", 16) == 0) return 1; 
+    memset(dma_sector_buffer, 0, 512);
+    if (ahci_read(port, 1, 0, 1, (uint16_t*)dma_sector_buffer)) {
+        if (memcmp(dma_sector_buffer, "INPSOS_INSTALLED", 16) == 0) return 1; 
     }
     return 0; 
 }
@@ -600,27 +604,27 @@ int check_installation_state(HBAPort* port) {
 void run_easec(const char* filename) {
     if (!active_port) { print_string("Error: Active AHCI port missing.\n"); return; }
 
-    DirectoryTable dir_table; memset(&dir_table, 0, sizeof(DirectoryTable));
-    if (!ahci_read(active_port, 2, 0, 1, (uint16_t*)&dir_table)) { print_string("Error: Failed to fetch storage directory.\n"); return; }
+    memset(&dma_dir_table, 0, sizeof(DirectoryTable));
+    if (!ahci_read(active_port, 2, 0, 1, (uint16_t*)&dma_dir_table)) { print_string("Error: Failed to fetch storage directory.\n"); return; }
 
     FileEntry* target_entry = NULL;
     for (int i = 0; i < MAX_FILES; i++) {
-        if (strcmp(dir_table.entries[i].filename, filename) == 0) {
-            target_entry = &dir_table.entries[i]; break;
+        if (strcmp(dma_dir_table.entries[i].filename, filename) == 0) {
+            target_entry = &dma_dir_table.entries[i]; break;
         }
     }
 
     if (!target_entry) { printf("Error: Module script '%s' not found.\n", filename); return; }
 
     uint32_t sectors_to_read = (target_entry->file_size + 511) / 512;
-    char* file_content = (char*)malloc(sectors_to_read * 512 + 1);
-    if (!file_content) { print_string("Error: Allocation failure.\n"); return; }
+    if (sectors_to_read * 512 > sizeof(dma_script_buffer)) { print_string("Error: Script size exceeds system memory constraints.\n"); return; }
 
-    if (!ahci_read(active_port, target_entry->start_lba, 0, sectors_to_read, (uint16_t*)file_content)) {
-        print_string("Error: Read aborted mid-transmission.\n"); free(file_content); return;
+    memset(dma_script_buffer, 0, sizeof(dma_script_buffer));
+    if (!ahci_read(active_port, target_entry->start_lba, 0, sectors_to_read, (uint16_t*)dma_script_buffer)) {
+        print_string("Error: Read aborted mid-transmission.\n"); return;
     }
 
-    file_content[target_entry->file_size] = '\0';
+    dma_script_buffer[target_entry->file_size] = '\0';
 
     init_vm();
     void* global_env = create_env(NULL);
@@ -629,46 +633,44 @@ void run_easec(const char* filename) {
     void* list_str = allocate_string(scan_results, strlen(scan_results));
     env_define(global_env, "sys_list_dir", make_obj_val(list_str));
 
-    run_script(file_content, global_env);
-    free(file_content);
+    run_script(dma_script_buffer, global_env);
 }
 
 void run_install() {
     print_string("Initializing physical installation onto hard disk...\n");
     if (!active_port) { print_string("Error: Compatible AHCI SATA controller not detected.\n"); return; }
     
-    char write_buffer[512]; memset(write_buffer, 0, 512); memcpy(write_buffer, "INPSOS_INSTALLED", 16);
-    if (!ahci_write(active_port, 1, 0, 1, (uint16_t*)write_buffer)) { print_string("Error: Local layout boot sector write failure.\n"); return; }
+    memset(dma_sector_buffer, 0, 512); memcpy(dma_sector_buffer, "INPSOS_INSTALLED", 16);
+    if (!ahci_write(active_port, 1, 0, 1, (uint16_t*)dma_sector_buffer)) { print_string("Error: Local layout boot sector write failure.\n"); return; }
 
-    DirectoryTable dir_table; memset(&dir_table, 0, sizeof(DirectoryTable));
+    memset(&dma_dir_table, 0, sizeof(DirectoryTable));
 
     const char* list_code = "say \"=== inpsos SATA Storage Explorer ===\"\nsay \"Reading file allocation sectors on drive Port 0...\"\nsay \"Local Easec script files:\"\nsay \"  - list\"\nsay \"  - pattern\"\nsay \"  - game\"\n";
     const char* pattern_code = "say \"=== Asterisk Pattern Loop ===\"\nvar line \"*\"\nrepeat 5 [\nsay line\nline = line + \"*\"\n]\n";
     const char* game_code = "say \"=== Cave Adventure ===\"\nsay \"You find yourself inside a dark, humid cave. Left or Right?\"\nvar path get\nif path == \"left\" [\nsay \"You discovered a cache of physical gold bullion. You win!\"\n] else [\nsay \"A modular partition collapsed on you. Game over.\"\n]\n";
 
-    strcpy(dir_table.entries[0].filename, "list"); 
-    dir_table.entries[0].start_lba = 3; 
-    dir_table.entries[0].file_size = strlen(list_code);
+    strcpy(dma_dir_table.entries[0].filename, "list"); 
+    dma_dir_table.entries[0].start_lba = 3; 
+    dma_dir_table.entries[0].file_size = strlen(list_code);
     
-    strcpy(dir_table.entries[1].filename, "pattern"); 
-    dir_table.entries[1].start_lba = 4; 
-    dir_table.entries[1].file_size = strlen(pattern_code);
+    strcpy(dma_dir_table.entries[1].filename, "pattern"); 
+    dma_dir_table.entries[1].start_lba = 4; 
+    dma_dir_table.entries[1].file_size = strlen(pattern_code);
     
-    strcpy(dir_table.entries[2].filename, "game"); 
-    dir_table.entries[2].start_lba = 5; 
-    dir_table.entries[2].file_size = strlen(game_code);
+    strcpy(dma_dir_table.entries[2].filename, "game"); 
+    dma_dir_table.entries[2].start_lba = 5; 
+    dma_dir_table.entries[2].file_size = strlen(game_code);
 
-    if (!ahci_write(active_port, 2, 0, 1, (uint16_t*)&dir_table)) { print_string("Error: Directory Table write aborted.\n"); return; }
+    if (!ahci_write(active_port, 2, 0, 1, (uint16_t*)&dma_dir_table)) { print_string("Error: Directory Table write aborted.\n"); return; }
 
-    char file_buffer[512];
-    memset(file_buffer, 0, 512); strcpy(file_buffer, list_code);
-    ahci_write(active_port, 3, 0, 1, (uint16_t*)file_buffer);
+    memset(dma_sector_buffer, 0, 512); strcpy(dma_sector_buffer, list_code);
+    ahci_write(active_port, 3, 0, 1, (uint16_t*)dma_sector_buffer);
 
-    memset(file_buffer, 0, 512); strcpy(file_buffer, pattern_code);
-    ahci_write(active_port, 4, 0, 1, (uint16_t*)file_buffer);
+    memset(dma_sector_buffer, 0, 512); strcpy(dma_sector_buffer, pattern_code);
+    ahci_write(active_port, 4, 0, 1, (uint16_t*)dma_sector_buffer);
 
-    memset(file_buffer, 0, 512); strcpy(file_buffer, game_code);
-    ahci_write(active_port, 5, 0, 1, (uint16_t*)file_buffer);
+    memset(dma_sector_buffer, 0, 512); strcpy(dma_sector_buffer, game_code);
+    ahci_write(active_port, 5, 0, 1, (uint16_t*)dma_sector_buffer);
 
     print_string("INPSOS installation onto SATA partitions completed.\n");
     print_string("Please detach your installation media and reboot computer.\n");
@@ -694,7 +696,7 @@ void enable_fpu() {
 void kernel_main(uint32_t magic, uint32_t addr) {
     (void)magic; (void)addr;
     __asm__ volatile("cli");
-    enable_fpu(); // Prevents %g CPU traps inside vsnprintf
+    enable_fpu(); // Safely enables %g and double variable processing
 
     clear_screen();
     print_string("=========================================\n");
@@ -732,12 +734,11 @@ void kernel_main(uint32_t magic, uint32_t addr) {
                 else if (strcmp(command_buf, "shutdown") == 0) sys_shutdown();
                 else {
                     if (active_port) {
-                        DirectoryTable dir_table;
-                        memset(&dir_table, 0, sizeof(DirectoryTable));
-                        if (ahci_read(active_port, 2, 0, 1, (uint16_t*)&dir_table)) {
+                        memset(&dma_dir_table, 0, sizeof(DirectoryTable));
+                        if (ahci_read(active_port, 2, 0, 1, (uint16_t*)&dma_dir_table)) {
                             int found = 0;
                             for (int i = 0; i < MAX_FILES; i++) {
-                                if (strcmp(dir_table.entries[i].filename, command_buf) == 0) {
+                                if (strcmp(dma_dir_table.entries[i].filename, command_buf) == 0) {
                                     run_easec(command_buf);
                                     found = 1; break;
                                 }
