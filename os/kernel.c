@@ -581,6 +581,27 @@ int ahci_write(HBAPort *port, uint32_t startl, uint32_t starth, uint32_t count, 
 }
 
 /* -------------------------------------------------------------
+   Timing Fallback Utilities (DO NOT REMOVE)
+   ------------------------------------------------------------- */
+
+long long get_time_ms() {
+    static long long mock_time = 0;
+    return mock_time++;
+}
+
+void sleep_ms(long long ms) {
+    for (volatile long long i = 0; i < ms * 10000; i++);
+}
+
+void exit(int status) {
+    (void)status;
+    print_string("\nKernel exited. System Halted.\n");
+    while (1) {
+        __asm__ volatile("cli; hlt");
+    }
+}
+
+/* -------------------------------------------------------------
    Easec VM Linkage Definitions
    ------------------------------------------------------------- */
 
@@ -709,7 +730,7 @@ void run_easec(const char* filename) {
     void* global_env = create_env(NULL);
 
     // Dynamic environmental registration for list support
-    void* list_str = allocate_string("Dynamic modules detected on SATA disk:\n  /os/list.easec\n  /os/clear.easec\n  /os/restart.easec\n  /os/shutdown.easec\n  /os/create_file.easec\n  /os/delete_file.easec\n  /os/create_folder.easec\n  /os/delete_folder.easec\n  /os/change_directory.easec\n  /os/install.easec", 270);
+    void* list_str = allocate_string("Dynamic modules detected on SATA disk:\n  list.easec\n  pattern.easec\n  game.easec\n", 200);
     env_define(global_env, "sys_list_dir", make_obj_val(list_str));
 
     run_script(file_content, global_env);
