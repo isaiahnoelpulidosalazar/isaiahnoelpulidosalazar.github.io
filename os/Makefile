@@ -2,10 +2,11 @@ CC = gcc
 AS = nasm
 LD = gcc
 
-CFLAGS = -m32 -ffreestanding -O2 -Wall -Wextra -I. -nostdlib -fno-builtin -fno-stack-protector -DBAREMETAL
-LDFLAGS = -m32 -ffreestanding -O2 -nostdlib -T linker.ld
+CFLAGS = -m32 -ffreestanding -O2 -Wall -Wextra -I. -nostdlib -fno-builtin -fno-stack-protector -fno-pie -DBAREMETAL
 
-OBJS = boot.o kernel.o easec.o
+LDFLAGS = -m32 -ffreestanding -O2 -nostdlib -T linker.ld -no-pie -z noexecstack
+
+OBJS = boot.o easec.o kernel.o
 
 all: inpsos.bin
 

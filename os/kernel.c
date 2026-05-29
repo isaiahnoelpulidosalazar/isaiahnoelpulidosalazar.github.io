@@ -602,10 +602,6 @@ extern void run_script(const char* source, void* env);
 extern void env_define(void* env, const char* name, Value val);
 extern void* allocate_string(const char* chars, int length);
 
-static Value make_bool_val(int b) {
-    Value v; v.type = VAL_BOOL; v.as.boolean = b; return v;
-}
-
 static Value make_obj_val(void* o) {
     Value v; v.type = VAL_OBJ; v.as.obj = o; return v;
 }
