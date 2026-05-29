@@ -162,18 +162,6 @@ double atof(const char* s) {
 }
 
 /* -------------------------------------------------------------
-   Standard Formatting and Stream Function Mocks
-   ------------------------------------------------------------- */
-
-FILE* fopen(const char* filename, const char* mode) { (void)filename; (void)mode; return NULL; }
-int fclose(FILE* stream) { (void)stream; return 0; }
-size_t fread(void* ptr, size_t size, size_t nmemb, FILE* stream) { (void)ptr; (void)size; (void)nmemb; (void)stream; return 0; }
-size_t fwrite(const void* ptr, size_t size, size_t nmemb, FILE* stream) { (void)ptr; (void)size; (void)nmemb; (void)stream; return 0; }
-int fseek(FILE* stream, long offset, int whence) { (void)stream; (void)offset; (void)whence; return 0; }
-long ftell(FILE* stream) { (void)stream; return 0; }
-int remove(const char* filename) { (void)filename; return 0; }
-
-/* -------------------------------------------------------------
    VGA Output and Display Formatting Drivers
    ------------------------------------------------------------- */
 
@@ -395,15 +383,15 @@ int ahci_read(HBAPort *port, uint32_t startl, uint32_t starth, uint32_t count, u
     cmdfis[12] = count & 0xFF; cmdfis[13] = (count >> 8) & 0xFF;
 
     while ((port->tfd & (AHCI_DEV_BUSY | AHCI_DEV_DRQ)) && spin < 10000000) spin++;
-    if (spin == 10000000) { print_string("AHCI: Drive Busy Timeout\n"); return 0; }
+    if (spin == 10000000) return 0;
     
     port->ci = 1 << slot;
 
     int wait = 0;
     while (1) {
         if ((port->ci & (1 << slot)) == 0) break;
-        if (port->is & (1 << 30)) { print_string("AHCI: Task File Error (Read Failed)\n"); return 0; }
-        if (wait++ > 50000000) { print_string("AHCI: Execution Timeout\n"); return 0; }
+        if (port->is & (1 << 30)) return 0;
+        if (wait++ > 50000000) return 0;
     }
     return 1;
 }
@@ -427,22 +415,18 @@ int ahci_write(HBAPort *port, uint32_t startl, uint32_t starth, uint32_t count, 
     cmdfis[12] = count & 0xFF; cmdfis[13] = (count >> 8) & 0xFF;
 
     while ((port->tfd & (AHCI_DEV_BUSY | AHCI_DEV_DRQ)) && spin < 10000000) spin++;
-    if (spin == 10000000) { print_string("AHCI: Drive Busy Timeout\n"); return 0; }
+    if (spin == 10000000) return 0;
 
     port->ci = 1 << slot;
 
     int wait = 0;
     while (1) {
         if ((port->ci & (1 << slot)) == 0) break;
-        if (port->is & (1 << 30)) { print_string("AHCI: Task File Error (Is Drive Read-Only?)\n"); return 0; }
-        if (wait++ > 50000000) { print_string("AHCI: Execution Timeout\n"); return 0; }
+        if (port->is & (1 << 30)) return 0;
+        if (wait++ > 50000000) return 0;
     }
     return 1;
 }
-
-/* -------------------------------------------------------------
-   PCI Bus Scanner for Real Hardware Target Configurations
-   ------------------------------------------------------------- */
 
 uint32_t pci_config_read(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offset) {
     uint32_t address = (uint32_t)((bus << 16) | (slot << 11) | (func << 8) | (offset & 0xfc) | ((uint32_t)0x80000000));
@@ -490,19 +474,18 @@ void find_ahci_device() {
     print_string("Probing PCI Bus for AHCI storage controllers...\n");
     HBAMem* hba_mem = (HBAMem*)get_ahci_base(); 
     if (hba_mem) {
-        hba_mem->ghc |= (1 << 31); // AE (AHCI Enable Globally)
+        hba_mem->ghc |= (1 << 31); 
         uint32_t pi = hba_mem->pi;
         
         for (int i = 0; i < 32; i++) {
             if (pi & (1 << i)) {
                 HBAPort* port = &hba_mem->ports[i];
                 
-                // Force Spin-up and Power-On Native Drive
-                if (!(port->cmd & (1 << 1))) port->cmd |= (1 << 1); // POD
-                if (!(port->cmd & (1 << 2))) port->cmd |= (1 << 2); // SUD
-                for(volatile int delay=0; delay<100000; delay++); // Spin-up delay
+                if (!(port->cmd & (1 << 1))) port->cmd |= (1 << 1); 
+                if (!(port->cmd & (1 << 2))) port->cmd |= (1 << 2); 
+                for(volatile int delay=0; delay<100000; delay++);
                 
-                port->serr = 0xFFFFFFFF; // Clear any pending boot errors
+                port->serr = 0xFFFFFFFF; 
 
                 if ((port->ssts & 0x0F) == 3 && port->sig == SATA_SIG_ATA) {
                     active_port = port;
@@ -578,10 +561,35 @@ static Value make_obj_val(void* o) {
 }
 
 /* -------------------------------------------------------------
-   Flat Filesystem Structure definitions
+   Multiboot Struct Definitions
+   ------------------------------------------------------------- */
+#define MULTIBOOT_MAGIC 0x2BADB002
+
+typedef struct {
+    uint32_t mod_start;
+    uint32_t mod_end;
+    uint32_t string;
+    uint32_t reserved;
+} multiboot_module_t;
+
+typedef struct {
+    uint32_t flags;
+    uint32_t mem_lower;
+    uint32_t mem_upper;
+    uint32_t boot_device;
+    uint32_t cmdline;
+    uint32_t mods_count;
+    uint32_t mods_addr;
+} multiboot_info_t;
+
+uint32_t global_multiboot_magic = 0;
+uint32_t global_multiboot_addr = 0;
+
+/* -------------------------------------------------------------
+   Flat Native Filesystem Structure definitions
    ------------------------------------------------------------- */
 
-#define MAX_FILES 12
+#define MAX_FILES 24
 
 typedef struct {
     char filename[32];
@@ -591,13 +599,116 @@ typedef struct {
 
 typedef struct {
     FileEntry entries[MAX_FILES];
-    uint8_t padding[32];
+    uint8_t padding[256];
 } DirectoryTable;
 
 /* Static DMA Arrays to securely lock SATA communications out of the CPU stack */
 static char dma_sector_buffer[512] __attribute__((aligned(16)));
 static DirectoryTable dma_dir_table __attribute__((aligned(16)));
 static char dma_script_buffer[65536] __attribute__((aligned(16)));
+
+typedef struct {
+    char filename[32];
+    char* buffer;
+    size_t size;
+    size_t capacity;
+    int is_write;
+} ActiveFile;
+
+static ActiveFile open_file;
+
+/* Real Native Easec VM file mapping directly to Physical SATA Layout */
+FILE* fopen(const char* filename, const char* mode) {
+    if (!active_port) return NULL;
+    memset(&open_file, 0, sizeof(ActiveFile));
+    strncpy(open_file.filename, filename, 31);
+    
+    if (strcmp(mode, "w") == 0 || strcmp(mode, "wb") == 0) {
+        open_file.is_write = 1;
+        open_file.capacity = 4096; 
+        open_file.buffer = malloc(open_file.capacity);
+        if (!open_file.buffer) return NULL;
+        memset(open_file.buffer, 0, open_file.capacity);
+        open_file.size = 0;
+        return (FILE*)&open_file;
+    }
+    return NULL;
+}
+
+size_t fwrite(const void* ptr, size_t size, size_t nmemb, FILE* stream) {
+    ActiveFile* f = (ActiveFile*)stream;
+    if (!f || !f->is_write) return 0;
+    
+    size_t bytes_to_write = size * nmemb;
+    if (f->size + bytes_to_write > f->capacity) bytes_to_write = f->capacity - f->size;
+    memcpy(f->buffer + f->size, ptr, bytes_to_write);
+    f->size += bytes_to_write;
+    return bytes_to_write / size;
+}
+
+int fclose(FILE* stream) {
+    ActiveFile* f = (ActiveFile*)stream;
+    if (!f) return -1;
+    
+    if (f->is_write && f->size > 0) {
+        memset(&dma_dir_table, 0, sizeof(DirectoryTable));
+        if (!ahci_read(active_port, 2, 0, 2, (uint16_t*)&dma_dir_table)) return -1;
+        
+        int slot = -1;
+        uint32_t next_free_lba = 15; // User file writes get mapped dynamically
+        
+        for (int i = 0; i < MAX_FILES; i++) {
+            if (strcmp(dma_dir_table.entries[i].filename, f->filename) == 0) { slot = i; break; }
+            if (dma_dir_table.entries[i].start_lba > 0) {
+                uint32_t end_lba = dma_dir_table.entries[i].start_lba + (dma_dir_table.entries[i].file_size + 511) / 512;
+                if (end_lba > next_free_lba) next_free_lba = end_lba;
+            }
+        }
+        
+        if (slot == -1) {
+            for (int i = 0; i < MAX_FILES; i++) {
+                if (dma_dir_table.entries[i].start_lba == 0) {
+                    slot = i; dma_dir_table.entries[i].start_lba = next_free_lba; break;
+                }
+            }
+        }
+        
+        if (slot == -1) { print_string("Error: SATA directory limit.\n"); return -1; }
+        
+        strncpy(dma_dir_table.entries[slot].filename, f->filename, 31);
+        dma_dir_table.entries[slot].file_size = f->size;
+        
+        uint32_t sectors_to_write = (f->size + 511) / 512;
+        
+        for (uint32_t s = 0; s < sectors_to_write; s++) {
+            memset(dma_sector_buffer, 0, 512);
+            size_t chunk = (f->size - s * 512) > 512 ? 512 : (f->size - s * 512);
+            memcpy(dma_sector_buffer, f->buffer + s * 512, chunk);
+            ahci_write(active_port, dma_dir_table.entries[slot].start_lba + s, 0, 1, (uint16_t*)dma_sector_buffer);
+        }
+        ahci_write(active_port, 2, 0, 2, (uint16_t*)&dma_dir_table); // Write 2 sectors to cover up to 24 files
+    }
+    return 0;
+}
+
+int remove(const char* filename) {
+    if (!active_port) return -1;
+    memset(&dma_dir_table, 0, sizeof(DirectoryTable));
+    if (!ahci_read(active_port, 2, 0, 2, (uint16_t*)&dma_dir_table)) return -1;
+    
+    for (int i = 0; i < MAX_FILES; i++) {
+        if (strcmp(dma_dir_table.entries[i].filename, filename) == 0) {
+            memset(&dma_dir_table.entries[i], 0, sizeof(FileEntry));
+            if (ahci_write(active_port, 2, 0, 2, (uint16_t*)&dma_dir_table)) return 0; 
+            return -1;
+        }
+    }
+    return -1; 
+}
+
+/* -------------------------------------------------------------
+   Dynamic Multi-File Hard Drive Scanner & Installer
+   ------------------------------------------------------------- */
 
 int check_installation_state(HBAPort* port) {
     memset(dma_sector_buffer, 0, 512);
@@ -607,15 +718,11 @@ int check_installation_state(HBAPort* port) {
     return 0; 
 }
 
-/* -------------------------------------------------------------
-   Dynamic Hard Drive Scanning Execution (run_easec)
-   ------------------------------------------------------------- */
-
 void run_easec(const char* filename) {
     if (!active_port) { print_string("Error: Active AHCI port missing.\n"); return; }
 
     memset(&dma_dir_table, 0, sizeof(DirectoryTable));
-    if (!ahci_read(active_port, 2, 0, 1, (uint16_t*)&dma_dir_table)) { print_string("Error: Failed to fetch storage directory.\n"); return; }
+    if (!ahci_read(active_port, 2, 0, 2, (uint16_t*)&dma_dir_table)) { print_string("Error: Failed to fetch storage directory.\n"); return; }
 
     FileEntry* target_entry = NULL;
     for (int i = 0; i < MAX_FILES; i++) {
@@ -639,8 +746,22 @@ void run_easec(const char* filename) {
     init_vm();
     void* global_env = create_env(NULL);
     
-    const char* scan_results = "Dynamic modules detected on SATA disk:\n  list\n  pattern\n  game\n";
-    void* list_str = allocate_string(scan_results, strlen(scan_results));
+    // Scan real mapped directory on the fly
+    char file_list_buffer[1024];
+    memset(file_list_buffer, 0, sizeof(file_list_buffer));
+    strcpy(file_list_buffer, "Files mapped on SATA drive:\n");
+    int count = 0;
+    for (int i = 0; i < MAX_FILES; i++) {
+        if (dma_dir_table.entries[i].start_lba > 0) {
+            char line[128];
+            snprintf(line, sizeof(line), "  - %-16s [LBA: %4d]\n", dma_dir_table.entries[i].filename, dma_dir_table.entries[i].start_lba);
+            strcat(file_list_buffer, line);
+            count++;
+        }
+    }
+    if (count == 0) strcat(file_list_buffer, "  (Directory is empty)\n");
+
+    void* list_str = allocate_string(file_list_buffer, strlen(file_list_buffer));
     env_define(global_env, "sys_list_dir", make_obj_val(list_str));
 
     run_script(dma_script_buffer, global_env);
@@ -650,44 +771,58 @@ void run_install() {
     print_string("Initializing physical installation onto hard disk...\n");
     if (!active_port) { print_string("Error: Compatible AHCI SATA controller not detected.\n"); return; }
     
+    multiboot_info_t* mbi = (multiboot_info_t*)global_multiboot_addr;
+    if (global_multiboot_magic != MULTIBOOT_MAGIC || !(mbi->flags & (1 << 3))) {
+        print_string("Error: No installation modules provided by ISO bootloader.\n");
+        return;
+    }
+    
     memset(dma_sector_buffer, 0, 512); memcpy(dma_sector_buffer, "INPSOS_INSTALLED", 16);
     if (!ahci_write(active_port, 1, 0, 1, (uint16_t*)dma_sector_buffer)) { 
         print_string("Error: Local layout boot sector write failure.\n"); 
-        print_string("Hint: Make sure a secondary writable SATA Hard Disk is attached to the VM!\n");
         return; 
     }
 
     memset(&dma_dir_table, 0, sizeof(DirectoryTable));
+    multiboot_module_t* mods = (multiboot_module_t*)mbi->mods_addr;
+    uint32_t current_lba = 4; // Start laying out files at LBA 4
 
-    const char* list_code = "say \"=== inpsos SATA Storage Explorer ===\"\nsay \"Reading file allocation sectors on drive Port 0...\"\nsay \"Local Easec script files:\"\nsay \"  - list\"\nsay \"  - pattern\"\nsay \"  - game\"\n";
-    const char* pattern_code = "say \"=== Asterisk Pattern Loop ===\"\nvar line \"*\"\nrepeat 5 [\nsay line\nline = line + \"*\"\n]\n";
-    const char* game_code = "say \"=== Cave Adventure ===\"\nsay \"You find yourself inside a dark, humid cave. Left or Right?\"\nvar path get\nif path == \"left\" [\nsay \"You discovered a cache of physical gold bullion. You win!\"\n] else [\nsay \"A modular partition collapsed on you. Game over.\"\n]\n";
+    // Iterate through every .easec file dynamically detected and mapped by GRUB
+    for (uint32_t i = 0; i < mbi->mods_count && i < MAX_FILES; i++) {
+        char* mod_string = (char*)mods[i].string;
+        uint32_t size = mods[i].mod_end - mods[i].mod_start;
+        char* content = (char*)mods[i].mod_start;
 
-    strcpy(dma_dir_table.entries[0].filename, "list"); 
-    dma_dir_table.entries[0].start_lba = 3; 
-    dma_dir_table.entries[0].file_size = strlen(list_code);
-    
-    strcpy(dma_dir_table.entries[1].filename, "pattern"); 
-    dma_dir_table.entries[1].start_lba = 4; 
-    dma_dir_table.entries[1].file_size = strlen(pattern_code);
-    
-    strcpy(dma_dir_table.entries[2].filename, "game"); 
-    dma_dir_table.entries[2].start_lba = 5; 
-    dma_dir_table.entries[2].file_size = strlen(game_code);
+        char name[32];
+        memset(name, 0, sizeof(name));
+        char* last_slash = strrchr(mod_string, '/');
+        char* base = last_slash ? last_slash + 1 : mod_string;
+        
+        int j = 0;
+        while (base[j] && base[j] != '.' && base[j] != ' ' && j < 31) {
+            name[j] = base[j];
+            j++;
+        }
 
-    if (!ahci_write(active_port, 2, 0, 1, (uint16_t*)&dma_dir_table)) { print_string("Error: Directory Table write aborted.\n"); return; }
+        strcpy(dma_dir_table.entries[i].filename, name);
+        dma_dir_table.entries[i].start_lba = current_lba;
+        dma_dir_table.entries[i].file_size = size;
 
-    memset(dma_sector_buffer, 0, 512); strcpy(dma_sector_buffer, list_code);
-    ahci_write(active_port, 3, 0, 1, (uint16_t*)dma_sector_buffer);
+        uint32_t sectors = (size + 511) / 512;
+        for (uint32_t s = 0; s < sectors; s++) {
+            memset(dma_sector_buffer, 0, 512);
+            size_t chunk = (size - s * 512) > 512 ? 512 : (size - s * 512);
+            memcpy(dma_sector_buffer, content + s * 512, chunk);
+            ahci_write(active_port, current_lba + s, 0, 1, (uint16_t*)dma_sector_buffer);
+        }
+        current_lba += sectors;
+        printf("Flushed file: %s (LBA Block %d)\n", name, dma_dir_table.entries[i].start_lba);
+    }
 
-    memset(dma_sector_buffer, 0, 512); strcpy(dma_sector_buffer, pattern_code);
-    ahci_write(active_port, 4, 0, 1, (uint16_t*)dma_sector_buffer);
-
-    memset(dma_sector_buffer, 0, 512); strcpy(dma_sector_buffer, game_code);
-    ahci_write(active_port, 5, 0, 1, (uint16_t*)dma_sector_buffer);
+    if (!ahci_write(active_port, 2, 0, 2, (uint16_t*)&dma_dir_table)) { print_string("Error: Directory Table write aborted.\n"); return; }
 
     print_string("INPSOS installation onto SATA partitions completed.\n");
-    print_string("Please detach your installation ISO and reboot the computer.\n");
+    print_string("Please detach your installation media and reboot computer.\n");
 }
 
 /* -------------------------------------------------------------
@@ -708,7 +843,9 @@ void enable_fpu() {
    ------------------------------------------------------------- */
 
 void kernel_main(uint32_t magic, uint32_t addr) {
-    (void)magic; (void)addr;
+    global_multiboot_magic = magic;
+    global_multiboot_addr = addr;
+
     __asm__ volatile("cli");
     enable_fpu(); 
 
@@ -724,11 +861,9 @@ void kernel_main(uint32_t magic, uint32_t addr) {
 
     if (!installed) {
         print_string("STATUS: Running from Bootable Live ISO.\n");
-        print_string("Warning: All operating system features are locked.\n");
         print_string("Please run command 'install' to setup onto local hardware.\n\n");
     } else {
         print_string("STATUS: Booted from Physical Drive.\n");
-        print_string("All system operations are unlocked.\n\n");
     }
 
     while (1) {
@@ -740,8 +875,7 @@ void kernel_main(uint32_t magic, uint32_t addr) {
             run_install();
         } else {
             if (!installed) {
-                print_string("Error: Command locked. This system command is disabled on Live Media.\n");
-                print_string("Please partition disk by running the 'install' utility.\n");
+                print_string("Please run command 'install' to setup onto local hardware.\n");
             } else {
                 if (strcmp(command_buf, "clear") == 0) clear_screen();
                 else if (strcmp(command_buf, "restart") == 0) sys_reboot();
@@ -749,7 +883,7 @@ void kernel_main(uint32_t magic, uint32_t addr) {
                 else {
                     if (active_port) {
                         memset(&dma_dir_table, 0, sizeof(DirectoryTable));
-                        if (ahci_read(active_port, 2, 0, 1, (uint16_t*)&dma_dir_table)) {
+                        if (ahci_read(active_port, 2, 0, 2, (uint16_t*)&dma_dir_table)) {
                             int found = 0;
                             for (int i = 0; i < MAX_FILES; i++) {
                                 if (strcmp(dma_dir_table.entries[i].filename, command_buf) == 0) {

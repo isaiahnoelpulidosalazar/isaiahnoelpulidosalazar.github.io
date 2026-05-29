@@ -1,8 +1,3 @@
-name: Build inpsos
-
-on:
-  workflow_dispatch:
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -21,15 +16,26 @@ jobs:
         cd os
         make
 
-    - name: Construct GRUB Directory Layout
+    - name: Construct GRUB Layout with Dynamic Modules
       run: |
         mkdir -p iso/boot/grub
         cp os/inpsos.bin iso/boot/
         mkdir -p iso/scripts
         cp os/*.easec iso/scripts/
+        
+        # Build grub.cfg and dynamically append the module imports
         cat << 'EOF' > iso/boot/grub/grub.cfg
         menuentry "inpsos" {
             multiboot /boot/inpsos.bin
+        EOF
+        
+        for f in os/*.easec; do
+            filename=$(basename "$f")
+            name="${filename%.*}"
+            echo "    module /scripts/$filename $name" >> iso/boot/grub/grub.cfg
+        done
+        
+        cat << 'EOF' >> iso/boot/grub/grub.cfg
             boot
         }
         EOF
