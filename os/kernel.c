@@ -1,18 +1,16 @@
 #include "freestanding.h"
 
-/* -------------------------------------------------------------
-   Standard Library Fallback Implementations
-   ------------------------------------------------------------- */
-
+// Define stream mocks
 FILE* stderr = (FILE*)1;
 FILE* stdin  = (FILE*)2;
 FILE* stdout = (FILE*)3;
 
-uint8_t kheap[2 * 1024 * 1024]; // 2MB kernel heap space
+// Heap configuration
+uint8_t kheap[2 * 1024 * 1024]; 
 size_t heap_offset = 0;
 
 void* kmalloc(size_t size) {
-    size = (size + 3) & ~3; // 4-byte alignment
+    size = (size + 3) & ~3;
     if (heap_offset + size > sizeof(kheap)) return NULL;
     void* ptr = &kheap[heap_offset];
     heap_offset += size;
@@ -153,7 +151,46 @@ double atof(const char* s) {
 }
 
 /* -------------------------------------------------------------
-   VGA Layout, Console & Keyboard I/O Drivers
+   Standard Formatting and Stream Function Mocks
+   ------------------------------------------------------------- */
+
+FILE* fopen(const char* filename, const char* mode) {
+    (void)filename; (void)mode;
+    return NULL;
+}
+
+int fclose(FILE* stream) {
+    (void)stream;
+    return 0;
+}
+
+size_t fread(void* ptr, size_t size, size_t nmemb, FILE* stream) {
+    (void)ptr; (void)size; (void)nmemb; (void)stream;
+    return 0;
+}
+
+size_t fwrite(const void* ptr, size_t size, size_t nmemb, FILE* stream) {
+    (void)ptr; (void)size; (void)nmemb; (void)stream;
+    return 0;
+}
+
+int fseek(FILE* stream, long offset, int whence) {
+    (void)stream; (void)offset; (void)whence;
+    return 0;
+}
+
+long ftell(FILE* stream) {
+    (void)stream;
+    return 0;
+}
+
+int remove(const char* filename) {
+    (void)filename;
+    return 0;
+}
+
+/* -------------------------------------------------------------
+   VGA Output and Formatting Drivers
    ------------------------------------------------------------- */
 
 #define VGA_WIDTH 80
@@ -281,11 +318,34 @@ int printf(const char* format, ...) {
     return ret;
 }
 
+int fprintf(FILE* stream, const char* format, ...) {
+    (void)stream;
+    char buf[1024];
+    va_list args;
+    va_start(args, format);
+    int ret = vsnprintf(buf, sizeof(buf), format, args);
+    va_end(args);
+    print_string(buf);
+    return ret;
+}
+
+int vfprintf(FILE* stream, const char* format, va_list args) {
+    (void)stream;
+    char buf[1024];
+    int ret = vsnprintf(buf, sizeof(buf), format, args);
+    print_string(buf);
+    return ret;
+}
+
 int fputs(const char* str, FILE* stream) {
     (void)stream;
     print_string(str);
     return 0;
 }
+
+/* -------------------------------------------------------------
+   Keyboard and System Control Register Interfaces
+   ------------------------------------------------------------- */
 
 uint8_t inb(uint16_t port) {
     uint8_t ret;
@@ -295,6 +355,10 @@ uint8_t inb(uint16_t port) {
 
 void outb(uint16_t port, uint8_t val) {
     __asm__ volatile("outb %0, %1" : : "a"(val), "Nd"(port));
+}
+
+void outw(uint16_t port, uint16_t val) {
+    __asm__ volatile("outw %0, %1" : : "a"(val), "Nd"(port));
 }
 
 char keyboard_get_char() {
@@ -330,8 +394,13 @@ char* fgets_freestanding(char* str, int num) {
     return str;
 }
 
+char* fgets(char* str, int num, FILE* stream) {
+    (void)stream;
+    return fgets_freestanding(str, num);
+}
+
 void sys_reboot() { outb(0x64, 0xFE); }
-void sys_shutdown() { outb(0x604, 0x2000); }
+void sys_shutdown() { outw(0x604, 0x2000); } // 16-bit write resolves warning
 
 /* -------------------------------------------------------------
    AHCI SATA Native Storage Driver Implementation
@@ -510,7 +579,7 @@ int ahci_write(HBAPort *port, uint32_t startl, uint32_t starth, uint32_t count, 
 }
 
 /* -------------------------------------------------------------
-   Timer Fallback Utilities
+   Timing Fallback Utilities
    ------------------------------------------------------------- */
 
 long long get_time_ms() {

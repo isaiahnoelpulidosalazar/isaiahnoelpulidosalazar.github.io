@@ -63,6 +63,7 @@ typedef enum {
 
 int allow_implicit_call = 1;
 
+#ifndef BAREMETAL
 long long get_time_ms() {
 #ifdef _MSC_VER
     struct __timeb64 timebuffer;
@@ -85,6 +86,7 @@ void sleep_ms(long long ms) {
     nanosleep(&ts, NULL);
 #endif
 }
+#endif
 
 size_t bytes_allocated = 0;
 
