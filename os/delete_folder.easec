@@ -1,0 +1,4 @@
+say "Enter directory name to delete:"
+var dir get
+sys_rmdir dir
+say "Folder deleted."

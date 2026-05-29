@@ -1,0 +1,7 @@
+say "Starting installation..."
+var status sys_init_ahci_install
+if status == true [
+    say "System has been written to the local storage."
+] else [
+    say "Error: Local AHCI storage controller not responding."
+]

@@ -7,36 +7,39 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    defaults:
-      run:
-        working-directory: os
-
     steps:
-    - name: Checkout repository
+    - name: Checkout Source Code
       uses: actions/checkout@v4
 
-    - name: Install build dependencies
+    - name: Install Toolchain and ISO Utilities
       run: |
         sudo apt-get update
-        sudo apt-get install -y build-essential gcc-multilib qemu-utils xorriso
+        sudo apt-get install -y nasm xorriso grub-pc-bin grub-common gcc-multilib make
 
-    - name: Compile and build inpsos
-      run: make
+    - name: Compile OS Binary
+      run: |
+        cd os
+        make
 
-    - name: Upload ISO artifact
+    - name: Construct GRUB Directory Layout
+      run: |
+        mkdir -p iso/boot/grub
+        cp os/inpsos.bin iso/boot/
+        mkdir -p iso/scripts
+        cp os/*.easec iso/scripts/
+        cat << 'EOF' > iso/boot/grub/grub.cfg
+        menuentry "inpsos" {
+            multiboot /boot/inpsos.bin
+            boot
+        }
+        EOF
+
+    - name: Assemble Bootable ISO Image
+      run: |
+        grub-mkrescue -o inpsos.iso iso
+
+    - name: Archive ISO Output
       uses: actions/upload-artifact@v4
       with:
-        name: inpsos-iso
-        path: os/inpsos.iso
-
-    - name: Upload raw IMG artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: inpsos-img
-        path: os/inpsos.img
-
-    - name: Upload VirtualBox VDI artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: inpsos-vdi
-        path: os/inpsos.vdi
+        name: inpsos-distribution-iso
+        path: inpsos.iso

@@ -1,0 +1,2 @@
+say "Rebooting inpsos..."
+sys_reboot

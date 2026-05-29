@@ -1,0 +1,4 @@
+say "Enter file name to delete:"
+var name get
+file delete name
+say "File deleted."

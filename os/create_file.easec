@@ -1,0 +1,6 @@
+say "Enter new file name:"
+var name get
+say "Enter file content:"
+var content get
+file create name content
+say "File creation complete."

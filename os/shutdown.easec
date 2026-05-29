@@ -1,0 +1,2 @@
+say "Powering off..."
+sys_poweroff
