@@ -8,11 +8,11 @@ FILE* stderr = (FILE*)1;
 FILE* stdin  = (FILE*)2;
 FILE* stdout = (FILE*)3;
 
-uint8_t kheap[16 * 1024 * 1024]; // 16MB kernel heap
+uint8_t kheap[16 * 1024 * 1024]; 
 size_t heap_offset = 0;
 
 void* kmalloc(size_t size) {
-    size = (size + 3) & ~3; // 4-byte alignment
+    size = (size + 3) & ~3; 
     if (heap_offset + sizeof(size_t) + size > sizeof(kheap)) return NULL;
     
     size_t* header = (size_t*)&kheap[heap_offset];
@@ -36,7 +36,7 @@ void* krealloc(void* ptr, size_t new_size) {
 }
 
 void* malloc(size_t size) { return kmalloc(size); }
-void free(void* ptr) { (void)ptr; } // Bump allocator ignores free
+void free(void* ptr) { (void)ptr; } 
 void* realloc(void* ptr, size_t size) { return krealloc(ptr, size); }
 
 void* memset(void* dest, int val, size_t len) {
@@ -255,7 +255,7 @@ int vsnprintf(char* str, size_t size, const char* format, va_list args) {
                 char num_buf[32]; itoa(val, num_buf, 10);
                 char* n = num_buf; while (*n && written < size - 1) str[written++] = *n++;
             } else if (*format == 'g' || *format == 'f') {
-                double val = va_arg(args, double); // Safe now that FPU is enabled natively
+                double val = va_arg(args, double); 
                 long long int_part = (long long)val;
                 char num_buf[64]; itoa(int_part, num_buf, 10);
                 char* n = num_buf; while (*n && written < size - 1) str[written++] = *n++;
@@ -328,7 +328,7 @@ char* fgets_freestanding(char* str, int num) {
             str[i++] = c;
         }
     }
-    str[i] = '\0'; // Guaranteed null termination to prevent parser overflows
+    str[i] = '\0'; 
     return str;
 }
 
@@ -394,16 +394,16 @@ int ahci_read(HBAPort *port, uint32_t startl, uint32_t starth, uint32_t count, u
     cmdfis[10] = (uint8_t)(starth >> 8);
     cmdfis[12] = count & 0xFF; cmdfis[13] = (count >> 8) & 0xFF;
 
-    while ((port->tfd & (AHCI_DEV_BUSY | AHCI_DEV_DRQ)) && spin < 1000000) spin++;
-    if (spin == 1000000) return 0;
+    while ((port->tfd & (AHCI_DEV_BUSY | AHCI_DEV_DRQ)) && spin < 10000000) spin++;
+    if (spin == 10000000) { print_string("AHCI: Drive Busy Timeout\n"); return 0; }
     
     port->ci = 1 << slot;
 
     int wait = 0;
     while (1) {
         if ((port->ci & (1 << slot)) == 0) break;
-        if (port->is & (1 << 30)) return 0;
-        if (wait++ > 50000000) return 0;
+        if (port->is & (1 << 30)) { print_string("AHCI: Task File Error (Read Failed)\n"); return 0; }
+        if (wait++ > 50000000) { print_string("AHCI: Execution Timeout\n"); return 0; }
     }
     return 1;
 }
@@ -426,16 +426,16 @@ int ahci_write(HBAPort *port, uint32_t startl, uint32_t starth, uint32_t count, 
     cmdfis[10] = (uint8_t)(starth >> 8);
     cmdfis[12] = count & 0xFF; cmdfis[13] = (count >> 8) & 0xFF;
 
-    while ((port->tfd & (AHCI_DEV_BUSY | AHCI_DEV_DRQ)) && spin < 1000000) spin++;
-    if (spin == 1000000) return 0;
+    while ((port->tfd & (AHCI_DEV_BUSY | AHCI_DEV_DRQ)) && spin < 10000000) spin++;
+    if (spin == 10000000) { print_string("AHCI: Drive Busy Timeout\n"); return 0; }
 
     port->ci = 1 << slot;
 
     int wait = 0;
     while (1) {
         if ((port->ci & (1 << slot)) == 0) break;
-        if (port->is & (1 << 30)) return 0;
-        if (wait++ > 50000000) return 0;
+        if (port->is & (1 << 30)) { print_string("AHCI: Task File Error (Is Drive Read-Only?)\n"); return 0; }
+        if (wait++ > 50000000) { print_string("AHCI: Execution Timeout\n"); return 0; }
     }
     return 1;
 }
@@ -490,10 +490,20 @@ void find_ahci_device() {
     print_string("Probing PCI Bus for AHCI storage controllers...\n");
     HBAMem* hba_mem = (HBAMem*)get_ahci_base(); 
     if (hba_mem) {
+        hba_mem->ghc |= (1 << 31); // AE (AHCI Enable Globally)
         uint32_t pi = hba_mem->pi;
+        
         for (int i = 0; i < 32; i++) {
             if (pi & (1 << i)) {
                 HBAPort* port = &hba_mem->ports[i];
+                
+                // Force Spin-up and Power-On Native Drive
+                if (!(port->cmd & (1 << 1))) port->cmd |= (1 << 1); // POD
+                if (!(port->cmd & (1 << 2))) port->cmd |= (1 << 2); // SUD
+                for(volatile int delay=0; delay<100000; delay++); // Spin-up delay
+                
+                port->serr = 0xFFFFFFFF; // Clear any pending boot errors
+
                 if ((port->ssts & 0x0F) == 3 && port->sig == SATA_SIG_ATA) {
                     active_port = port;
                     
@@ -617,7 +627,7 @@ void run_easec(const char* filename) {
     if (!target_entry) { printf("Error: Module script '%s' not found.\n", filename); return; }
 
     uint32_t sectors_to_read = (target_entry->file_size + 511) / 512;
-    if (sectors_to_read * 512 > sizeof(dma_script_buffer)) { print_string("Error: Script size exceeds system memory constraints.\n"); return; }
+    if (sectors_to_read * 512 > sizeof(dma_script_buffer)) { print_string("Error: Script size exceeds memory.\n"); return; }
 
     memset(dma_script_buffer, 0, sizeof(dma_script_buffer));
     if (!ahci_read(active_port, target_entry->start_lba, 0, sectors_to_read, (uint16_t*)dma_script_buffer)) {
@@ -641,7 +651,11 @@ void run_install() {
     if (!active_port) { print_string("Error: Compatible AHCI SATA controller not detected.\n"); return; }
     
     memset(dma_sector_buffer, 0, 512); memcpy(dma_sector_buffer, "INPSOS_INSTALLED", 16);
-    if (!ahci_write(active_port, 1, 0, 1, (uint16_t*)dma_sector_buffer)) { print_string("Error: Local layout boot sector write failure.\n"); return; }
+    if (!ahci_write(active_port, 1, 0, 1, (uint16_t*)dma_sector_buffer)) { 
+        print_string("Error: Local layout boot sector write failure.\n"); 
+        print_string("Hint: Make sure a secondary writable SATA Hard Disk is attached to the VM!\n");
+        return; 
+    }
 
     memset(&dma_dir_table, 0, sizeof(DirectoryTable));
 
@@ -673,7 +687,7 @@ void run_install() {
     ahci_write(active_port, 5, 0, 1, (uint16_t*)dma_sector_buffer);
 
     print_string("INPSOS installation onto SATA partitions completed.\n");
-    print_string("Please detach your installation media and reboot computer.\n");
+    print_string("Please detach your installation ISO and reboot the computer.\n");
 }
 
 /* -------------------------------------------------------------
@@ -683,10 +697,10 @@ void run_install() {
 void enable_fpu() {
     uint32_t cr0;
     __asm__ volatile("mov %%cr0, %0" : "=r"(cr0));
-    cr0 &= ~(1 << 2); // Clear EM bit (Emulation)
-    cr0 |= (1 << 1);  // Set MP bit (Math Present)
+    cr0 &= ~(1 << 2); 
+    cr0 |= (1 << 1);  
     __asm__ volatile("mov %0, %%cr0" :: "r"(cr0));
-    __asm__ volatile("fninit"); // Initialize the FPU state natively
+    __asm__ volatile("fninit"); 
 }
 
 /* -------------------------------------------------------------
@@ -696,7 +710,7 @@ void enable_fpu() {
 void kernel_main(uint32_t magic, uint32_t addr) {
     (void)magic; (void)addr;
     __asm__ volatile("cli");
-    enable_fpu(); // Safely enables %g and double variable processing
+    enable_fpu(); 
 
     clear_screen();
     print_string("=========================================\n");
