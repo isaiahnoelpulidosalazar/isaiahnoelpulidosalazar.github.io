@@ -1,2 +1,2 @@
-say "Rebooting inpsos..."
-sys_reboot
+say "Restarting..."
+say "[SYS] RESTART"

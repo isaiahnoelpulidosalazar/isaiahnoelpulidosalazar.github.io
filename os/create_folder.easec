@@ -1,4 +1,0 @@
-say "Enter directory name to create:"
-var dir get
-sys_mkdir dir
-say "Folder structured."

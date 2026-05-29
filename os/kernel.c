@@ -1,18 +1,14 @@
 #include "freestanding.h"
 
-/* -------------------------------------------------------------
-   Standard Library Fallback Implementations
-   ------------------------------------------------------------- */
-
 FILE* stderr = (FILE*)1;
 FILE* stdin  = (FILE*)2;
 FILE* stdout = (FILE*)3;
 
-uint8_t kheap[16 * 1024 * 1024]; // 16MB kernel heap
+uint8_t kheap[16 * 1024 * 1024]; 
 size_t heap_offset = 0;
 
 void* kmalloc(size_t size) {
-    size = (size + 3) & ~3; // 4-byte alignment
+    size = (size + 3) & ~3; 
     if (heap_offset + sizeof(size_t) + size > sizeof(kheap)) return NULL;
     
     size_t* header = (size_t*)&kheap[heap_offset];
@@ -161,10 +157,6 @@ double atof(const char* s) {
     return res * factor * sign;
 }
 
-/* -------------------------------------------------------------
-   Standard Formatting and Stream Function Mocks
-   ------------------------------------------------------------- */
-
 size_t fread(void* ptr, size_t size, size_t nmemb, FILE* stream) {
     (void)ptr; (void)size; (void)nmemb; (void)stream;
     return 0;
@@ -179,10 +171,6 @@ long ftell(FILE* stream) {
     (void)stream;
     return 0;
 }
-
-/* -------------------------------------------------------------
-   VGA Output and Display Formatting Drivers
-   ------------------------------------------------------------- */
 
 #define VGA_WIDTH 80
 #define VGA_HEIGHT 25
@@ -231,6 +219,18 @@ void print_char(char c) {
 }
 
 void print_string(const char* str) {
+    if (strcmp(str, "[SYS] CLEAR\n") == 0 || strcmp(str, "[SYS] CLEAR") == 0) {
+        clear_screen();
+        return;
+    }
+    if (strcmp(str, "[SYS] RESTART\n") == 0 || strcmp(str, "[SYS] RESTART") == 0) {
+        sys_restart();
+        return;
+    }
+    if (strcmp(str, "[SYS] SHUTDOWN\n") == 0 || strcmp(str, "[SYS] SHUTDOWN") == 0) {
+        sys_shutdown();
+        return;
+    }
     while (*str) print_char(*str++);
 }
 
@@ -287,19 +287,11 @@ int fprintf(FILE* stream, const char* format, ...) { (void)stream; char buf[1024
 int vfprintf(FILE* stream, const char* format, va_list args) { (void)stream; char buf[1024]; int ret = vsnprintf(buf, sizeof(buf), format, args); print_string(buf); return ret; }
 int fputs(const char* str, FILE* stream) { (void)stream; print_string(str); return 0; }
 
-/* -------------------------------------------------------------
-   Hardware Port Communications
-   ------------------------------------------------------------- */
-
 uint8_t inb(uint16_t port) { uint8_t ret; __asm__ volatile("inb %1, %0" : "=a"(ret) : "Nd"(port)); return ret; }
 void outb(uint16_t port, uint8_t val) { __asm__ volatile("outb %0, %1" : : "a"(val), "Nd"(port)); }
 void outw(uint16_t port, uint16_t val) { __asm__ volatile("outw %0, %1" : : "a"(val), "Nd"(port)); }
 uint32_t inl(uint16_t port) { uint32_t ret; __asm__ volatile("inl %1, %0" : "=a"(ret) : "Nd"(port)); return ret; }
 void outl(uint16_t port, uint32_t val) { __asm__ volatile("outl %0, %1" : : "a"(val), "Nd"(port)); }
-
-/* -------------------------------------------------------------
-   Keyboard System Configuration
-   ------------------------------------------------------------- */
 
 char keyboard_get_char() {
     static const char scan_to_ascii[] = {
@@ -341,12 +333,8 @@ char* fgets_freestanding(char* str, int num) {
 
 char* fgets(char* str, int num, FILE* stream) { (void)stream; return fgets_freestanding(str, num); }
 
-void sys_reboot() { outb(0x64, 0xFE); }
+void sys_restart() { outb(0x64, 0xFE); }
 void sys_shutdown() { outw(0x604, 0x2000); }
-
-/* -------------------------------------------------------------
-   PCI AHCI Interface System & Storage Definitions
-   ------------------------------------------------------------- */
 
 #define SATA_SIG_ATA    0x00000101
 #define AHCI_DEV_BUSY   0x80
@@ -493,19 +481,18 @@ void find_ahci_device() {
     print_string("Probing PCI Bus for AHCI storage controllers...\n");
     HBAMem* hba_mem = (HBAMem*)get_ahci_base(); 
     if (hba_mem) {
-        hba_mem->ghc |= (1 << 31); // AE (AHCI Enable Globally)
+        hba_mem->ghc |= (1 << 31); 
         uint32_t pi = hba_mem->pi;
         
         for (int i = 0; i < 32; i++) {
             if (pi & (1 << i)) {
                 HBAPort* port = &hba_mem->ports[i];
                 
-                // Force Spin-up and Power-On Native Drive
-                if (!(port->cmd & (1 << 1))) port->cmd |= (1 << 1); // POD
-                if (!(port->cmd & (1 << 2))) port->cmd |= (1 << 2); // SUD
-                for(volatile int delay=0; delay<100000; delay++); // Spin-up delay
+                if (!(port->cmd & (1 << 1))) port->cmd |= (1 << 1); 
+                if (!(port->cmd & (1 << 2))) port->cmd |= (1 << 2); 
+                for(volatile int delay=0; delay<100000; delay++); 
                 
-                port->serr = 0xFFFFFFFF; // Clear any pending boot errors
+                port->serr = 0xFFFFFFFF; 
 
                 if ((port->ssts & 0x0F) == 3 && port->sig == SATA_SIG_ATA) {
                     active_port = port;
@@ -551,17 +538,9 @@ void find_ahci_device() {
     active_port = NULL;
 }
 
-/* -------------------------------------------------------------
-   Timing Fallback Utilities (DO NOT REMOVE)
-   ------------------------------------------------------------- */
-
 long long get_time_ms() { static long long mock_time = 0; return mock_time++; }
 void sleep_ms(long long ms) { for (volatile long long i = 0; i < ms * 10000; i++); }
 void exit(int status) { (void)status; print_string("\nKernel exited. System Halted.\n"); while (1) { __asm__ volatile("cli; hlt"); } }
-
-/* -------------------------------------------------------------
-   Easec VM Linkage Definitions
-   ------------------------------------------------------------- */
 
 typedef enum { VAL_NULL, VAL_BOOL, VAL_INT, VAL_FLOAT, VAL_OBJ } ValType;
 
@@ -580,9 +559,6 @@ static Value make_obj_val(void* o) {
     Value v; v.type = VAL_OBJ; v.as.obj = o; return v;
 }
 
-/* -------------------------------------------------------------
-   Multiboot Struct Definitions
-   ------------------------------------------------------------- */
 #define MULTIBOOT_MAGIC 0x2BADB002
 
 typedef struct {
@@ -605,10 +581,6 @@ typedef struct {
 uint32_t global_multiboot_magic = 0;
 uint32_t global_multiboot_addr = 0;
 
-/* -------------------------------------------------------------
-   Dynamic Multi-File Native Filesystem (Physical Disk Storage)
-   ------------------------------------------------------------- */
-
 #define MAX_FILES 24
 
 typedef struct {
@@ -622,7 +594,6 @@ typedef struct {
     uint8_t padding[256];
 } DirectoryTable;
 
-/* Static DMA Arrays to securely lock SATA communications out of the CPU stack */
 static char dma_sector_buffer[512] __attribute__((aligned(16)));
 static DirectoryTable dma_dir_table __attribute__((aligned(16)));
 static char dma_script_buffer[65536] __attribute__((aligned(16)));
@@ -637,7 +608,6 @@ typedef struct {
 
 static ActiveFile open_file;
 
-/* Real Native Easec VM file mapping directly to Physical SATA Layout */
 FILE* fopen(const char* filename, const char* mode) {
     if (!active_port) return NULL;
     memset(&open_file, 0, sizeof(ActiveFile));
@@ -675,7 +645,7 @@ int fclose(FILE* stream) {
         if (!ahci_read(active_port, 2, 0, 2, (uint16_t*)&dma_dir_table)) return -1;
         
         int slot = -1;
-        uint32_t next_free_lba = 15; // User file writes get mapped dynamically
+        uint32_t next_free_lba = 15; 
         
         for (int i = 0; i < MAX_FILES; i++) {
             if (strcmp(dma_dir_table.entries[i].filename, f->filename) == 0) { slot = i; break; }
@@ -707,7 +677,7 @@ int fclose(FILE* stream) {
             memcpy(temp_sector, f->buffer + s * 512, chunk);
             ahci_write(active_port, dma_dir_table.entries[slot].start_lba + s, 0, 1, (uint16_t*)temp_sector);
         }
-        ahci_write(active_port, 2, 0, 2, (uint16_t*)&dma_dir_table); // Write 2 sectors to cover up to 24 files
+        ahci_write(active_port, 2, 0, 2, (uint16_t*)&dma_dir_table); 
     }
     return 0;
 }
@@ -726,10 +696,6 @@ int remove(const char* filename) {
     }
     return -1; 
 }
-
-/* -------------------------------------------------------------
-   Dynamic Multi-File Hard Drive Scanner & Installer
-   ------------------------------------------------------------- */
 
 int check_installation_state(HBAPort* port) {
     memset(dma_sector_buffer, 0, 512);
@@ -767,7 +733,6 @@ void run_easec(const char* filename) {
     init_vm();
     void* global_env = create_env(NULL);
     
-    // Scan real mapped directory on the fly
     char file_list_buffer[1024];
     memset(file_list_buffer, 0, sizeof(file_list_buffer));
     strcpy(file_list_buffer, "Files mapped on SATA drive:\n");
@@ -781,34 +746,28 @@ void run_easec(const char* filename) {
         }
     }
     if (count == 0) strcat(file_list_buffer, "  (Directory is empty)\n");
-
     void* list_str = allocate_string(file_list_buffer, strlen(file_list_buffer));
     env_define(global_env, "sys_list_dir", make_obj_val(list_str));
-
     run_script(dma_script_buffer, global_env);
 }
 
 void run_install() {
     print_string("Initializing physical installation onto hard disk...\n");
     if (!active_port) { print_string("Error: Compatible AHCI SATA controller not detected.\n"); return; }
-    
     multiboot_info_t* mbi = (multiboot_info_t*)global_multiboot_addr;
     if (global_multiboot_magic != MULTIBOOT_MAGIC || !(mbi->flags & (1 << 3))) {
         print_string("Error: No installation modules provided by ISO bootloader.\n");
         return;
     }
-    
     memset(dma_sector_buffer, 0, 512); memcpy(dma_sector_buffer, "INPSOS_INSTALLED", 16);
     if (!ahci_write(active_port, 1, 0, 1, (uint16_t*)dma_sector_buffer)) { 
         print_string("Error: Local layout boot sector write failure.\n"); 
         return; 
     }
-
     memset(&dma_dir_table, 0, sizeof(DirectoryTable));
     multiboot_module_t* mods = (multiboot_module_t*)mbi->mods_addr;
-    uint32_t current_lba = 4; // Start laying out files at LBA 4
-
-    // Iterate through every .easec file dynamically detected and mapped by GRUB
+    uint32_t current_lba = 4; 
+    
     for (uint32_t i = 0; i < mbi->mods_count && i < MAX_FILES; i++) {
         char* mod_string = (char*)mods[i].string;
         uint32_t size = mods[i].mod_end - mods[i].mod_start;
@@ -846,10 +805,6 @@ void run_install() {
     print_string("Please detach your installation media and reboot computer.\n");
 }
 
-/* -------------------------------------------------------------
-   Critical CPU Initializers
-   ------------------------------------------------------------- */
-
 void enable_fpu() {
     uint32_t cr0;
     __asm__ volatile("mov %%cr0, %0" : "=r"(cr0));
@@ -858,10 +813,6 @@ void enable_fpu() {
     __asm__ volatile("mov %0, %%cr0" :: "r"(cr0));
     __asm__ volatile("fninit"); 
 }
-
-/* -------------------------------------------------------------
-   Main Shell Entry
-   ------------------------------------------------------------- */
 
 void kernel_main(uint32_t magic, uint32_t addr) {
     global_multiboot_magic = magic;
@@ -898,7 +849,6 @@ void kernel_main(uint32_t magic, uint32_t addr) {
             if (!installed) {
                 print_string("Please run command 'install' to setup onto local hardware.\n");
             } else {
-                // Command processing is fully driven dynamically off target LBA sectors
                 if (active_port) {
                     memset(&dma_dir_table, 0, sizeof(DirectoryTable));
                     if (ahci_read(active_port, 2, 0, 2, (uint16_t*)&dma_dir_table)) {
@@ -906,19 +856,16 @@ void kernel_main(uint32_t magic, uint32_t addr) {
                         for (int i = 0; i < MAX_FILES; i++) {
                             if (strcmp(dma_dir_table.entries[i].filename, command_buf) == 0) {
                                 run_easec(command_buf);
-                                found = 1; break;
+                                found = 1; 
+                                break;
                             }
                         }
                         if (!found && strlen(command_buf) > 0) {
-                            // Hardcoded kernel fallbacks for system utilities
-                            if (strcmp(command_buf, "clear") == 0) clear_screen();
-                            else if (strcmp(command_buf, "restart") == 0) sys_reboot();
-                            else if (strcmp(command_buf, "shutdown") == 0) sys_shutdown();
-                            else {
-                                printf("Error: Command or script file '%s' not recognized.\n", command_buf);
-                            }
+                            printf("Error: Command or script file '%s' not recognized on disk.\n", command_buf);
                         }
-                    } else print_string("Error: Could not read local file records from disk.\n");
+                    } else {
+                        print_string("Error: Could not read local file records from disk.\n");
+                    }
                 }
             }
         }

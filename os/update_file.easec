@@ -2,5 +2,5 @@ say "Enter file name:"
 var name get
 say "Enter file content:"
 var content get
-file create name content
-say "File created."
+file update name content
+say "File updated."

@@ -1,4 +1,0 @@
-say "Enter target path:"
-var target get
-sys_chdir target
-say "Workspace path updated."

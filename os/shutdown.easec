@@ -1,2 +1,2 @@
-say "Powering off..."
-sys_poweroff
+say "Shutting down..."
+say "[SYS] SHUTDOWN"
