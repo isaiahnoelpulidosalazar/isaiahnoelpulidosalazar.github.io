@@ -8,11 +8,11 @@ FILE* stderr = (FILE*)1;
 FILE* stdin  = (FILE*)2;
 FILE* stdout = (FILE*)3;
 
-uint8_t kheap[2 * 1024 * 1024]; // 2MB kernel heap space
+uint8_t kheap[2 * 1024 * 1024]; 
 size_t heap_offset = 0;
 
 void* kmalloc(size_t size) {
-    size = (size + 3) & ~3; // 4-byte alignment
+    size = (size + 3) & ~3; 
     if (heap_offset + size > sizeof(kheap)) return NULL;
     void* ptr = &kheap[heap_offset];
     heap_offset += size;
@@ -377,13 +377,18 @@ int ahci_read(HBAPort *port, uint32_t startl, uint32_t starth, uint32_t count, u
     cmdfis[10] = (uint8_t)(starth >> 8);
     cmdfis[12] = count & 0xFF; cmdfis[13] = (count >> 8) & 0xFF;
 
+    // Timeout loop for Device Busy state
     while ((port->tfd & (AHCI_DEV_BUSY | AHCI_DEV_DRQ)) && spin < 1000000) spin++;
     if (spin == 1000000) return 0;
+
     port->ci = 1 << slot;
 
+    // Timeout loop for Command Execution state
+    int wait = 0;
     while (1) {
         if ((port->ci & (1 << slot)) == 0) break;
         if (port->is & (1 << 30)) return 0;
+        if (wait++ > 5000000) return 0; // Prevent infinite hang
     }
     return 1;
 }
@@ -408,11 +413,14 @@ int ahci_write(HBAPort *port, uint32_t startl, uint32_t starth, uint32_t count, 
 
     while ((port->tfd & (AHCI_DEV_BUSY | AHCI_DEV_DRQ)) && spin < 1000000) spin++;
     if (spin == 1000000) return 0;
+
     port->ci = 1 << slot;
 
+    int wait = 0;
     while (1) {
         if ((port->ci & (1 << slot)) == 0) break;
         if (port->is & (1 << 30)) return 0;
+        if (wait++ > 5000000) return 0;
     }
     return 1;
 }
@@ -446,13 +454,12 @@ void* get_ahci_base() {
             
             if (class_code == 0x01 && subclass == 0x06 && prog_if == 0x01) {
                 uint32_t bar5 = pci_config_read(bus, slot, 0, 0x24);
-                if ((bar5 & 0xFFFFFFF0) == 0) {
-                    pci_config_write(bus, slot, 0, 0x24, 0xFEB00000);
-                    bar5 = 0xFEB00000;
-                }
+                uint32_t ahci_address = bar5 & 0xFFFFFFF0;
+                if (ahci_address == 0) continue; // Skip if BIOS failed to assign memory hole
+
                 uint32_t cmd = pci_config_read(bus, slot, 0, 0x04);
-                pci_config_write(bus, slot, 0, 0x04, cmd | 0x06); 
-                return (void*)(bar5 & 0xFFFFFFF0);
+                pci_config_write(bus, slot, 0, 0x04, cmd | 0x02 | 0x04); // Enable Memory Space & Bus Master
+                return (void*)ahci_address;
             }
         }
     }
@@ -462,6 +469,7 @@ void* get_ahci_base() {
 HBAPort* active_port = NULL;
 
 void find_ahci_device() {
+    print_string("Probing PCI Bus for AHCI controllers...\n");
     HBAMem* hba_mem = (HBAMem*)get_ahci_base(); 
     if (hba_mem) {
         uint32_t pi = hba_mem->pi;
@@ -470,10 +478,15 @@ void find_ahci_device() {
                 HBAPort* port = &hba_mem->ports[i];
                 if ((port->ssts & 0x0F) == 3 && port->sig == SATA_SIG_ATA) {
                     active_port = port;
+                    
                     port->cmd &= ~(1 << 0);
                     port->cmd &= ~(1 << 4);
-                    while (port->cmd & (1 << 14));
-                    while (port->cmd & (1 << 15));
+                    
+                    // Added safety timeouts for command flushing
+                    int spin = 0;
+                    while ((port->cmd & (1 << 14)) && spin++ < 1000000);
+                    spin = 0;
+                    while ((port->cmd & (1 << 15)) && spin++ < 1000000);
                     
                     void* clb_mem = malloc(2048);
                     uintptr_t clb_align = (((uintptr_t)clb_mem + 1023) & ~1023);
@@ -495,11 +508,13 @@ void find_ahci_device() {
                     }
                     port->cmd |= (1 << 4);
                     port->cmd |= (1 << 0);
+                    print_string("Storage device mapped successfully.\n");
                     return;
                 }
             }
         }
     }
+    print_string("No active SATA interface detected.\n");
     active_port = NULL;
 }
 
