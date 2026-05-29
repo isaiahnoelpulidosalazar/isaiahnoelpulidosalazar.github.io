@@ -1,8 +1,7 @@
 import "datetime.modec" as dt
 
-say "--- EaseC DateTime Demo ---"
+say "--- easec datetime demo ---"
 
-note 1. Fetching formatted UTC strings
 var current_date dt.get_today_date
 var current_time dt.get_today_time
 var current_iso dt.get_today_iso
@@ -17,12 +16,11 @@ say "Full ISO timestamp:"
 say current_iso
 say ""
 
-note 2. Fetching precise millisecond stamps and calculating differences
 say "Sleeping for 1.5 seconds..."
 var t1 time get
 time sleep 1500
 var t2 time get
 
 var diff t2 - t1
-say "Precision elapsed time (ms):"
+say "Elapsed time (ms):"
 say diff

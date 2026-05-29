@@ -1,16 +1,12 @@
 note [
-    =========================================
-    EaseC Language Demonstration Script
-    =========================================
+    easec demo
 ]
 
-note Capture the start time in milliseconds
 var start_time time get
 
-say "--- EaseC Demo Started ---"
+say "--- easec demo ---"
 say ""
 
-note --- 1. Variables & Types ---
 say "> 1. Variables"
 var text greeting "Hello, World!"
 var number x 10
@@ -22,21 +18,17 @@ say "10 + 20 = "
 say result
 say ""
 
-
-note --- 2. Arrays ---
 say "> 2. Arrays"
 array text proglang "C", "C++", "Assembly"
 say "Initial Array Index 1:"
 say array get proglang 1
 
-note Modifying the array
 array set proglang 1 "EaseC"
 say "Modified Array Index 1:"
 say array get proglang 1
 say ""
 
 
-note --- 3. Dictionaries ---
 say "> 3. Dictionaries"
 dictionary information name: "John", age: 15
 
@@ -46,14 +38,12 @@ say dictionary get information name
 say "Original Age:"
 say dictionary get information age
 
-note Modifying the dictionary
 dictionary set information age 21
 say "Updated Age:"
 say dictionary get information age
 say ""
 
 
-note --- 4. Jobs (Functions) ---
 say "> 4. Jobs (Functions)"
 job multiplyNumbers a, b [
     var product a * b
@@ -65,8 +55,6 @@ say "5 * 8 via Job is:"
 say math_result
 say ""
 
-
-note --- 5. Conditionals (If/Else) ---
 say "> 5. Conditionals"
 if math_result == 40 [
     say "The math job worked correctly!"
@@ -81,8 +69,6 @@ if false [
 ]
 say ""
 
-
-note --- 6. Loops (Repeat) ---
 say "> 6. Loops"
 var counter 3
 say "Counting down:"
@@ -93,8 +79,6 @@ repeat 3 [
 say "Blastoff!"
 say ""
 
-
-note --- 7. File I/O ---
 say "> 7. File Operations"
 var filename "easec_test_file.txt"
 
@@ -109,12 +93,9 @@ file delete filename
 say "File deleted."
 say ""
 
-
-note --- 8. Time Command & Performance ---
 say "> 8. Time Command"
 var end_time time get
 var elapsed end_time - start_time
 
-say "Demo completed successfully!"
 say "Total execution time (ms):"
 say elapsed
