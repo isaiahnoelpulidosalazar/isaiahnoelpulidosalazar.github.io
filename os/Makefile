@@ -3,7 +3,8 @@ AS = nasm
 LD = ld
 
 CFLAGS = -m32 -ffreestanding -O2 -Wall -Wextra -I. -nostdlib -fno-builtin -fno-stack-protector -DBAREMETAL
-LDFLAGS = -m32 -T linker.ld -nostdlib
+# Changed -m32 to -m elf_i386 to provide the correct emulation mode to ld
+LDFLAGS = -m elf_i386 -T linker.ld -nostdlib
 
 OBJS = boot.o kernel.o easec.o
 
