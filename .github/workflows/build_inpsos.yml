@@ -30,14 +30,38 @@ jobs:
         
       - name: Create Bootable ISO
         run: |
+          # 1. Dynamically locate the bootloader EFI in the workspace
+          BOOTLOADER_PATH=$(find . -type f -name "bootloader.efi" | grep "release" | head -n 1)
+          if [ -z "$BOOTLOADER_PATH" ]; then
+            echo "Error: bootloader.efi not found!"
+            exit 1
+          fi
+          
+          # 2. Dynamically locate the kernel ELF
+          KERNEL_PATH=$(find . -type f -name "kernel" | grep "release" | grep -v "/deps/" | grep -v "/build/" | grep -v "/incremental/" | head -n 1)
+          if [ -z "$KERNEL_PATH" ]; then
+            echo "Error: kernel binary not found!"
+            exit 1
+          fi
+          
+          # 3. Reference rootfs at os/rootfs
+          ROOTFS_PATH="os/rootfs"
+          if [ ! -d "$ROOTFS_PATH" ]; then
+            echo "Error: os/rootfs folder not found!"
+            exit 1
+          fi
+          
+          echo "Found bootloader at: $BOOTLOADER_PATH"
+          echo "Found kernel at: $KERNEL_PATH"
+          echo "Found rootfs at: $ROOTFS_PATH"
+          
+          # 4. Pack into ISO Structure
           mkdir -p iso/EFI/BOOT
-          # Place bootloader
-          cp os/bootloader/target/x86_64-unknown-uefi/release/bootloader.efi iso/EFI/BOOT/BOOTX64.EFI
-          # Place kernel
-          cp os/kernel/target/x86_64-unknown-none/release/kernel iso/kernel.elf
-          # Place easec programs
-          cp -r os/rootfs iso/
-          # Generate ISO
+          cp "$BOOTLOADER_PATH" iso/EFI/BOOT/BOOTX64.EFI
+          cp "$KERNEL_PATH" iso/kernel.elf
+          cp -r "$ROOTFS_PATH" iso/
+          
+          # 5. Generate ISO
           xorriso -as mkisofs -R -f -e EFI/BOOT/BOOTX64.EFI -no-emul-boot \
             -o inpsos.iso iso/
             
