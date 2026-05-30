@@ -1,12 +1,119 @@
 #include "freestanding.h"
 
-/* -------------------------------------------------------------
-   Standard Library Fallback Implementations
-   ------------------------------------------------------------- */
+/* =============================================================
+   1. STRUCT, TYPE AND GLOBAL VARIABLE DECLARATIONS (HEADER ZONE)
+   ============================================================= */
 
-FILE* stderr = (FILE*)1;
-FILE* stdin  = (FILE*)2;
-FILE* stdout = (FILE*)3;
+/* Multiboot Bootloader Definitions */
+#define MULTIBOOT_MAGIC 0x2BADB002
+
+typedef struct {
+    uint32_t mod_start;
+    uint32_t mod_end;
+    uint32_t string;
+    uint32_t reserved;
+} multiboot_module_t;
+
+typedef struct {
+    uint32_t flags;
+    uint32_t mem_lower;
+    uint32_t mem_upper;
+    uint32_t boot_device;
+    uint32_t cmdline;
+    uint32_t mods_count;
+    uint32_t mods_addr;
+} multiboot_info_t;
+
+extern uint32_t global_multiboot_magic;
+extern uint32_t global_multiboot_addr;
+
+uint32_t global_multiboot_magic = 0;
+uint32_t global_multiboot_addr = 0;
+
+/* AHCI SATA Controller Definitions (VOLATILE REGISTERS) */
+#define SATA_SIG_ATA    0x00000101
+#define AHCI_DEV_BUSY   0x80
+#define AHCI_DEV_DRQ    0x08
+
+typedef struct tagHBAPort {
+    volatile uint32_t clb;  volatile uint32_t clbu; volatile uint32_t fb;   volatile uint32_t fbu;
+    volatile uint32_t is;   volatile uint32_t ie;   volatile uint32_t cmd;  volatile uint32_t rsvd0;
+    volatile uint32_t tfd;  volatile uint32_t sig;  volatile uint32_t ssts; volatile uint32_t sctl;
+    volatile uint32_t serr; volatile uint32_t sact; volatile uint32_t ci;   volatile uint32_t sntf;
+    volatile uint32_t fbs;  volatile uint32_t rsvd1[11]; volatile uint32_t vendor[4];
+} HBAPort;
+
+typedef struct tagHBAMem {
+    volatile uint32_t i_cap; volatile uint32_t ghc; volatile uint32_t i_is; volatile uint32_t pi; volatile uint32_t vs;
+    volatile uint32_t ccc_ctl; volatile uint32_t ccc_pts; volatile uint32_t em_loc; volatile uint32_t em_ctl;
+    volatile uint32_t cap2; volatile uint32_t bohc; uint8_t rsvd[116]; uint8_t vendor[96];
+    HBAPort ports[32];
+} HBAMem;
+
+typedef struct tagHBAPRDTEntry {
+    uint32_t dba; uint32_t dbau; uint32_t rsvd0;
+    uint32_t dbc:22; uint32_t rsvd1:9; uint32_t i:1;
+} HBAPRDTEntry;
+
+typedef struct tagHBACommandTable {
+    uint8_t cfis[64]; uint8_t acmd[16]; uint8_t rsvd[48];
+    HBAPRDTEntry prdt_entry[1];
+} HBACommandTable;
+
+typedef struct tagHBACommandHeader {
+    uint8_t cfl:5; uint8_t a:1; uint8_t w:1; uint8_t p:1; uint8_t r:1; uint8_t b:1;
+    uint8_t c:1; uint8_t rsvd0:1; uint8_t pmp:4; uint16_t prdtl; uint32_t prdbc;
+    uint32_t ctba; uint32_t ctbau; uint32_t rsvd1[4];
+} HBACommandHeader;
+
+extern HBAPort* active_port;
+HBAPort* active_port = NULL;
+
+/* Flat Filesystem Structure Definitions */
+#define MAX_FILES 16
+
+typedef struct {
+    char filename[32];
+    uint32_t start_lba;
+    uint32_t file_size;
+} FileEntry;
+
+typedef struct {
+    FileEntry entries[MAX_FILES];
+    uint8_t padding[384]; // 16 * 40 + 384 = 1024 bytes (Exactly 2 sectors!)
+} DirectoryTable;
+
+/* Static DMA Arrays to securely lock SATA communications out of the CPU stack */
+static char dma_sector_buffer[512] __attribute__((aligned(16)));
+static DirectoryTable dma_dir_table __attribute__((aligned(16)));
+static char dma_script_buffer[65536] __attribute__((aligned(16)));
+static char file_list_buffer[1024] __attribute__((aligned(16)));
+
+typedef struct {
+    char filename[32];
+    char* buffer;
+    size_t size;
+    size_t capacity;
+    int is_write;
+} ActiveFile;
+
+static ActiveFile open_file;
+
+/* Forward Function Prototypes to prevent implicit compiler declarations */
+void sys_reboot();
+void sys_shutdown();
+void clear_screen();
+void print_char(char c);
+void print_string(const char* str);
+int ahci_read(HBAPort *port, uint32_t startl, uint32_t starth, uint32_t count, uint16_t *buf);
+int ahci_write(HBAPort *port, uint32_t startl, uint32_t starth, uint32_t count, uint16_t *buf);
+int ahci_flush_cache(HBAPort *port);
+void run_easec(const char* filename);
+void run_install();
+
+/* =============================================================
+   2. STANDARD C LIBRARY HELPER FUNCTIONS
+   ============================================================= */
 
 uint8_t kheap[16 * 1024 * 1024]; // 16MB kernel heap
 size_t heap_offset = 0;
@@ -180,15 +287,9 @@ long ftell(FILE* stream) {
     return 0;
 }
 
-/* -------------------------------------------------------------
-   VGA Output and Display Formatting Drivers
-   ------------------------------------------------------------- */
-
-#define VGA_WIDTH 80
-#define VGA_HEIGHT 25
-uint16_t* const vga_buffer = (uint16_t*)0xB8000;
-int cursor_x = 0;
-int cursor_y = 0;
+/* =============================================================
+   3. VGA OUTPUT AND STRING FORMATTING DRIVERS
+   ============================================================= */
 
 void clear_screen() {
     for (int y = 0; y < VGA_HEIGHT; y++) {
@@ -246,20 +347,6 @@ void print_string(const char* str) {
     while (*str) print_char(*str++);
 }
 
-static void itoa(long long value, char* str, int base) {
-    char temp[32]; int i = 0; int is_negative = 0;
-    if (value < 0 && base == 10) { is_negative = 1; value = -value; }
-    do {
-        int rem = value % base;
-        temp[i++] = (rem > 9) ? (rem - 10) + 'a' : rem + '0';
-        value /= base;
-    } while (value > 0);
-    if (is_negative) temp[i++] = '-';
-    int len = i;
-    for (int j = 0; j < len; j++) str[j] = temp[len - j - 1];
-    str[len] = '\0';
-}
-
 int vsnprintf(char* str, size_t size, const char* format, va_list args) {
     size_t written = 0;
     while (*format && written < size - 1) {
@@ -299,36 +386,12 @@ int fprintf(FILE* stream, const char* format, ...) { (void)stream; char buf[1024
 int vfprintf(FILE* stream, const char* format, va_list args) { (void)stream; char buf[1024]; int ret = vsnprintf(buf, sizeof(buf), format, args); print_string(buf); return ret; }
 int fputs(const char* str, FILE* stream) { (void)stream; print_string(str); return 0; }
 
-/* -------------------------------------------------------------
-   Hardware Port Communications
-   ------------------------------------------------------------- */
+/* =============================================================
+   4. HARDWARE PORT COMMUNICATIONS & INTERRUPTS
+   ============================================================= */
 
-uint8_t inb(uint16_t port) { uint8_t ret; __asm__ volatile("inb %1, %0" : "=a"(ret) : "Nd"(port)); return ret; }
-void outb(uint16_t port, uint8_t val) { __asm__ volatile("outb %0, %1" : : "a"(val), "Nd"(port)); }
-void outw(uint16_t port, uint16_t val) { __asm__ volatile("outw %0, %1" : : "a"(val), "Nd"(port)); }
-uint32_t inl(uint16_t port) { uint32_t ret; __asm__ volatile("inl %1, %0" : "=a"(ret) : "Nd"(port)); return ret; }
-void outl(uint16_t port, uint32_t val) { __asm__ volatile("outl %0, %1" : : "a"(val), "Nd"(port)); }
-
-/* -------------------------------------------------------------
-   Keyboard System Configuration
-   ------------------------------------------------------------- */
-
-char keyboard_get_char() {
-    static const char scan_to_ascii[] = {
-        0, 0, '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', '\b',
-        '\t', 'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '[', ']', '\n',
-        0, 'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', '\'', '`', 0,
-        '\\', 'z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/', 0, '*', 0, ' '
-    };
-    while (1) {
-        if (inb(0x64) & 1) {
-            uint8_t scancode = inb(0x60);
-            if (scancode < sizeof(scan_to_ascii) && scan_to_ascii[scancode] != 0) {
-                return scan_to_ascii[scancode];
-            }
-        }
-    }
-}
+void sys_reboot() { outb(0x64, 0xFE); }
+void sys_shutdown() { outw(0x604, 0x2000); }
 
 char* fgets_freestanding(char* str, int num) {
     int i = 0;
@@ -353,47 +416,9 @@ char* fgets_freestanding(char* str, int num) {
 
 char* fgets(char* str, int num, FILE* stream) { (void)stream; return fgets_freestanding(str, num); }
 
-void sys_reboot() { outb(0x64, 0xFE); }
-void sys_shutdown() { outw(0x604, 0x2000); }
-
-/* -------------------------------------------------------------
-   PCI AHCI Interface System & Storage Definitions (VOLATILE REGISTERS)
-   ------------------------------------------------------------- */
-
-#define SATA_SIG_ATA    0x00000101
-#define AHCI_DEV_BUSY   0x80
-#define AHCI_DEV_DRQ    0x08
-
-typedef struct tagHBAPort {
-    volatile uint32_t clb;  volatile uint32_t clbu; volatile uint32_t fb;   volatile uint32_t fbu;
-    volatile uint32_t is;   volatile uint32_t ie;   volatile uint32_t cmd;  volatile uint32_t rsvd0;
-    volatile uint32_t tfd;  volatile uint32_t sig;  volatile uint32_t ssts; volatile uint32_t sctl;
-    volatile uint32_t serr; volatile uint32_t sact; volatile uint32_t ci;   volatile uint32_t sntf;
-    volatile uint32_t fbs;  volatile uint32_t rsvd1[11]; volatile uint32_t vendor[4];
-} HBAPort;
-
-typedef struct tagHBAMem {
-    volatile uint32_t i_cap; volatile uint32_t ghc; volatile uint32_t i_is; volatile uint32_t pi; volatile uint32_t vs;
-    volatile uint32_t ccc_ctl; volatile uint32_t ccc_pts; volatile uint32_t em_loc; volatile uint32_t em_ctl;
-    volatile uint32_t cap2; volatile uint32_t bohc; uint8_t rsvd[116]; uint8_t vendor[96];
-    HBAPort ports[32];
-} HBAMem;
-
-typedef struct tagHBAPRDTEntry {
-    uint32_t dba; uint32_t dbau; uint32_t rsvd0;
-    uint32_t dbc:22; uint32_t rsvd1:9; uint32_t i:1;
-} HBAPRDTEntry;
-
-typedef struct tagHBACommandTable {
-    uint8_t cfis[64]; uint8_t acmd[16]; uint8_t rsvd[48];
-    HBAPRDTEntry prdt_entry[1];
-} HBACommandTable;
-
-typedef struct tagHBACommandHeader {
-    uint8_t cfl:5; uint8_t a:1; uint8_t w:1; uint8_t p:1; uint8_t r:1; uint8_t b:1;
-    uint8_t c:1; uint8_t rsvd0:1; uint8_t pmp:4; uint16_t prdtl; uint32_t prdbc;
-    uint32_t ctba; uint32_t ctbau; uint32_t rsvd1[4];
-} HBACommandHeader;
+/* =============================================================
+   5. AHCI SATA NATIVE STORAGE DRIVER
+   ============================================================= */
 
 int ahci_read(HBAPort *port, uint32_t startl, uint32_t starth, uint32_t count, uint16_t *buf) {
     port->is = (uint32_t)-1; int spin = 0; int slot = 0;
@@ -469,9 +494,6 @@ int ahci_write(HBAPort *port, uint32_t startl, uint32_t starth, uint32_t count, 
     return 1;
 }
 
-/* -------------------------------------------------------------
-   Native ATA Cache Flush Command (For Physical Disk Persistency)
-   ------------------------------------------------------------- */
 int ahci_flush_cache(HBAPort *port) {
     port->is = (uint32_t)-1;
     int slot = 0;
@@ -487,7 +509,7 @@ int ahci_flush_cache(HBAPort *port) {
     uint8_t *cmdfis = cmdtable->cfis;
     cmdfis[0] = 0x27; 
     cmdfis[1] = 1 << 7; 
-    cmdfis[2] = 0xE7; // FLUSH CACHE EXT Command
+    cmdfis[2] = 0xE7; 
 
     __asm__ volatile("wbinvd" : : : "memory");
 
@@ -502,63 +524,6 @@ int ahci_flush_cache(HBAPort *port) {
     __asm__ volatile("wbinvd" : : : "memory");
     return 1;
 }
-
-/* -------------------------------------------------------------
-   PCI Bus Scanner with Multi-Function and RAID Fallbacks
-   ------------------------------------------------------------- */
-
-uint32_t pci_config_read(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offset) {
-    uint32_t address = (uint32_t)((bus << 16) | (slot << 11) | (func << 8) | (offset & 0xfc) | ((uint32_t)0x80000000));
-    outl(0xCF8, address);
-    return inl(0xCFC);
-}
-
-void pci_config_write(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offset, uint32_t value) {
-    uint32_t address = (uint32_t)((bus << 16) | (slot << 11) | (func << 8) | (offset & 0xfc) | ((uint32_t)0x80000000));
-    outl(0xCF8, address);
-    outl(0xCFC, value);
-}
-
-void* get_ahci_base() {
-    for (uint16_t bus = 0; bus < 256; bus++) {
-        for (uint8_t slot = 0; slot < 32; slot++) {
-            uint32_t vendor = pci_config_read(bus, slot, 0, 0);
-            if (vendor == 0xFFFFFFFF) continue;
-            
-            uint32_t header_reg = pci_config_read(bus, slot, 0, 0x0C);
-            uint8_t header_type = (header_reg >> 16) & 0xFF;
-            uint8_t func_limit = (header_type & 0x80) ? 8 : 1;
-            
-            for (uint8_t func = 0; func < func_limit; func++) {
-                uint32_t dev_vendor = pci_config_read(bus, slot, func, 0);
-                if (dev_vendor == 0xFFFFFFFF) continue;
-                
-                uint32_t class_sub = pci_config_read(bus, slot, func, 0x08);
-                uint8_t class_code = (class_sub >> 24) & 0xFF;
-                uint8_t subclass = (class_sub >> 16) & 0xFF;
-                uint8_t prog_if = (class_sub >> 8) & 0xFF;
-                
-                if ((class_code == 0x01 && subclass == 0x06 && prog_if == 0x01) || 
-                    (class_code == 0x01 && subclass == 0x04)) {
-                    
-                    uint32_t bar5 = pci_config_read(bus, slot, func, 0x24);
-                    uint32_t ahci_address = bar5 & 0xFFFFFFF0;
-                    if (ahci_address == 0) {
-                        pci_config_write(bus, slot, func, 0x24, 0xFEB00000);
-                        ahci_address = 0xFEB00000;
-                    }
-
-                    uint32_t cmd = pci_config_read(bus, slot, func, 0x04);
-                    pci_config_write(bus, slot, func, 0x04, cmd | 0x02 | 0x04); 
-                    return (void*)ahci_address;
-                }
-            }
-        }
-    }
-    return NULL;
-}
-
-HBAPort* active_port = NULL;
 
 void find_ahci_device() {
     print_string("Probing PCI Bus for AHCI storage controllers...\n");
@@ -621,68 +586,10 @@ void find_ahci_device() {
     active_port = NULL;
 }
 
-/* -------------------------------------------------------------
-   Timing Fallback Utilities (DO NOT REMOVE)
-   ------------------------------------------------------------- */
+/* =============================================================
+   6. DYNAMIC FILE STORAGE AND FILESYSTEM UTILITIES
+   ============================================================= */
 
-long long get_time_ms() { static long long mock_time = 0; return mock_time++; }
-void sleep_ms(long long ms) { for (volatile long long i = 0; i < ms * 10000; i++); }
-void exit(int status) { (void)status; print_string("\nKernel exited. System Halted.\n"); while (1) { __asm__ volatile("cli; hlt"); } }
-
-/* -------------------------------------------------------------
-   Easec VM Linkage Definitions
-   ------------------------------------------------------------- */
-
-typedef enum { VAL_NULL, VAL_BOOL, VAL_INT, VAL_FLOAT, VAL_OBJ } ValType;
-
-typedef struct {
-    ValType type;
-    union { int boolean; long long integer; double floating; void* obj; } as;
-} Value;
-
-extern void init_vm();
-extern void* create_env(void* parent);
-extern void run_script(const char* source, void* env);
-extern void env_define(void* env, const char* name, Value val);
-extern void* allocate_string(const char* chars, int length);
-
-static Value make_obj_val(void* o) {
-    Value v; v.type = VAL_OBJ; v.as.obj = o; return v;
-}
-
-/* -------------------------------------------------------------
-   Flat Native Filesystem Structure definitions
-   ------------------------------------------------------------- */
-
-#define MAX_FILES 16
-
-typedef struct {
-    char filename[32];
-    uint32_t start_lba;
-    uint32_t file_size;
-} FileEntry;
-
-typedef struct {
-    FileEntry entries[MAX_FILES];
-    uint8_t padding[384]; // 16 * 40 + 384 = 1024 bytes (Exactly 2 sectors!)
-} DirectoryTable;
-
-/* Static DMA Arrays to securely lock SATA communications out of the CPU stack */
-static char dma_sector_buffer[512] __attribute__((aligned(16)));
-static DirectoryTable dma_dir_table __attribute__((aligned(16)));
-static char dma_script_buffer[65536] __attribute__((aligned(16)));
-
-typedef struct {
-    char filename[32];
-    char* buffer;
-    size_t size;
-    size_t capacity;
-    int is_write;
-} ActiveFile;
-
-static ActiveFile open_file;
-
-/* Real Native Easec VM file mapping directly to Physical SATA Layout */
 FILE* fopen(const char* filename, const char* mode) {
     if (!active_port) return NULL;
     memset(&open_file, 0, sizeof(ActiveFile));
@@ -720,7 +627,7 @@ int fclose(FILE* stream) {
         if (!ahci_read(active_port, 2, 0, 2, (uint16_t*)&dma_dir_table)) return -1;
         
         int slot = -1;
-        uint32_t next_free_lba = 15; // User file writes get mapped dynamically
+        uint32_t next_free_lba = 15; 
         
         for (int i = 0; i < MAX_FILES; i++) {
             if (strcmp(dma_dir_table.entries[i].filename, f->filename) == 0) { slot = i; break; }
@@ -752,8 +659,8 @@ int fclose(FILE* stream) {
             memcpy(temp_sector, f->buffer + s * 512, chunk);
             ahci_write(active_port, dma_dir_table.entries[slot].start_lba + s, 0, 1, (uint16_t*)temp_sector);
         }
-        ahci_write(active_port, 2, 0, 2, (uint16_t*)&dma_dir_table); // Write exactly 2 sectors (1024 bytes)
-        ahci_flush_cache(active_port); // Flush volatile storage writes to physical drive
+        ahci_write(active_port, 2, 0, 2, (uint16_t*)&dma_dir_table); 
+        ahci_flush_cache(active_port); 
     }
     return 0;
 }
@@ -776,17 +683,38 @@ int remove(const char* filename) {
     return -1; 
 }
 
-/* -------------------------------------------------------------
-   Dynamic Multi-File Hard Drive Scanner & Installer
-   ------------------------------------------------------------- */
-
-int check_installation_state(HBAPort* port) {
-    memset(dma_sector_buffer, 0, 512);
-    if (ahci_read(port, 1, 0, 1, (uint16_t*)dma_sector_buffer)) {
-        if (memcmp(dma_sector_buffer, "INPSOS_INSTALLED", 16) == 0) return 1; 
+const char* get_dynamic_file_list() {
+    if (!active_port) return "Active hardware drive interface not configured.\n";
+    
+    memset(&dma_dir_table, 0, sizeof(DirectoryTable));
+    if (!ahci_read(active_port, 2, 0, 2, (uint16_t*)&dma_dir_table)) {
+        return "Critical: Could not read directory records.\n";
     }
-    return 0; 
+    
+    memset(file_list_buffer, 0, sizeof(file_list_buffer));
+    strcpy(file_list_buffer, "Files mapped on SATA drive:\n");
+    
+    int count = 0;
+    for (int i = 0; i < MAX_FILES; i++) {
+        if (dma_dir_table.entries[i].start_lba > 0) {
+            char line[128];
+            snprintf(line, sizeof(line), "  - %-16s [LBA: %4d] [Size: %d bytes]\n", 
+                     dma_dir_table.entries[i].filename, 
+                     dma_dir_table.entries[i].start_lba,
+                     dma_dir_table.entries[i].file_size);
+            strcat(file_list_buffer, line);
+            count++;
+        }
+    }
+    if (count == 0) {
+        strcat(file_list_buffer, "  (Directory is empty)\n");
+    }
+    return file_list_buffer;
 }
+
+/* -------------------------------------------------------------
+   Dynamic Hard Drive Scanning Execution (run_easec)
+   ------------------------------------------------------------- */
 
 void run_easec(const char* filename) {
     if (!active_port) { print_string("Error: Active AHCI port missing.\n"); return; }
@@ -816,22 +744,8 @@ void run_easec(const char* filename) {
     init_vm();
     void* global_env = create_env(NULL);
     
-    // Scan real mapped directory on the fly
-    char file_list_buffer[1024];
-    memset(file_list_buffer, 0, sizeof(file_list_buffer));
-    strcpy(file_list_buffer, "Files mapped on SATA drive:\n");
-    int count = 0;
-    for (int i = 0; i < MAX_FILES; i++) {
-        if (dma_dir_table.entries[i].start_lba > 0) {
-            char line[128];
-            snprintf(line, sizeof(line), "  - %-16s [LBA: %4d]\n", dma_dir_table.entries[i].filename, dma_dir_table.entries[i].start_lba);
-            strcat(file_list_buffer, line);
-            count++;
-        }
-    }
-    if (count == 0) strcat(file_list_buffer, "  (Directory is empty)\n");
-
-    void* list_str = allocate_string(file_list_buffer, strlen(file_list_buffer));
+    const char* live_list = get_dynamic_file_list();
+    void* list_str = allocate_string(live_list, strlen(live_list));
     env_define(global_env, "sys_list_dir", make_obj_val(list_str));
 
     run_script(dma_script_buffer, global_env);
@@ -855,9 +769,8 @@ void run_install() {
 
     memset(&dma_dir_table, 0, sizeof(DirectoryTable));
     multiboot_module_t* mods = (multiboot_module_t*)mbi->mods_addr;
-    uint32_t current_lba = 4; // Start laying out files at LBA 4
+    uint32_t current_lba = 4; 
 
-    // Iterate through every .easec file dynamically detected and mapped by GRUB
     for (uint32_t i = 0; i < mbi->mods_count && i < MAX_FILES; i++) {
         char* mod_string = (char*)mods[i].string;
         uint32_t size = mods[i].mod_end - mods[i].mod_start;
@@ -891,16 +804,15 @@ void run_install() {
 
     if (!ahci_write(active_port, 2, 0, 2, (uint16_t*)&dma_dir_table)) { print_string("Error: Directory Table write aborted.\n"); return; }
     
-    // Crucial: Send Flush Cache command to force target device to write RAM cache to platter
     ahci_flush_cache(active_port);
 
     print_string("INPSOS installation onto SATA partitions completed.\n");
     print_string("Please detach your installation media and reboot computer.\n");
 }
 
-/* -------------------------------------------------------------
-   Critical CPU Initializers
-   ------------------------------------------------------------- */
+/* =============================================================
+   7. CPU CONTROL INITIALIZERS AND SHELL DRIVER LOOP
+   ============================================================= */
 
 void enable_fpu() {
     uint32_t cr0;
@@ -910,10 +822,6 @@ void enable_fpu() {
     __asm__ volatile("mov %0, %%cr0" :: "r"(cr0));
     __asm__ volatile("fninit"); 
 }
-
-/* -------------------------------------------------------------
-   Main Shell Entry
-   ------------------------------------------------------------- */
 
 void kernel_main(uint32_t magic, uint32_t addr) {
     global_multiboot_magic = magic;
@@ -933,13 +841,12 @@ void kernel_main(uint32_t magic, uint32_t addr) {
     int is_live_iso = 0;
 
     multiboot_info_t* mbi = (multiboot_info_t*)global_multiboot_addr;
-    // If the bootloader has loaded dynamic installation modules, we are strictly on the Live ISO
     if (global_multiboot_magic == MULTIBOOT_MAGIC && (mbi->flags & (1 << 3)) && mbi->mods_count > 0) {
         is_live_iso = 1;
     }
 
     if (is_live_iso) {
-        installed = 0; // Lock system into Installation Mode (ignores old hard disk installs)
+        installed = 0; 
     } else if (active_port) {
         installed = check_installation_state(active_port);
     }
