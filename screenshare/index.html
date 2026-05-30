@@ -98,6 +98,7 @@ let stream = null;
 let pc = null;
 let isSharing = false;
 let viewerConnected = false;
+let candidateQueue = []; // Add this near your variables at the top of the script
 
 const BACKEND_URL = 'https://isaiahnoelpulidosalazar-github-io.onrender.com';
 const WS_URL = 'wss://isaiahnoelpulidosalazar-github-io.onrender.com';
@@ -174,7 +175,6 @@ async function handleMessage(msg) {
     document.getElementById('statViewer').textContent = 'Connected';
     log('Viewer joined the session!', 'ok');
     
-    // If sharing was active before viewer joined, restart connection
     if (isSharing) createPeerConnection();
   }
   
@@ -189,9 +189,20 @@ async function handleMessage(msg) {
   // WebRTC Signaling
   if (msg.type === 'answer' && pc) {
     await pc.setRemoteDescription(new RTCSessionDescription(msg.payload));
+    
+    // Drain queued candidates
+    for (const candidate of candidateQueue) {
+      await pc.addIceCandidate(candidate).catch(console.error);
+    }
+    candidateQueue = [];
   }
+  
   if (msg.type === 'ice-candidate' && pc) {
-    await pc.addIceCandidate(new RTCIceCandidate(msg.payload));
+    if (pc.remoteDescription && pc.remoteDescription.type) {
+      await pc.addIceCandidate(new RTCIceCandidate(msg.payload)).catch(console.error);
+    } else {
+      candidateQueue.push(new RTCIceCandidate(msg.payload));
+    }
   }
 }
 
