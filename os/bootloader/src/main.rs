@@ -35,69 +35,76 @@ struct ElfHeader {
 #[entry]
 fn main(image: Handle, mut system_table: SystemTable<Boot>) -> Status {
     uefi_services::init(&mut system_table).unwrap();
-    let bs = system_table.boot_services();
 
-    // 1. Locate the simple file system
-    let sfs_handle = bs.get_handle_for_protocol::<SimpleFileSystem>().unwrap();
-    let mut sfs = bs.open_protocol_exclusive::<SimpleFileSystem>(sfs_handle).unwrap();
-    let mut root_dir = sfs.open_volume().unwrap();
+    // Isolate the boot services references in a separate scope to release system_table
+    let (kernel_address, entry_offset) = {
+        let bs = system_table.boot_services();
 
-    // 2. Open the physical kernel.elf file
-    let file_handle = root_dir
-        .open(
-            cstr16!("kernel.elf"),
-            FileMode::Read,
-            FileAttribute::empty(),
-        )
-        .unwrap();
+        // 1. Locate the simple file system
+        let sfs_handle = bs.get_handle_for_protocol::<SimpleFileSystem>().unwrap();
+        let mut sfs = bs.open_protocol_exclusive::<SimpleFileSystem>(sfs_handle).unwrap();
+        let mut root_dir = sfs.open_volume().unwrap();
 
-    let mut file = match file_handle.into_type().unwrap() {
-        uefi::proto::media::file::FileType::Regular(f) => f,
-        _ => return Status::LOAD_ERROR,
+        // 2. Open the physical kernel.elf file
+        let file_handle = root_dir
+            .open(
+                cstr16!("kernel.elf"),
+                FileMode::Read,
+                FileAttribute::empty(),
+            )
+            .unwrap();
+
+        let mut file = match file_handle.into_type().unwrap() {
+            uefi::proto::media::file::FileType::Regular(f) => f,
+            _ => return Status::LOAD_ERROR,
+        };
+
+        // 3. Read ELF Header
+        let mut header = ElfHeader {
+            magic: [0; 4], class: 0, data: 0, version: 0, os_abi: 0, abi_version: 0,
+            pad: [0; 7], elf_type: 0, machine: 0, version2: 0, entry: 0, phoff: 0,
+            shoff: 0, flags: 0, ehsize: 0, phentsize: 0, phnum: 0, shentsize: 0,
+            shnum: 0, shstrndx: 0,
+        };
+        let header_slice = unsafe {
+            core::slice::from_raw_parts_mut(
+                &mut header as *mut ElfHeader as *mut u8,
+                core::mem::size_of::<ElfHeader>(),
+            )
+        };
+        file.read(header_slice).unwrap();
+
+        if header.magic != [0x7F, b'E', b'L', b'F'] {
+            return Status::INVALID_PARAMETER;
+        }
+
+        // 4. Allocate memory and load kernel
+        let pages = 512; // 2MB
+        let kernel_address = bs
+            .allocate_pages(
+                AllocateType::AnyPages,
+                MemoryType::LOADER_DATA,
+                pages,
+            )
+            .unwrap();
+
+        file.set_position(0).unwrap();
+        let dest_slice = unsafe {
+            core::slice::from_raw_parts_mut(kernel_address as *mut u8, pages * 4096)
+        };
+        file.read(dest_slice).unwrap();
+
+        (kernel_address, header.entry)
     };
 
-    // 3. Read ELF Header
-    let mut header = ElfHeader {
-        magic: [0; 4], class: 0, data: 0, version: 0, os_abi: 0, abi_version: 0,
-        pad: [0; 7], elf_type: 0, machine: 0, version2: 0, entry: 0, phoff: 0,
-        shoff: 0, flags: 0, ehsize: 0, phentsize: 0, phnum: 0, shentsize: 0,
-        shnum: 0, shstrndx: 0,
+    // 5. Exit boot services to take pure hardware control (now unborrowed)
+    let (_, _mmap) = unsafe {
+        system_table.exit_boot_services(MemoryType::LOADER_DATA)
     };
-    let header_slice = unsafe {
-        core::slice::from_raw_parts_mut(
-            &mut header as *mut ElfHeader as *mut u8,
-            core::mem::size_of::<ElfHeader>(),
-        )
-    };
-    file.read(header_slice).unwrap();
-
-    if header.magic != [0x7F, b'E', b'L', b'F'] {
-        return Status::INVALID_PARAMETER;
-    }
-
-    // 4. Allocate memory and load kernel
-    let pages = 512; // 2MB
-    let kernel_address = bs
-        .allocate_pages(
-            AllocateType::AnyPages,
-            MemoryType::LOADER_DATA,
-            pages,
-        )
-        .unwrap();
-
-    file.set_position(0).unwrap();
-    let dest_slice = unsafe {
-        core::slice::from_raw_parts_mut(kernel_address as *mut u8, pages * 4096)
-    };
-    file.read(dest_slice).unwrap();
-
-    // 5. Exit boot services to take pure hardware control
-    // This consumes the system table and retrieves the final Memory Map
-    let (_, _mmap) = system_table.exit_boot_services(MemoryType::LOADER_DATA);
     
     // Calculate entry point dynamically from ELF header
     let entry_fn: extern "sysv64" fn() -> ! = unsafe {
-        core::mem::transmute(kernel_address + header.entry)
+        core::mem::transmute(kernel_address + entry_offset)
     };
 
     entry_fn();
