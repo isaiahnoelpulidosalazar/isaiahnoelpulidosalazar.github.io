@@ -358,7 +358,7 @@ void sys_reboot() { outb(0x64, 0xFE); }
 void sys_shutdown() { outw(0x604, 0x2000); }
 
 /* -------------------------------------------------------------
-   PCI AHCI Interface System & Storage Definitions
+   PCI AHCI Interface System & Storage Definitions (VOLATILE REGISTERS)
    ------------------------------------------------------------- */
 
 #define SATA_SIG_ATA    0x00000101
@@ -366,17 +366,17 @@ void sys_shutdown() { outw(0x604, 0x2000); }
 #define AHCI_DEV_DRQ    0x08
 
 typedef struct tagHBAPort {
-    uint32_t clb;  uint32_t clbu; uint32_t fb;   uint32_t fbu;
-    uint32_t is;   uint32_t ie;   uint32_t cmd;  uint32_t rsvd0;
-    uint32_t tfd;  uint32_t sig;  uint32_t ssts; uint32_t sctl;
-    uint32_t serr; uint32_t sact; uint32_t ci;   uint32_t sntf;
-    uint32_t fbs;  uint32_t rsvd1[11]; uint32_t vendor[4];
+    volatile uint32_t clb;  volatile uint32_t clbu; volatile uint32_t fb;   volatile uint32_t fbu;
+    volatile uint32_t is;   volatile uint32_t ie;   volatile uint32_t cmd;  volatile uint32_t rsvd0;
+    volatile uint32_t tfd;  volatile uint32_t sig;  volatile uint32_t ssts; volatile uint32_t sctl;
+    volatile uint32_t serr; volatile uint32_t sact; volatile uint32_t ci;   volatile uint32_t sntf;
+    volatile uint32_t fbs;  volatile uint32_t rsvd1[11]; volatile uint32_t vendor[4];
 } HBAPort;
 
 typedef struct tagHBAMem {
-    uint32_t cap; uint32_t ghc; uint32_t is; uint32_t pi; uint32_t vs;
-    uint32_t ccc_ctl; uint32_t ccc_pts; uint32_t em_loc; uint32_t em_ctl;
-    uint32_t cap2; uint32_t bohc; uint8_t rsvd[116]; uint8_t vendor[96];
+    volatile uint32_t cap; volatile uint32_t ghc; volatile uint32_t is; volatile uint32_t pi; volatile uint32_t vs;
+    volatile uint32_t ccc_ctl; volatile uint32_t ccc_pts; volatile uint32_t em_loc; volatile uint32_t em_ctl;
+    volatile uint32_t cap2; volatile uint32_t bohc; uint8_t rsvd[116]; uint8_t vendor[96];
     HBAPort ports[32];
 } HBAMem;
 
@@ -400,6 +400,7 @@ int ahci_read(HBAPort *port, uint32_t startl, uint32_t starth, uint32_t count, u
     port->is = (uint32_t)-1; int spin = 0; int slot = 0;
     HBACommandHeader *cmdheader = (HBACommandHeader*)(uintptr_t)(port->clb);
     cmdheader[slot].cfl = 5; cmdheader[slot].w = 0; cmdheader[slot].prdtl = 1;
+    cmdheader[slot].prdbc = 0; // Explicitly reset transfer count
 
     HBACommandTable *cmdtable = (HBACommandTable*)(uintptr_t)(cmdheader[slot].ctba);
     memset(cmdtable, 0, sizeof(HBACommandTable));
@@ -414,6 +415,9 @@ int ahci_read(HBAPort *port, uint32_t startl, uint32_t starth, uint32_t count, u
     cmdfis[10] = (uint8_t)(starth >> 8);
     cmdfis[12] = count & 0xFF; cmdfis[13] = (count >> 8) & 0xFF;
 
+    // Flush CPU Write-back caches to physical RAM before SATA fetches the structures
+    __asm__ volatile("wbinvd" : : : "memory");
+
     while ((port->tfd & (AHCI_DEV_BUSY | AHCI_DEV_DRQ)) && spin < 10000000) spin++;
     if (spin == 10000000) { print_string("AHCI: Drive Busy Timeout\n"); return 0; }
     
@@ -425,6 +429,9 @@ int ahci_read(HBAPort *port, uint32_t startl, uint32_t starth, uint32_t count, u
         if (port->is & (1 << 30)) { print_string("AHCI: Task File Error (Read Failed)\n"); return 0; }
         if (wait++ > 50000000) { print_string("AHCI: Execution Timeout\n"); return 0; }
     }
+
+    // Flush CPU caches after DMA completes so CPU caches the newly read SATA data
+    __asm__ volatile("wbinvd" : : : "memory");
     return 1;
 }
 
@@ -432,6 +439,7 @@ int ahci_write(HBAPort *port, uint32_t startl, uint32_t starth, uint32_t count, 
     port->is = (uint32_t)-1; int spin = 0; int slot = 0;
     HBACommandHeader *cmdheader = (HBACommandHeader*)(uintptr_t)(port->clb);
     cmdheader[slot].cfl = 5; cmdheader[slot].w = 1; cmdheader[slot].prdtl = 1;
+    cmdheader[slot].prdbc = 0;
 
     HBACommandTable *cmdtable = (HBACommandTable*)(uintptr_t)(cmdheader[slot].ctba);
     memset(cmdtable, 0, sizeof(HBACommandTable));
@@ -446,6 +454,9 @@ int ahci_write(HBAPort *port, uint32_t startl, uint32_t starth, uint32_t count, 
     cmdfis[10] = (uint8_t)(starth >> 8);
     cmdfis[12] = count & 0xFF; cmdfis[13] = (count >> 8) & 0xFF;
 
+    // Flush CPU Write-back caches to physical RAM before SATA fetches the structures
+    __asm__ volatile("wbinvd" : : : "memory");
+
     while ((port->tfd & (AHCI_DEV_BUSY | AHCI_DEV_DRQ)) && spin < 10000000) spin++;
     if (spin == 10000000) { print_string("AHCI: Drive Busy Timeout\n"); return 0; }
 
@@ -457,6 +468,9 @@ int ahci_write(HBAPort *port, uint32_t startl, uint32_t starth, uint32_t count, 
         if (port->is & (1 << 30)) { print_string("AHCI: Task File Error (Is Drive Read-Only?)\n"); return 0; }
         if (wait++ > 50000000) { print_string("AHCI: Execution Timeout\n"); return 0; }
     }
+
+    // Flush CPU caches after DMA completes
+    __asm__ volatile("wbinvd" : : : "memory");
     return 1;
 }
 
@@ -889,6 +903,10 @@ void enable_fpu() {
     __asm__ volatile("mov %0, %%cr0" :: "r"(cr0));
     __asm__ volatile("fninit"); 
 }
+
+/* -------------------------------------------------------------
+   Main Shell Entry
+   ------------------------------------------------------------- */
 
 void kernel_main(uint32_t magic, uint32_t addr) {
     global_multiboot_magic = magic;
