@@ -1,6 +1,0 @@
-say "Enter file name:"
-var name get
-say "Enter file content:"
-var content get
-file update name content
-say "File updated."

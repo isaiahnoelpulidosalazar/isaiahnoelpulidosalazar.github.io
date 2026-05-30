@@ -1,4 +1,0 @@
-say "Enter file name:"
-var name get
-file delete name
-say "File deleted."

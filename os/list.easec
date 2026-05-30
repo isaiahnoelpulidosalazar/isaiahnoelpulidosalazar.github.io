@@ -1,2 +1,0 @@
-var files sys_list_dir
-say files
