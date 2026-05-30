@@ -30,21 +30,21 @@ jobs:
         
       - name: Create Bootable ISO
         run: |
-          # 1. Dynamically locate the bootloader EFI in the workspace
-          BOOTLOADER_PATH=$(find . -type f -name "bootloader.efi" | grep "release" | head -n 1)
+          # 1. Dynamically locate the UEFI bootloader binary (.efi)
+          BOOTLOADER_PATH=$(find . -type f -name "*.efi" | grep "release" | head -n 1)
           if [ -z "$BOOTLOADER_PATH" ]; then
-            echo "Error: bootloader.efi not found!"
+            echo "Error: compiled UEFI bootloader (.efi) not found!"
             exit 1
           fi
           
-          # 2. Dynamically locate the kernel ELF
-          KERNEL_PATH=$(find . -type f -name "kernel" | grep "release" | grep -v "/deps/" | grep -v "/build/" | grep -v "/incremental/" | head -n 1)
+          # 2. Dynamically locate the compiled kernel ELF binary (inpsos_kernel)
+          KERNEL_PATH=$(find . -type f \( -name "inpsos_kernel" -o -name "kernel" \) | grep "release" | grep -v "/deps/" | grep -v "/build/" | grep -v "/incremental/" | head -n 1)
           if [ -z "$KERNEL_PATH" ]; then
             echo "Error: kernel binary not found!"
             exit 1
           fi
           
-          # 3. Reference rootfs at os/rootfs
+          # 3. Locate the rootfs folder
           ROOTFS_PATH="os/rootfs"
           if [ ! -d "$ROOTFS_PATH" ]; then
             echo "Error: os/rootfs folder not found!"
