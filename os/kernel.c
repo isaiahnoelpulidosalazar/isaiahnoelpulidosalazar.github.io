@@ -105,11 +105,22 @@ void sys_shutdown();
 void clear_screen();
 void print_char(char c);
 void print_string(const char* str);
+void itoa(long long value, char* str, int base);
+char keyboard_get_char();
+void* get_ahci_base();
+int check_installation_state(HBAPort* port);
 int ahci_read(HBAPort *port, uint32_t startl, uint32_t starth, uint32_t count, uint16_t *buf);
 int ahci_write(HBAPort *port, uint32_t startl, uint32_t starth, uint32_t count, uint16_t *buf);
 int ahci_flush_cache(HBAPort *port);
 void run_easec(const char* filename);
 void run_install();
+
+/* External Easec VM Function Declarations */
+extern void init_vm();
+extern void* create_env(void* parent);
+extern void run_script(const char* source, void* env);
+extern void env_define(void* env, const char* name, Value val);
+extern void* allocate_string(const char* chars, int length);
 
 /* =============================================================
    2. STANDARD C LIBRARY HELPER FUNCTIONS
@@ -288,8 +299,14 @@ long ftell(FILE* stream) {
 }
 
 /* =============================================================
-   3. VGA OUTPUT AND STRING FORMATTING DRIVERS
+   3. VGA OUTPUT AND DISPLAY FORMATTING DRIVERS
    ============================================================= */
+
+#define VGA_WIDTH 80
+#define VGA_HEIGHT 25
+uint16_t* const vga_buffer = (uint16_t*)0xB8000;
+int cursor_x = 0;
+int cursor_y = 0;
 
 void clear_screen() {
     for (int y = 0; y < VGA_HEIGHT; y++) {
@@ -332,6 +349,7 @@ void print_char(char c) {
 }
 
 void print_string(const char* str) {
+    // Intercept stdout calls to trigger native bare-metal hardware operations
     if (strcmp(str, "[SYS] CLEAR\n") == 0 || strcmp(str, "[SYS] CLEAR") == 0) {
         clear_screen();
         return;
@@ -345,6 +363,20 @@ void print_string(const char* str) {
         return;
     }
     while (*str) print_char(*str++);
+}
+
+static void itoa(long long value, char* str, int base) {
+    char temp[32]; int i = 0; int is_negative = 0;
+    if (value < 0 && base == 10) { is_negative = 1; value = -value; }
+    do {
+        int rem = value % base;
+        temp[i++] = (rem > 9) ? (rem - 10) + 'a' : rem + '0';
+        value /= base;
+    } while (value > 0);
+    if (is_negative) temp[i++] = '-';
+    int len = i;
+    for (int j = 0; j < len; j++) str[j] = temp[len - j - 1];
+    str[len] = '\0';
 }
 
 int vsnprintf(char* str, size_t size, const char* format, va_list args) {
@@ -525,22 +557,62 @@ int ahci_flush_cache(HBAPort *port) {
     return 1;
 }
 
+void* get_ahci_base() {
+    for (uint16_t bus = 0; bus < 256; bus++) {
+        for (uint8_t slot = 0; slot < 32; slot++) {
+            uint32_t vendor = pci_config_read(bus, slot, 0, 0);
+            if (vendor == 0xFFFFFFFF) continue;
+            
+            uint32_t header_reg = pci_config_read(bus, slot, 0, 0x0C);
+            uint8_t header_type = (header_reg >> 16) & 0xFF;
+            uint8_t func_limit = (header_type & 0x80) ? 8 : 1;
+            
+            for (uint8_t func = 0; func < func_limit; func++) {
+                uint32_t dev_vendor = pci_config_read(bus, slot, func, 0);
+                if (dev_vendor == 0xFFFFFFFF) continue;
+                
+                uint32_t class_sub = pci_config_read(bus, slot, func, 0x08);
+                uint8_t class_code = (class_sub >> 24) & 0xFF;
+                uint8_t subclass = (class_sub >> 16) & 0xFF;
+                uint8_t prog_if = (class_sub >> 8) & 0xFF;
+                
+                if ((class_code == 0x01 && subclass == 0x06 && prog_if == 0x01) || 
+                    (class_code == 0x01 && subclass == 0x04)) {
+                    
+                    uint32_t bar5 = pci_config_read(bus, slot, func, 0x24);
+                    uint32_t ahci_address = bar5 & 0xFFFFFFF0;
+                    if (ahci_address == 0) {
+                        pci_config_write(bus, slot, func, 0x24, 0xFEB00000);
+                        ahci_address = 0xFEB00000;
+                    }
+
+                    uint32_t cmd = pci_config_read(bus, slot, func, 0x04);
+                    pci_config_write(bus, slot, func, 0x04, cmd | 0x02 | 0x04); 
+                    return (void*)ahci_address;
+                }
+            }
+        }
+    }
+    return NULL;
+}
+
 void find_ahci_device() {
     print_string("Probing PCI Bus for AHCI storage controllers...\n");
     HBAMem* hba_mem = (HBAMem*)get_ahci_base(); 
     if (hba_mem) {
-        hba_mem->ghc |= (1 << 31); 
+        hba_mem->ghc |= (1 << 31); // AE (AHCI Enable Globally)
         uint32_t pi = hba_mem->pi;
         
         for (int i = 0; i < 32; i++) {
             if (pi & (1 << i)) {
                 HBAPort* port = &hba_mem->ports[i];
                 
-                if (!(port->cmd & (1 << 1))) port->cmd |= (1 << 1); 
-                if (!(port->cmd & (1 << 2))) port->cmd |= (1 << 2); 
-                for(volatile int delay=0; delay<100000; delay++); 
+                // Force Spin-up and Power-On Native Drive
+                if (!(port->cmd & (1 << 1))) port->cmd |= (1 << 1); // POD
+                if (!(port->cmd & (1 << 2))) port->cmd |= (1 << 2); // SUD
+                for(volatile int delay=0; delay<100000; delay++); // Spin-up delay
                 
-                port->serr = 0xFFFFFFFF; 
+                port->serr = 0xFFFFFFFF; // Clear any pending boot errors
 
                 if ((port->ssts & 0x0F) == 3 && port->sig != 0xEB140101) {
                     active_port = port;
@@ -698,18 +770,17 @@ const char* get_dynamic_file_list() {
     for (int i = 0; i < MAX_FILES; i++) {
         if (dma_dir_table.entries[i].start_lba > 0) {
             char line[128];
-            snprintf(line, sizeof(line), "  - %-16s [LBA: %4d] [Size: %d bytes]\n", 
-                     dma_dir_table.entries[i].filename, 
-                     dma_dir_table.entries[i].start_lba,
-                     dma_dir_table.entries[i].file_size);
+            snprintf(line, sizeof(line), "  - %-16s [LBA: %4d]\n", dma_dir_table.entries[i].filename, dma_dir_table.entries[i].start_lba);
             strcat(file_list_buffer, line);
             count++;
         }
     }
-    if (count == 0) {
-        strcat(file_list_buffer, "  (Directory is empty)\n");
-    }
-    return file_list_buffer;
+    if (count == 0) strcat(file_list_buffer, "  (Directory is empty)\n");
+
+    void* list_str = allocate_string(file_list_buffer, strlen(file_list_buffer));
+    env_define(global_env, "sys_list_dir", make_obj_val(list_str));
+
+    run_script(dma_script_buffer, global_env);
 }
 
 /* -------------------------------------------------------------
@@ -744,8 +815,22 @@ void run_easec(const char* filename) {
     init_vm();
     void* global_env = create_env(NULL);
     
-    const char* live_list = get_dynamic_file_list();
-    void* list_str = allocate_string(live_list, strlen(live_list));
+    // Scan real mapped directory on the fly
+    char file_list_buffer[1024];
+    memset(file_list_buffer, 0, sizeof(file_list_buffer));
+    strcpy(file_list_buffer, "Files mapped on SATA drive:\n");
+    int count = 0;
+    for (int i = 0; i < MAX_FILES; i++) {
+        if (dma_dir_table.entries[i].start_lba > 0) {
+            char line[128];
+            snprintf(line, sizeof(line), "  - %-16s [LBA: %4d]\n", dma_dir_table.entries[i].filename, dma_dir_table.entries[i].start_lba);
+            strcat(file_list_buffer, line);
+            count++;
+        }
+    }
+    if (count == 0) strcat(file_list_buffer, "  (Directory is empty)\n");
+
+    void* list_str = allocate_string(file_list_buffer, strlen(file_list_buffer));
     env_define(global_env, "sys_list_dir", make_obj_val(list_str));
 
     run_script(dma_script_buffer, global_env);
@@ -769,8 +854,9 @@ void run_install() {
 
     memset(&dma_dir_table, 0, sizeof(DirectoryTable));
     multiboot_module_t* mods = (multiboot_module_t*)mbi->mods_addr;
-    uint32_t current_lba = 4; 
+    uint32_t current_lba = 4; // Start laying out files at LBA 4
 
+    // Iterate through every .easec file dynamically detected and mapped by GRUB
     for (uint32_t i = 0; i < mbi->mods_count && i < MAX_FILES; i++) {
         char* mod_string = (char*)mods[i].string;
         uint32_t size = mods[i].mod_end - mods[i].mod_start;
@@ -804,15 +890,16 @@ void run_install() {
 
     if (!ahci_write(active_port, 2, 0, 2, (uint16_t*)&dma_dir_table)) { print_string("Error: Directory Table write aborted.\n"); return; }
     
+    // Crucial: Send Flush Cache command to force target device to write RAM cache to platter
     ahci_flush_cache(active_port);
 
     print_string("INPSOS installation onto SATA partitions completed.\n");
     print_string("Please detach your installation media and reboot computer.\n");
 }
 
-/* =============================================================
-   7. CPU CONTROL INITIALIZERS AND SHELL DRIVER LOOP
-   ============================================================= */
+/* -------------------------------------------------------------
+   Critical CPU Initializers
+   ------------------------------------------------------------- */
 
 void enable_fpu() {
     uint32_t cr0;
@@ -822,6 +909,10 @@ void enable_fpu() {
     __asm__ volatile("mov %0, %%cr0" :: "r"(cr0));
     __asm__ volatile("fninit"); 
 }
+
+/* -------------------------------------------------------------
+   Main Shell Entry
+   ------------------------------------------------------------- */
 
 void kernel_main(uint32_t magic, uint32_t addr) {
     global_multiboot_magic = magic;
