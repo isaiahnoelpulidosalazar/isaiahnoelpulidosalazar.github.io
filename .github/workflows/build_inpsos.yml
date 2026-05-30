@@ -7,7 +7,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
       - name: Install Rust (Nightly)
         uses: dtolnay/rust-toolchain@nightly
@@ -18,10 +18,14 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y xorriso mtools lld clang
         
       - name: Build Custom Bootloader
-        run: cd os/bootloader && cargo build --release --target x86_64-unknown-uefi
+        run: |
+          cd os/bootloader
+          cargo build --release --target x86_64-unknown-uefi
         
       - name: Build Kernel & Easec
-        run: cd os/kernel && cargo build --release --target x86_64-unknown-none
+        run: |
+          cd os/kernel
+          cargo build --release --target x86_64-unknown-none
         
       - name: Create Bootable ISO
         run: |
@@ -37,7 +41,7 @@ jobs:
             -o inpsos.iso iso/
             
       - name: Upload ISO Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: inpsos
           path: inpsos.iso
