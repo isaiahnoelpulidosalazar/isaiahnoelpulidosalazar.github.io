@@ -16,7 +16,11 @@ jobs:
           targets: x86_64-unknown-uefi, x86_64-unknown-none
           
       - name: Install Dependencies
-        run: sudo apt-get update && sudo apt-get install -y xorriso mtools lld clang
+        run: |
+          sudo apt-get update
+          # xorriso: ISO generator
+          # mtools & dosfstools: Creates FAT filesystem images without root loop-mounts
+          sudo apt-get install -y xorriso mtools lld clang dosfstools
         
       - name: Build Custom Bootloader
         run: |
@@ -51,19 +55,37 @@ jobs:
             exit 1
           fi
           
-          echo "Found bootloader at: $BOOTLOADER_PATH"
-          echo "Found kernel at: $KERNEL_PATH"
-          echo "Found rootfs at: $ROOTFS_PATH"
+          # 4. Create a 32MB FAT partition image representing the ESP (EFI System Partition)
+          # We use mtools so we don't need root/sudo mount permissions inside the container.
+          truncate -s 32M efi.img
+          mkfs.vfat efi.img
           
-          # 4. Pack into ISO Structure
-          mkdir -p iso/EFI/BOOT
-          cp "$BOOTLOADER_PATH" iso/EFI/BOOT/BOOTX64.EFI
-          cp "$KERNEL_PATH" iso/kernel.elf
-          cp -r "$ROOTFS_PATH" iso/
+          # Copy the bootloader and kernel into the FAT filesystem
+          mmd -i efi.img ::/EFI
+          mmd -i efi.img ::/EFI/BOOT
+          mcopy -i efi.img "$BOOTLOADER_PATH" ::/EFI/BOOT/BOOTX64.EFI
+          mcopy -i efi.img "$KERNEL_PATH" ::/kernel.elf
           
-          # 5. Generate ISO
-          xorriso -as mkisofs -R -f -e EFI/BOOT/BOOTX64.EFI -no-emul-boot \
+          # Copy the easec rootfs scripts into the ESP
+          mmd -i efi.img ::/os
+          mcopy -s -i efi.img "$ROOTFS_PATH" ::/os/
+          
+          # 5. Pack into ISO Structure
+          mkdir -p iso/boot
+          cp efi.img iso/boot/efi.img
+          
+          # 6. Generate a UEFI Hybrid bootable ISO with xorriso
+          xorriso -as mkisofs \
+            -R -f \
+            -eltorito-alt-boot \
+            -e boot/efi.img \
+            -no-emul-boot \
+            -isohybrid-gpt-basdat \
             -o inpsos.iso iso/
+            
+          # 7. Inject install.easec directly into Sector 10 (offset 5120 bytes) of the ISO 
+          # This allows the raw AHCI block-reader in the kernel main loop to read it on boot.
+          dd if=os/rootfs/install.easec of=inpsos.iso bs=512 seek=10 conv=notrunc
             
       - name: Upload ISO Artifact
         uses: actions/upload-artifact@v4
