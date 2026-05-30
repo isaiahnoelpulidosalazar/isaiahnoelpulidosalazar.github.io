@@ -231,7 +231,6 @@ void print_char(char c) {
 }
 
 void print_string(const char* str) {
-    // Intercept stdout calls to trigger native bare-metal hardware operations
     if (strcmp(str, "[SYS] CLEAR\n") == 0 || strcmp(str, "[SYS] CLEAR") == 0) {
         clear_screen();
         return;
@@ -374,7 +373,7 @@ typedef struct tagHBAPort {
 } HBAPort;
 
 typedef struct tagHBAMem {
-    volatile uint32_t cap; volatile uint32_t ghc; volatile uint32_t is; volatile uint32_t pi; volatile uint32_t vs;
+    volatile uint32_t i_cap; volatile uint32_t ghc; volatile uint32_t i_is; volatile uint32_t pi; volatile uint32_t vs;
     volatile uint32_t ccc_ctl; volatile uint32_t ccc_pts; volatile uint32_t em_loc; volatile uint32_t em_ctl;
     volatile uint32_t cap2; volatile uint32_t bohc; uint8_t rsvd[116]; uint8_t vendor[96];
     HBAPort ports[32];
@@ -400,7 +399,7 @@ int ahci_read(HBAPort *port, uint32_t startl, uint32_t starth, uint32_t count, u
     port->is = (uint32_t)-1; int spin = 0; int slot = 0;
     HBACommandHeader *cmdheader = (HBACommandHeader*)(uintptr_t)(port->clb);
     cmdheader[slot].cfl = 5; cmdheader[slot].w = 0; cmdheader[slot].prdtl = 1;
-    cmdheader[slot].prdbc = 0; // Explicitly reset transfer count
+    cmdheader[slot].prdbc = 0; 
 
     HBACommandTable *cmdtable = (HBACommandTable*)(uintptr_t)(cmdheader[slot].ctba);
     memset(cmdtable, 0, sizeof(HBACommandTable));
@@ -415,11 +414,10 @@ int ahci_read(HBAPort *port, uint32_t startl, uint32_t starth, uint32_t count, u
     cmdfis[10] = (uint8_t)(starth >> 8);
     cmdfis[12] = count & 0xFF; cmdfis[13] = (count >> 8) & 0xFF;
 
-    // Flush CPU Write-back caches to physical RAM before SATA fetches the structures
     __asm__ volatile("wbinvd" : : : "memory");
 
     while ((port->tfd & (AHCI_DEV_BUSY | AHCI_DEV_DRQ)) && spin < 10000000) spin++;
-    if (spin == 10000000) { print_string("AHCI: Drive Busy Timeout\n"); return 0; }
+    if (spin == 10000000) return 0;
     
     port->ci = 1 << slot;
 
@@ -430,7 +428,6 @@ int ahci_read(HBAPort *port, uint32_t startl, uint32_t starth, uint32_t count, u
         if (wait++ > 50000000) { print_string("AHCI: Execution Timeout\n"); return 0; }
     }
 
-    // Flush CPU caches after DMA completes so CPU caches the newly read SATA data
     __asm__ volatile("wbinvd" : : : "memory");
     return 1;
 }
@@ -454,11 +451,10 @@ int ahci_write(HBAPort *port, uint32_t startl, uint32_t starth, uint32_t count, 
     cmdfis[10] = (uint8_t)(starth >> 8);
     cmdfis[12] = count & 0xFF; cmdfis[13] = (count >> 8) & 0xFF;
 
-    // Flush CPU Write-back caches to physical RAM before SATA fetches the structures
     __asm__ volatile("wbinvd" : : : "memory");
 
     while ((port->tfd & (AHCI_DEV_BUSY | AHCI_DEV_DRQ)) && spin < 10000000) spin++;
-    if (spin == 10000000) { print_string("AHCI: Drive Busy Timeout\n"); return 0; }
+    if (spin == 10000000) return 0;
 
     port->ci = 1 << slot;
 
@@ -469,7 +465,40 @@ int ahci_write(HBAPort *port, uint32_t startl, uint32_t starth, uint32_t count, 
         if (wait++ > 50000000) { print_string("AHCI: Execution Timeout\n"); return 0; }
     }
 
-    // Flush CPU caches after DMA completes
+    __asm__ volatile("wbinvd" : : : "memory");
+    return 1;
+}
+
+/* -------------------------------------------------------------
+   Native ATA Cache Flush Command (For Physical Disk Persistency)
+   ------------------------------------------------------------- */
+int ahci_flush_cache(HBAPort *port) {
+    port->is = (uint32_t)-1;
+    int slot = 0;
+    HBACommandHeader *cmdheader = (HBACommandHeader*)(uintptr_t)(port->clb);
+    cmdheader[slot].cfl = 5;
+    cmdheader[slot].w = 0;
+    cmdheader[slot].prdtl = 0;
+    cmdheader[slot].prdbc = 0;
+
+    HBACommandTable *cmdtable = (HBACommandTable*)(uintptr_t)(cmdheader[slot].ctba);
+    memset(cmdtable, 0, sizeof(HBACommandTable));
+
+    uint8_t *cmdfis = cmdtable->cfis;
+    cmdfis[0] = 0x27; 
+    cmdfis[1] = 1 << 7; 
+    cmdfis[2] = 0xE7; // FLUSH CACHE EXT Command
+
+    __asm__ volatile("wbinvd" : : : "memory");
+
+    port->ci = 1 << slot;
+
+    int wait = 0;
+    while (1) {
+        if ((port->ci & (1 << slot)) == 0) break;
+        if (port->is & (1 << 30)) { print_string("AHCI: Cache Flush Command Rejected.\n"); return 0; }
+        if (wait++ > 50000000) { print_string("AHCI: Cache Flush Timeout.\n"); return 0; }
+    }
     __asm__ volatile("wbinvd" : : : "memory");
     return 1;
 }
@@ -496,7 +525,6 @@ void* get_ahci_base() {
             uint32_t vendor = pci_config_read(bus, slot, 0, 0);
             if (vendor == 0xFFFFFFFF) continue;
             
-            // Scan functions 0..7 if this is a multi-function device
             uint32_t header_reg = pci_config_read(bus, slot, 0, 0x0C);
             uint8_t header_type = (header_reg >> 16) & 0xFF;
             uint8_t func_limit = (header_type & 0x80) ? 8 : 1;
@@ -510,7 +538,6 @@ void* get_ahci_base() {
                 uint8_t subclass = (class_sub >> 16) & 0xFF;
                 uint8_t prog_if = (class_sub >> 8) & 0xFF;
                 
-                // Match standard SATA AHCI (0x06) or legacy RAID mode fallback (0x04)
                 if ((class_code == 0x01 && subclass == 0x06 && prog_if == 0x01) || 
                     (class_code == 0x01 && subclass == 0x04)) {
                     
@@ -522,7 +549,7 @@ void* get_ahci_base() {
                     }
 
                     uint32_t cmd = pci_config_read(bus, slot, func, 0x04);
-                    pci_config_write(bus, slot, func, 0x04, cmd | 0x02 | 0x04); // Enable Memory Space & Bus Master
+                    pci_config_write(bus, slot, func, 0x04, cmd | 0x02 | 0x04); 
                     return (void*)ahci_address;
                 }
             }
@@ -537,21 +564,19 @@ void find_ahci_device() {
     print_string("Probing PCI Bus for AHCI storage controllers...\n");
     HBAMem* hba_mem = (HBAMem*)get_ahci_base(); 
     if (hba_mem) {
-        hba_mem->ghc |= (1 << 31); // AE (AHCI Enable Globally)
+        hba_mem->ghc |= (1 << 31); 
         uint32_t pi = hba_mem->pi;
         
         for (int i = 0; i < 32; i++) {
             if (pi & (1 << i)) {
                 HBAPort* port = &hba_mem->ports[i];
                 
-                // Force Spin-up and Power-On Native Drive
-                if (!(port->cmd & (1 << 1))) port->cmd |= (1 << 1); // POD
-                if (!(port->cmd & (1 << 2))) port->cmd |= (1 << 2); // SUD
-                for(volatile int delay=0; delay<100000; delay++); // Spin-up delay
+                if (!(port->cmd & (1 << 1))) port->cmd |= (1 << 1); 
+                if (!(port->cmd & (1 << 2))) port->cmd |= (1 << 2); 
+                for(volatile int delay=0; delay<100000; delay++); 
                 
-                port->serr = 0xFFFFFFFF; // Clear any pending boot errors
+                port->serr = 0xFFFFFFFF; 
 
-                // Match device present (3) and skip ATAPI CD-ROMs (0xEB140101) to find disks
                 if ((port->ssts & 0x0F) == 3 && port->sig != 0xEB140101) {
                     active_port = port;
                     
@@ -626,35 +651,10 @@ static Value make_obj_val(void* o) {
 }
 
 /* -------------------------------------------------------------
-   Multiboot Struct Definitions
-   ------------------------------------------------------------- */
-#define MULTIBOOT_MAGIC 0x2BADB002
-
-typedef struct {
-    uint32_t mod_start;
-    uint32_t mod_end;
-    uint32_t string;
-    uint32_t reserved;
-} multiboot_module_t;
-
-typedef struct {
-    uint32_t flags;
-    uint32_t mem_lower;
-    uint32_t mem_upper;
-    uint32_t boot_device;
-    uint32_t cmdline;
-    uint32_t mods_count;
-    uint32_t mods_addr;
-} multiboot_info_t;
-
-uint32_t global_multiboot_magic = 0;
-uint32_t global_multiboot_addr = 0;
-
-/* -------------------------------------------------------------
    Flat Native Filesystem Structure definitions
    ------------------------------------------------------------- */
 
-#define MAX_FILES 24
+#define MAX_FILES 16
 
 typedef struct {
     char filename[32];
@@ -664,7 +664,7 @@ typedef struct {
 
 typedef struct {
     FileEntry entries[MAX_FILES];
-    uint8_t padding[256];
+    uint8_t padding[384]; // 16 * 40 + 384 = 1024 bytes (Exactly 2 sectors!)
 } DirectoryTable;
 
 /* Static DMA Arrays to securely lock SATA communications out of the CPU stack */
@@ -752,7 +752,8 @@ int fclose(FILE* stream) {
             memcpy(temp_sector, f->buffer + s * 512, chunk);
             ahci_write(active_port, dma_dir_table.entries[slot].start_lba + s, 0, 1, (uint16_t*)temp_sector);
         }
-        ahci_write(active_port, 2, 0, 2, (uint16_t*)&dma_dir_table); // Write 2 sectors to cover up to 24 files
+        ahci_write(active_port, 2, 0, 2, (uint16_t*)&dma_dir_table); // Write exactly 2 sectors (1024 bytes)
+        ahci_flush_cache(active_port); // Flush volatile storage writes to physical drive
     }
     return 0;
 }
@@ -765,7 +766,10 @@ int remove(const char* filename) {
     for (int i = 0; i < MAX_FILES; i++) {
         if (strcmp(dma_dir_table.entries[i].filename, filename) == 0) {
             memset(&dma_dir_table.entries[i], 0, sizeof(FileEntry));
-            if (ahci_write(active_port, 2, 0, 2, (uint16_t*)&dma_dir_table)) return 0; 
+            if (ahci_write(active_port, 2, 0, 2, (uint16_t*)&dma_dir_table)) {
+                ahci_flush_cache(active_port);
+                return 0; 
+            }
             return -1;
         }
     }
@@ -886,6 +890,9 @@ void run_install() {
     }
 
     if (!ahci_write(active_port, 2, 0, 2, (uint16_t*)&dma_dir_table)) { print_string("Error: Directory Table write aborted.\n"); return; }
+    
+    // Crucial: Send Flush Cache command to force target device to write RAM cache to platter
+    ahci_flush_cache(active_port);
 
     print_string("INPSOS installation onto SATA partitions completed.\n");
     print_string("Please detach your installation media and reboot computer.\n");
@@ -923,7 +930,19 @@ void kernel_main(uint32_t magic, uint32_t addr) {
     find_ahci_device();
     
     int installed = 0;
-    if (active_port) installed = check_installation_state(active_port);
+    int is_live_iso = 0;
+
+    multiboot_info_t* mbi = (multiboot_info_t*)global_multiboot_addr;
+    // If the bootloader has loaded dynamic installation modules, we are strictly on the Live ISO
+    if (global_multiboot_magic == MULTIBOOT_MAGIC && (mbi->flags & (1 << 3)) && mbi->mods_count > 0) {
+        is_live_iso = 1;
+    }
+
+    if (is_live_iso) {
+        installed = 0; // Lock system into Installation Mode (ignores old hard disk installs)
+    } else if (active_port) {
+        installed = check_installation_state(active_port);
+    }
 
     if (!installed) {
         print_string("STATUS: Running from Bootable Live ISO.\n");
