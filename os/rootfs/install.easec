@@ -1,0 +1,21 @@
+say "======================================="
+say " Welcome to Inpsos Setup"
+say "======================================="
+say "Detecting AHCI Physical Drives..."
+time sleep 1000
+
+say "Formatting ahci0..."
+file create "ahci0:/system/installed.cfg" "true"
+
+say "Copying Easec binaries..."
+
+var text l_code "say \"Drive ahci0 contents:\"\nsay \" - installed.cfg\"\nsay \" - list.easec\"\nsay \" - create_file.easec\"\nsay \" - delete_file.easec\""
+file create "ahci0:/list.easec" l_code
+
+var text c_code "say \"Enter filename:\"\nvar text n get\nsay \"Enter content:\"\nvar text c get\nfile create n c\nsay \"Created!\""
+file create "ahci0:/create_file.easec" c_code
+
+var text d_code "say \"Enter filename to delete:\"\nvar text target get\nfile delete target\nsay \"Deleted!\""
+file create "ahci0:/delete_file.easec" d_code
+
+say "Installation successful. Please eject the ISO and reboot."

@@ -1,0 +1,6 @@
+say "Scanning filesystem..."
+say "Available files:"
+say " - installed.cfg"
+say " - list.easec"
+say " - create_file.easec"
+say " - delete_file.easec"

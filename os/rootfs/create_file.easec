@@ -1,0 +1,9 @@
+say "Inpsos File Creator"
+say "Enter filename:"
+var text filename get
+
+say "Enter file content:"
+var text content get
+
+file create filename content
+say "File saved to physical drive."

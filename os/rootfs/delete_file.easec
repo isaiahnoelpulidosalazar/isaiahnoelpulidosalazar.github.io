@@ -1,0 +1,5 @@
+say "Enter the name of the file to delete:"
+var text target get
+
+file delete target
+say "File erased from physical drive."
