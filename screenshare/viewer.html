@@ -70,7 +70,7 @@
     </div>
 
     <div class="screen-wrapper" id="screenWrapper">
-      <canvas id="screenCanvas"></canvas>
+      <video id="screenVideo" autoplay playsinline style="display:none; width:100%; height:100%; object-fit:contain;"></video>
       <div class="screen-placeholder" id="placeholder">
         <div class="spinner" id="spinner"></div>
         <div class="ph-icon" id="phIcon">📺</div>
@@ -93,17 +93,16 @@
 <script>
 let sessionId = null;
 let ws = null;
-let frameCount = 0;
+let pc = null;
 
 const WS_URL = 'wss://isaiahnoelpulidosalazar-github-io.onrender.com';
+const rtcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
 
-// Pre-fill from URL param
 window.addEventListener('DOMContentLoaded', () => {
   const params = new URLSearchParams(location.search);
   const session = params.get('session');
   if (session) {
     document.getElementById('sessionInput').value = session;
-    // Auto-join after short delay
     setTimeout(joinSession, 300);
   }
 });
@@ -125,7 +124,6 @@ function extractSessionId(input) {
     const url = new URL(input);
     return url.searchParams.get('session') || null;
   } catch {
-    // Not a URL — treat as raw ID
     return input.trim() || null;
   }
 }
@@ -144,10 +142,7 @@ function joinSession() {
 }
 
 function connectWs() {
-  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-  const url = `${WS_URL}/ws/${sessionId}`;
-  ws = new WebSocket(url);
-  
+  ws = new WebSocket(`${WS_URL}/ws/${sessionId}`);
   setStatus('waiting', 'Connecting…');
   document.getElementById('spinner').style.display = 'block';
   document.getElementById('phIcon').style.display = 'none';
@@ -157,7 +152,7 @@ function connectWs() {
     log('Connected to session relay', 'ok');
   };
 
-  ws.onmessage = (e) => {
+  ws.onmessage = async (e) => {
     try {
       const msg = JSON.parse(e.data);
       handleMessage(msg);
@@ -168,13 +163,9 @@ function connectWs() {
     setStatus('ended', 'Disconnected');
     log('Connection closed', 'err');
   };
-
-  ws.onerror = () => {
-    log('WebSocket error — check session ID', 'err');
-  };
 }
 
-function handleMessage(msg) {
+async function handleMessage(msg) {
   const { type, sender, payload } = msg;
 
   if (type === 'error') {
@@ -190,62 +181,54 @@ function handleMessage(msg) {
       document.getElementById('phIcon').style.display = 'block';
       document.getElementById('phText').textContent = 'Waiting for host to start sharing…';
       log('Host is connected!', 'ok');
-    } else {
-      setStatus('waiting', 'Waiting for host to join…');
-      log('In waiting room — host not yet connected', 'info');
     }
     return;
   }
 
-  if (type === 'screen-frame') {
-    renderFrame(payload);
+  if (type === 'disconnect' && sender === 'host') {
+    setStatus('ended', 'Host ended the session');
+    log('Host ended the session', 'err');
+    hideVideo();
+    document.getElementById('phIcon').textContent = '📴';
+    document.getElementById('phText').textContent = 'Session ended by host.';
+    if (pc) pc.close();
     return;
   }
 
-  if (type === 'disconnect') {
-    if (sender === 'host') {
-      setStatus('ended', 'Host ended the session');
-      log('Host ended the session', 'err');
-      hideCanvas();
-      document.getElementById('phIcon').textContent = '📴';
-      document.getElementById('phText').textContent = 'Session ended by host.';
-    }
-    return;
+  // WebRTC Signaling
+  if (type === 'offer') {
+    if (pc) pc.close();
+    pc = new RTCPeerConnection(rtcConfig);
+
+    pc.onicecandidate = (e) => {
+      if (e.candidate) ws.send(JSON.stringify({ type: 'ice-candidate', sender: 'viewer', payload: e.candidate }));
+    };
+
+    pc.ontrack = (e) => {
+      const video = document.getElementById('screenVideo');
+      if (video.srcObject !== e.streams[0]) {
+        video.srcObject = e.streams[0];
+        video.style.display = 'block';
+        document.getElementById('placeholder').style.display = 'none';
+        document.getElementById('fsBtn').style.display = 'block';
+        setStatus('active', 'Receiving screen ●');
+        log('Screen stream started', 'ok');
+      }
+    };
+
+    await pc.setRemoteDescription(new RTCSessionDescription(payload));
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+    ws.send(JSON.stringify({ type: 'answer', sender: 'viewer', payload: pc.localDescription }));
+  }
+
+  if (type === 'ice-candidate' && pc) {
+    await pc.addIceCandidate(new RTCIceCandidate(payload));
   }
 }
 
-function renderFrame(payload) {
-  if (!payload?.frame) return;
-
-  const canvas = document.getElementById('screenCanvas');
-  const ctx = canvas.getContext('2d');
-  const img = new Image();
-
-  img.onload = () => {
-    canvas.width = payload.w || img.naturalWidth;
-    canvas.height = payload.h || img.naturalHeight;
-    ctx.drawImage(img, 0, 0);
-
-    // Show canvas, hide placeholder
-    if (canvas.style.display !== 'block') {
-      canvas.style.display = 'block';
-      document.getElementById('placeholder').style.display = 'none';
-      document.getElementById('fsBtn').style.display = 'block';
-      setStatus('active', 'Receiving screen ●');
-      log('Screen stream started', 'ok');
-    }
-
-    frameCount++;
-    document.getElementById('statFrames').textContent = frameCount;
-    document.getElementById('statRes').textContent = `${canvas.width}×${canvas.height}`;
-    document.getElementById('statLast').textContent = new Date().toTimeString().slice(0,8);
-  };
-
-  img.src = 'data:image/jpeg;base64,' + payload.frame;
-}
-
-function hideCanvas() {
-  document.getElementById('screenCanvas').style.display = 'none';
+function hideVideo() {
+  document.getElementById('screenVideo').style.display = 'none';
   document.getElementById('placeholder').style.display = 'flex';
   document.getElementById('fsBtn').style.display = 'none';
   document.getElementById('spinner').style.display = 'none';
@@ -265,6 +248,24 @@ function leaveSession() {
   if (ws) ws.close();
   location.reload();
 }
+
+// Fetch stats every second
+setInterval(async () => {
+  if (pc) {
+    const stats = await pc.getStats();
+    stats.forEach(report => {
+      if (report.type === 'inbound-rtp' && report.kind === 'video') {
+        document.getElementById('statFrames').textContent = report.framesDecoded || 0;
+      }
+      if ((report.type === 'inbound-rtp' || report.type === 'track') && report.kind === 'video') {
+        if (report.frameWidth && report.frameHeight) {
+          document.getElementById('statRes').textContent = `${report.frameWidth}×${report.frameHeight}`;
+        }
+      }
+    });
+    document.getElementById('statLast').textContent = new Date().toTimeString().slice(0,8);
+  }
+}, 1000);
 </script>
 </body>
 </html>

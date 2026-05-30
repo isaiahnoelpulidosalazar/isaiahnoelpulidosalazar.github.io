@@ -95,18 +95,13 @@
 let sessionId = null;
 let ws = null;
 let stream = null;
-let mediaRecorder = null;
-let frameCanvas = null;
-let frameCtx = null;
-let frameInterval = null;
-let frameCount = 0;
+let pc = null;
 let isSharing = false;
 let viewerConnected = false;
 
 const BACKEND_URL = 'https://isaiahnoelpulidosalazar-github-io.onrender.com';
 const WS_URL = 'wss://isaiahnoelpulidosalazar-github-io.onrender.com';
-
-const FPS = 15; // 15fps for relay approach
+const rtcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }; // Free Google STUN
 
 function log(msg, type = 'info') {
   const el = document.getElementById('log');
@@ -116,8 +111,7 @@ function log(msg, type = 'info') {
 }
 
 function setStatus(state, text) {
-  const dot = document.getElementById('statusDot');
-  dot.className = 'status-dot ' + state;
+  document.getElementById('statusDot').className = 'status-dot ' + state;
   document.getElementById('statusText').innerHTML = text;
 }
 
@@ -151,9 +145,7 @@ async function createSession() {
 }
 
 function connectWs() {
-  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-  const url = `${WS_URL}/ws/${sessionId}`;
-  ws = new WebSocket(url);
+  ws = new WebSocket(`${WS_URL}/ws/${sessionId}`);
   setStatus('waiting', 'Connecting to relay…');
 
   ws.onopen = () => {
@@ -161,7 +153,7 @@ function connectWs() {
     log('Connected to relay server', 'ok');
   };
 
-  ws.onmessage = (e) => {
+  ws.onmessage = async (e) => {
     try {
       const msg = JSON.parse(e.data);
       handleMessage(msg);
@@ -173,112 +165,91 @@ function connectWs() {
     log('WebSocket closed', 'err');
     stopSharing();
   };
-
-  ws.onerror = () => {
-    log('WebSocket error', 'err');
-  };
 }
 
-function handleMessage(msg) {
+async function handleMessage(msg) {
   if (msg.type === 'join' && msg.sender === 'viewer') {
     viewerConnected = true;
     setStatus('active', '<strong>Viewer connected</strong> — session ACTIVE');
     document.getElementById('statViewer').textContent = 'Connected';
     log('Viewer joined the session!', 'ok');
+    
+    // If sharing was active before viewer joined, restart connection
+    if (isSharing) createPeerConnection();
   }
+  
   if (msg.type === 'disconnect' && msg.sender === 'viewer') {
     viewerConnected = false;
     setStatus('waiting', '<strong>Waiting</strong> for viewer…');
     document.getElementById('statViewer').textContent = 'Disconnected';
     log('Viewer disconnected', 'err');
+    if (pc) pc.close();
+  }
+
+  // WebRTC Signaling
+  if (msg.type === 'answer' && pc) {
+    await pc.setRemoteDescription(new RTCSessionDescription(msg.payload));
+  }
+  if (msg.type === 'ice-candidate' && pc) {
+    await pc.addIceCandidate(new RTCIceCandidate(msg.payload));
+  }
+}
+
+function createPeerConnection() {
+  if (pc) pc.close();
+  pc = new RTCPeerConnection(rtcConfig);
+
+  pc.onicecandidate = (e) => {
+    if (e.candidate) ws.send(JSON.stringify({ type: 'ice-candidate', sender: 'host', payload: e.candidate }));
+  };
+
+  pc.onnegotiationneeded = async () => {
+    if (!viewerConnected) return; // Wait for viewer to join
+    try {
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      ws.send(JSON.stringify({ type: 'offer', sender: 'host', payload: pc.localDescription }));
+    } catch (err) {
+      log('Error creating offer: ' + err.message, 'err');
+    }
+  };
+
+  if (stream) {
+    stream.getTracks().forEach(track => pc.addTrack(track, stream));
   }
 }
 
 async function startSharing() {
   try {
     stream = await navigator.mediaDevices.getDisplayMedia({
-      video: { frameRate: { ideal: 15, max: 30 }, cursor: 'always' },
-      audio: false,
+      video: { cursor: 'always' },
+      audio: false, // You can change this to true if you want audio too
     });
 
-    // Show preview
     const video = document.getElementById('previewVideo');
     video.srcObject = stream;
     document.getElementById('previewOverlay').style.display = 'none';
     document.getElementById('liveBadge').classList.add('visible');
-
-    // Canvas for frame capture
-    frameCanvas = document.createElement('canvas');
-    frameCtx = frameCanvas.getContext('2d');
 
     isSharing = true;
     document.getElementById('shareBtn').disabled = true;
     document.getElementById('stopBtn').disabled = false;
     log('Screen capture started', 'ok');
 
-    // Start frame loop
-    startFrameLoop(video);
+    createPeerConnection();
 
-    // Handle user stopping via browser UI
     stream.getVideoTracks()[0].addEventListener('ended', () => {
       log('Screen share stopped by user', 'info');
       stopSharing();
     });
   } catch (e) {
-    if (e.name === 'NotAllowedError') {
-      log('Permission denied for screen capture', 'err');
-    } else {
-      log('Screen capture error: ' + e.message, 'err');
-    }
+    log('Screen capture error: ' + e.message, 'err');
   }
-}
-
-function startFrameLoop(video) {
-  let lastFpsTime = Date.now();
-  let fpsCount = 0;
-
-  frameInterval = setInterval(() => {
-    if (!isSharing || !ws || ws.readyState !== 1) return;
-    if (!video.videoWidth) return;
-
-    frameCanvas.width = video.videoWidth;
-    frameCanvas.height = video.videoHeight;
-    frameCtx.drawImage(video, 0, 0);
-
-    // Use JPEG for lower bandwidth
-    frameCanvas.toBlob((blob) => {
-      if (!blob || !ws || ws.readyState !== 1) return;
-      const reader = new FileReader();
-      reader.onload = () => {
-        const base64 = reader.result.split(',')[1];
-        ws.send(JSON.stringify({
-          type: 'screen-frame',
-          sessionId,
-          sender: 'host',
-          payload: { frame: base64, w: frameCanvas.width, h: frameCanvas.height },
-        }));
-        frameCount++;
-        fpsCount++;
-        document.getElementById('statFrames').textContent = frameCount;
-      };
-      reader.readAsDataURL(blob);
-    }, 'image/jpeg', 0.6);
-
-    // FPS calc
-    const now = Date.now();
-    if (now - lastFpsTime >= 1000) {
-      document.getElementById('statFps').textContent = fpsCount;
-      fpsCount = 0;
-      lastFpsTime = now;
-    }
-  }, 1000 / FPS);
 }
 
 function stopSharing() {
   isSharing = false;
-  clearInterval(frameInterval);
-  frameInterval = null;
-
+  if (pc) pc.close();
   if (stream) {
     stream.getTracks().forEach(t => t.stop());
     stream = null;
@@ -311,6 +282,19 @@ function copyUrl() {
     setTimeout(() => btn.textContent = 'Copy Link', 1500);
   });
 }
+
+// Fetch stats every second instead of manual frame counting
+setInterval(async () => {
+  if (pc && isSharing) {
+    const stats = await pc.getStats();
+    stats.forEach(report => {
+      if (report.type === 'outbound-rtp' && report.kind === 'video') {
+        document.getElementById('statFps').textContent = report.framesPerSecond || 0;
+        document.getElementById('statFrames').textContent = report.framesSent || 0;
+      }
+    });
+  }
+}, 1000);
 </script>
 </body>
 </html>

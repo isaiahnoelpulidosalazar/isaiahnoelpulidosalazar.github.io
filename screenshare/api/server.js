@@ -29,8 +29,6 @@ setInterval(() => {
   }
 }, 5 * 60 * 1000);
 
-// ─── REST API ────────────────────────────────────────────────────────────────
-
 app.post('/create-session', (req, res) => {
   const sessionId = uuidv4();
   sessions.set(sessionId, {
@@ -55,8 +53,6 @@ app.get('/session/:id', (req, res) => {
   });
 });
 
-// ─── WEBSOCKET RELAY ─────────────────────────────────────────────────────────
-
 function send(ws, msg) {
   if (ws && ws.readyState === 1) {
     ws.send(JSON.stringify(msg));
@@ -76,14 +72,12 @@ wss.on('connection', (ws, req) => {
 
   let role = null;
 
-  // Assign role
   if (!session.host) {
     role = 'host';
     session.host = ws;
     console.log(`[ws] Host joined session ${sessionId}`);
     send(ws, { type: 'join', sender: 'server', sessionId, payload: { role: 'host', status: session.status } });
 
-    // If viewer already waiting, notify both
     if (session.viewer) {
       session.status = 'ACTIVE';
       session.lastActive = Date.now();
@@ -109,7 +103,6 @@ wss.on('connection', (ws, req) => {
     return;
   }
 
-  // Message relay
   ws.on('message', (data) => {
     session.lastActive = Date.now();
     let msg;
@@ -122,15 +115,14 @@ wss.on('connection', (ws, req) => {
 
     const { type } = msg;
 
-    // Relay: host → viewer, viewer → host
     if (role === 'host' && session.viewer) {
       send(session.viewer, msg);
     } else if (role === 'viewer' && session.host) {
       send(session.host, msg);
     }
 
-    // Log non-frame messages
-    if (type !== 'screen-frame') {
+    // Ignore WebRTC setup spam in logs
+    if (!['screen-frame', 'offer', 'answer', 'ice-candidate'].includes(type)) {
       console.log(`[ws] [${role}→relay] type=${type} session=${sessionId}`);
     }
   });
@@ -154,8 +146,6 @@ wss.on('connection', (ws, req) => {
     console.error(`[ws] Error (${role}, ${sessionId}):`, err.message);
   });
 });
-
-// ─── START ───────────────────────────────────────────────────────────────────
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
