@@ -1,14 +1,18 @@
 #include "freestanding.h"
 
+/* -------------------------------------------------------------
+   Standard Library Fallback Implementations
+   ------------------------------------------------------------- */
+
 FILE* stderr = (FILE*)1;
 FILE* stdin  = (FILE*)2;
 FILE* stdout = (FILE*)3;
 
-uint8_t kheap[16 * 1024 * 1024]; 
+uint8_t kheap[16 * 1024 * 1024]; // 16MB kernel heap
 size_t heap_offset = 0;
 
 void* kmalloc(size_t size) {
-    size = (size + 3) & ~3; 
+    size = (size + 3) & ~3; // 4-byte alignment
     if (heap_offset + sizeof(size_t) + size > sizeof(kheap)) return NULL;
     
     size_t* header = (size_t*)&kheap[heap_offset];
@@ -157,6 +161,10 @@ double atof(const char* s) {
     return res * factor * sign;
 }
 
+/* -------------------------------------------------------------
+   Standard Formatting and Stream Function Mocks
+   ------------------------------------------------------------- */
+
 size_t fread(void* ptr, size_t size, size_t nmemb, FILE* stream) {
     (void)ptr; (void)size; (void)nmemb; (void)stream;
     return 0;
@@ -171,6 +179,10 @@ long ftell(FILE* stream) {
     (void)stream;
     return 0;
 }
+
+/* -------------------------------------------------------------
+   VGA Output and Display Formatting Drivers
+   ------------------------------------------------------------- */
 
 #define VGA_WIDTH 80
 #define VGA_HEIGHT 25
@@ -219,12 +231,13 @@ void print_char(char c) {
 }
 
 void print_string(const char* str) {
+    // Intercept stdout calls to trigger native bare-metal hardware operations
     if (strcmp(str, "[SYS] CLEAR\n") == 0 || strcmp(str, "[SYS] CLEAR") == 0) {
         clear_screen();
         return;
     }
-    if (strcmp(str, "[SYS] RESTART\n") == 0 || strcmp(str, "[SYS] RESTART") == 0) {
-        sys_restart();
+    if (strcmp(str, "[SYS] REBOOT\n") == 0 || strcmp(str, "[SYS] REBOOT") == 0) {
+        sys_reboot();
         return;
     }
     if (strcmp(str, "[SYS] SHUTDOWN\n") == 0 || strcmp(str, "[SYS] SHUTDOWN") == 0) {
@@ -287,11 +300,19 @@ int fprintf(FILE* stream, const char* format, ...) { (void)stream; char buf[1024
 int vfprintf(FILE* stream, const char* format, va_list args) { (void)stream; char buf[1024]; int ret = vsnprintf(buf, sizeof(buf), format, args); print_string(buf); return ret; }
 int fputs(const char* str, FILE* stream) { (void)stream; print_string(str); return 0; }
 
+/* -------------------------------------------------------------
+   Hardware Port Communications
+   ------------------------------------------------------------- */
+
 uint8_t inb(uint16_t port) { uint8_t ret; __asm__ volatile("inb %1, %0" : "=a"(ret) : "Nd"(port)); return ret; }
 void outb(uint16_t port, uint8_t val) { __asm__ volatile("outb %0, %1" : : "a"(val), "Nd"(port)); }
 void outw(uint16_t port, uint16_t val) { __asm__ volatile("outw %0, %1" : : "a"(val), "Nd"(port)); }
 uint32_t inl(uint16_t port) { uint32_t ret; __asm__ volatile("inl %1, %0" : "=a"(ret) : "Nd"(port)); return ret; }
 void outl(uint16_t port, uint32_t val) { __asm__ volatile("outl %0, %1" : : "a"(val), "Nd"(port)); }
+
+/* -------------------------------------------------------------
+   Keyboard System Configuration
+   ------------------------------------------------------------- */
 
 char keyboard_get_char() {
     static const char scan_to_ascii[] = {
@@ -333,8 +354,12 @@ char* fgets_freestanding(char* str, int num) {
 
 char* fgets(char* str, int num, FILE* stream) { (void)stream; return fgets_freestanding(str, num); }
 
-void sys_restart() { outb(0x64, 0xFE); }
+void sys_reboot() { outb(0x64, 0xFE); }
 void sys_shutdown() { outw(0x604, 0x2000); }
+
+/* -------------------------------------------------------------
+   PCI AHCI Interface System & Storage Definitions
+   ------------------------------------------------------------- */
 
 #define SATA_SIG_ATA    0x00000101
 #define AHCI_DEV_BUSY   0x80
@@ -390,15 +415,15 @@ int ahci_read(HBAPort *port, uint32_t startl, uint32_t starth, uint32_t count, u
     cmdfis[12] = count & 0xFF; cmdfis[13] = (count >> 8) & 0xFF;
 
     while ((port->tfd & (AHCI_DEV_BUSY | AHCI_DEV_DRQ)) && spin < 10000000) spin++;
-    if (spin == 10000000) return 0;
+    if (spin == 10000000) { print_string("AHCI: Drive Busy Timeout\n"); return 0; }
     
     port->ci = 1 << slot;
 
     int wait = 0;
     while (1) {
         if ((port->ci & (1 << slot)) == 0) break;
-        if (port->is & (1 << 30)) return 0;
-        if (wait++ > 50000000) return 0;
+        if (port->is & (1 << 30)) { print_string("AHCI: Task File Error (Read Failed)\n"); return 0; }
+        if (wait++ > 50000000) { print_string("AHCI: Execution Timeout\n"); return 0; }
     }
     return 1;
 }
@@ -422,18 +447,22 @@ int ahci_write(HBAPort *port, uint32_t startl, uint32_t starth, uint32_t count, 
     cmdfis[12] = count & 0xFF; cmdfis[13] = (count >> 8) & 0xFF;
 
     while ((port->tfd & (AHCI_DEV_BUSY | AHCI_DEV_DRQ)) && spin < 10000000) spin++;
-    if (spin == 10000000) return 0;
+    if (spin == 10000000) { print_string("AHCI: Drive Busy Timeout\n"); return 0; }
 
     port->ci = 1 << slot;
 
     int wait = 0;
     while (1) {
         if ((port->ci & (1 << slot)) == 0) break;
-        if (port->is & (1 << 30)) return 0;
-        if (wait++ > 50000000) return 0;
+        if (port->is & (1 << 30)) { print_string("AHCI: Task File Error (Is Drive Read-Only?)\n"); return 0; }
+        if (wait++ > 50000000) { print_string("AHCI: Execution Timeout\n"); return 0; }
     }
     return 1;
 }
+
+/* -------------------------------------------------------------
+   PCI Bus Scanner with Multi-Function and RAID Fallbacks
+   ------------------------------------------------------------- */
 
 uint32_t pci_config_read(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offset) {
     uint32_t address = (uint32_t)((bus << 16) | (slot << 11) | (func << 8) | (offset & 0xfc) | ((uint32_t)0x80000000));
@@ -453,22 +482,35 @@ void* get_ahci_base() {
             uint32_t vendor = pci_config_read(bus, slot, 0, 0);
             if (vendor == 0xFFFFFFFF) continue;
             
-            uint32_t class_sub = pci_config_read(bus, slot, 0, 0x08);
-            uint8_t class_code = (class_sub >> 24) & 0xFF;
-            uint8_t subclass = (class_sub >> 16) & 0xFF;
-            uint8_t prog_if = (class_sub >> 8) & 0xFF;
+            // Scan functions 0..7 if this is a multi-function device
+            uint32_t header_reg = pci_config_read(bus, slot, 0, 0x0C);
+            uint8_t header_type = (header_reg >> 16) & 0xFF;
+            uint8_t func_limit = (header_type & 0x80) ? 8 : 1;
             
-            if (class_code == 0x01 && subclass == 0x06 && prog_if == 0x01) {
-                uint32_t bar5 = pci_config_read(bus, slot, 0, 0x24);
-                uint32_t ahci_address = bar5 & 0xFFFFFFF0;
-                if (ahci_address == 0) {
-                    pci_config_write(bus, slot, 0, 0x24, 0xFEB00000);
-                    ahci_address = 0xFEB00000;
-                }
+            for (uint8_t func = 0; func < func_limit; func++) {
+                uint32_t dev_vendor = pci_config_read(bus, slot, func, 0);
+                if (dev_vendor == 0xFFFFFFFF) continue;
+                
+                uint32_t class_sub = pci_config_read(bus, slot, func, 0x08);
+                uint8_t class_code = (class_sub >> 24) & 0xFF;
+                uint8_t subclass = (class_sub >> 16) & 0xFF;
+                uint8_t prog_if = (class_sub >> 8) & 0xFF;
+                
+                // Match standard SATA AHCI (0x06) or legacy RAID mode fallback (0x04)
+                if ((class_code == 0x01 && subclass == 0x06 && prog_if == 0x01) || 
+                    (class_code == 0x01 && subclass == 0x04)) {
+                    
+                    uint32_t bar5 = pci_config_read(bus, slot, func, 0x24);
+                    uint32_t ahci_address = bar5 & 0xFFFFFFF0;
+                    if (ahci_address == 0) {
+                        pci_config_write(bus, slot, func, 0x24, 0xFEB00000);
+                        ahci_address = 0xFEB00000;
+                    }
 
-                uint32_t cmd = pci_config_read(bus, slot, 0, 0x04);
-                pci_config_write(bus, slot, 0, 0x04, cmd | 0x02 | 0x04); 
-                return (void*)ahci_address;
+                    uint32_t cmd = pci_config_read(bus, slot, func, 0x04);
+                    pci_config_write(bus, slot, func, 0x04, cmd | 0x02 | 0x04); // Enable Memory Space & Bus Master
+                    return (void*)ahci_address;
+                }
             }
         }
     }
@@ -481,20 +523,22 @@ void find_ahci_device() {
     print_string("Probing PCI Bus for AHCI storage controllers...\n");
     HBAMem* hba_mem = (HBAMem*)get_ahci_base(); 
     if (hba_mem) {
-        hba_mem->ghc |= (1 << 31); 
+        hba_mem->ghc |= (1 << 31); // AE (AHCI Enable Globally)
         uint32_t pi = hba_mem->pi;
         
         for (int i = 0; i < 32; i++) {
             if (pi & (1 << i)) {
                 HBAPort* port = &hba_mem->ports[i];
                 
-                if (!(port->cmd & (1 << 1))) port->cmd |= (1 << 1); 
-                if (!(port->cmd & (1 << 2))) port->cmd |= (1 << 2); 
-                for(volatile int delay=0; delay<100000; delay++); 
+                // Force Spin-up and Power-On Native Drive
+                if (!(port->cmd & (1 << 1))) port->cmd |= (1 << 1); // POD
+                if (!(port->cmd & (1 << 2))) port->cmd |= (1 << 2); // SUD
+                for(volatile int delay=0; delay<100000; delay++); // Spin-up delay
                 
-                port->serr = 0xFFFFFFFF; 
+                port->serr = 0xFFFFFFFF; // Clear any pending boot errors
 
-                if ((port->ssts & 0x0F) == 3 && port->sig == SATA_SIG_ATA) {
+                // Match device present (3) and skip ATAPI CD-ROMs (0xEB140101) to find disks
+                if ((port->ssts & 0x0F) == 3 && port->sig != 0xEB140101) {
                     active_port = port;
                     
                     port->cmd &= ~(1 << 0);
@@ -538,9 +582,17 @@ void find_ahci_device() {
     active_port = NULL;
 }
 
+/* -------------------------------------------------------------
+   Timing Fallback Utilities (DO NOT REMOVE)
+   ------------------------------------------------------------- */
+
 long long get_time_ms() { static long long mock_time = 0; return mock_time++; }
 void sleep_ms(long long ms) { for (volatile long long i = 0; i < ms * 10000; i++); }
 void exit(int status) { (void)status; print_string("\nKernel exited. System Halted.\n"); while (1) { __asm__ volatile("cli; hlt"); } }
+
+/* -------------------------------------------------------------
+   Easec VM Linkage Definitions
+   ------------------------------------------------------------- */
 
 typedef enum { VAL_NULL, VAL_BOOL, VAL_INT, VAL_FLOAT, VAL_OBJ } ValType;
 
@@ -559,6 +611,9 @@ static Value make_obj_val(void* o) {
     Value v; v.type = VAL_OBJ; v.as.obj = o; return v;
 }
 
+/* -------------------------------------------------------------
+   Multiboot Struct Definitions
+   ------------------------------------------------------------- */
 #define MULTIBOOT_MAGIC 0x2BADB002
 
 typedef struct {
@@ -581,6 +636,10 @@ typedef struct {
 uint32_t global_multiboot_magic = 0;
 uint32_t global_multiboot_addr = 0;
 
+/* -------------------------------------------------------------
+   Flat Native Filesystem Structure definitions
+   ------------------------------------------------------------- */
+
 #define MAX_FILES 24
 
 typedef struct {
@@ -594,6 +653,7 @@ typedef struct {
     uint8_t padding[256];
 } DirectoryTable;
 
+/* Static DMA Arrays to securely lock SATA communications out of the CPU stack */
 static char dma_sector_buffer[512] __attribute__((aligned(16)));
 static DirectoryTable dma_dir_table __attribute__((aligned(16)));
 static char dma_script_buffer[65536] __attribute__((aligned(16)));
@@ -608,6 +668,7 @@ typedef struct {
 
 static ActiveFile open_file;
 
+/* Real Native Easec VM file mapping directly to Physical SATA Layout */
 FILE* fopen(const char* filename, const char* mode) {
     if (!active_port) return NULL;
     memset(&open_file, 0, sizeof(ActiveFile));
@@ -645,7 +706,7 @@ int fclose(FILE* stream) {
         if (!ahci_read(active_port, 2, 0, 2, (uint16_t*)&dma_dir_table)) return -1;
         
         int slot = -1;
-        uint32_t next_free_lba = 15; 
+        uint32_t next_free_lba = 15; // User file writes get mapped dynamically
         
         for (int i = 0; i < MAX_FILES; i++) {
             if (strcmp(dma_dir_table.entries[i].filename, f->filename) == 0) { slot = i; break; }
@@ -677,7 +738,7 @@ int fclose(FILE* stream) {
             memcpy(temp_sector, f->buffer + s * 512, chunk);
             ahci_write(active_port, dma_dir_table.entries[slot].start_lba + s, 0, 1, (uint16_t*)temp_sector);
         }
-        ahci_write(active_port, 2, 0, 2, (uint16_t*)&dma_dir_table); 
+        ahci_write(active_port, 2, 0, 2, (uint16_t*)&dma_dir_table); // Write 2 sectors to cover up to 24 files
     }
     return 0;
 }
@@ -696,6 +757,10 @@ int remove(const char* filename) {
     }
     return -1; 
 }
+
+/* -------------------------------------------------------------
+   Dynamic Multi-File Hard Drive Scanner & Installer
+   ------------------------------------------------------------- */
 
 int check_installation_state(HBAPort* port) {
     memset(dma_sector_buffer, 0, 512);
@@ -733,6 +798,7 @@ void run_easec(const char* filename) {
     init_vm();
     void* global_env = create_env(NULL);
     
+    // Scan real mapped directory on the fly
     char file_list_buffer[1024];
     memset(file_list_buffer, 0, sizeof(file_list_buffer));
     strcpy(file_list_buffer, "Files mapped on SATA drive:\n");
@@ -746,28 +812,34 @@ void run_easec(const char* filename) {
         }
     }
     if (count == 0) strcat(file_list_buffer, "  (Directory is empty)\n");
+
     void* list_str = allocate_string(file_list_buffer, strlen(file_list_buffer));
     env_define(global_env, "sys_list_dir", make_obj_val(list_str));
+
     run_script(dma_script_buffer, global_env);
 }
 
 void run_install() {
     print_string("Initializing physical installation onto hard disk...\n");
     if (!active_port) { print_string("Error: Compatible AHCI SATA controller not detected.\n"); return; }
+    
     multiboot_info_t* mbi = (multiboot_info_t*)global_multiboot_addr;
     if (global_multiboot_magic != MULTIBOOT_MAGIC || !(mbi->flags & (1 << 3))) {
         print_string("Error: No installation modules provided by ISO bootloader.\n");
         return;
     }
+    
     memset(dma_sector_buffer, 0, 512); memcpy(dma_sector_buffer, "INPSOS_INSTALLED", 16);
     if (!ahci_write(active_port, 1, 0, 1, (uint16_t*)dma_sector_buffer)) { 
         print_string("Error: Local layout boot sector write failure.\n"); 
         return; 
     }
+
     memset(&dma_dir_table, 0, sizeof(DirectoryTable));
     multiboot_module_t* mods = (multiboot_module_t*)mbi->mods_addr;
-    uint32_t current_lba = 4; 
-    
+    uint32_t current_lba = 4; // Start laying out files at LBA 4
+
+    // Iterate through every .easec file dynamically detected and mapped by GRUB
     for (uint32_t i = 0; i < mbi->mods_count && i < MAX_FILES; i++) {
         char* mod_string = (char*)mods[i].string;
         uint32_t size = mods[i].mod_end - mods[i].mod_start;
@@ -804,6 +876,10 @@ void run_install() {
     print_string("INPSOS installation onto SATA partitions completed.\n");
     print_string("Please detach your installation media and reboot computer.\n");
 }
+
+/* -------------------------------------------------------------
+   Critical CPU Initializers
+   ------------------------------------------------------------- */
 
 void enable_fpu() {
     uint32_t cr0;
@@ -856,8 +932,7 @@ void kernel_main(uint32_t magic, uint32_t addr) {
                         for (int i = 0; i < MAX_FILES; i++) {
                             if (strcmp(dma_dir_table.entries[i].filename, command_buf) == 0) {
                                 run_easec(command_buf);
-                                found = 1; 
-                                break;
+                                found = 1; break;
                             }
                         }
                         if (!found && strlen(command_buf) > 0) {
