@@ -92,7 +92,8 @@ fn main(image: Handle, mut system_table: SystemTable<Boot>) -> Status {
     file.read(dest_slice).unwrap();
 
     // 5. Exit boot services to take pure hardware control
-    let mut config = system_table.exit_boot_services();
+    // This consumes the system table and retrieves the final Memory Map
+    let (_, _mmap) = system_table.exit_boot_services(MemoryType::LOADER_DATA);
     
     // Calculate entry point dynamically from ELF header
     let entry_fn: extern "sysv64" fn() -> ! = unsafe {
