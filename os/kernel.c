@@ -4,6 +4,14 @@
    1. STRUCT, TYPE AND GLOBAL VARIABLE DECLARATIONS (HEADER ZONE)
    ============================================================= */
 
+/* Easec VM Linkage Definitions */
+typedef enum { VAL_NULL, VAL_BOOL, VAL_INT, VAL_FLOAT, VAL_OBJ } ValType;
+
+typedef struct {
+    ValType type;
+    union { int boolean; long long integer; double floating; void* obj; } as;
+} Value;
+
 /* Multiboot Bootloader Definitions */
 #define MULTIBOOT_MAGIC 0x2BADB002
 
@@ -108,12 +116,24 @@ void print_string(const char* str);
 void itoa(long long value, char* str, int base);
 char keyboard_get_char();
 void* get_ahci_base();
+uint32_t pci_config_read(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offset);
+void pci_config_write(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offset, uint32_t value);
 int check_installation_state(HBAPort* port);
 int ahci_read(HBAPort *port, uint32_t startl, uint32_t starth, uint32_t count, uint16_t *buf);
 int ahci_write(HBAPort *port, uint32_t startl, uint32_t starth, uint32_t count, uint16_t *buf);
 int ahci_flush_cache(HBAPort *port);
 void run_easec(const char* filename);
 void run_install();
+void enable_fpu();
+void* malloc(size_t size);
+void free(void* ptr);
+void* realloc(void* ptr, size_t size);
+
+uint8_t inb(uint16_t port);
+void outb(uint16_t port, uint8_t val);
+void outw(uint16_t port, uint16_t val);
+uint32_t inl(uint16_t port);
+void outl(uint16_t port, uint32_t val);
 
 /* External Easec VM Function Declarations */
 extern void init_vm();
@@ -122,12 +142,13 @@ extern void run_script(const char* source, void* env);
 extern void env_define(void* env, const char* name, Value val);
 extern void* allocate_string(const char* chars, int length);
 
+static Value make_obj_val(void* o) {
+    Value v; v.type = VAL_OBJ; v.as.obj = o; return v;
+}
+
 /* =============================================================
    2. STANDARD C LIBRARY HELPER FUNCTIONS
    ============================================================= */
-
-uint8_t kheap[16 * 1024 * 1024]; // 16MB kernel heap
-size_t heap_offset = 0;
 
 void* kmalloc(size_t size) {
     size = (size + 3) & ~3; // 4-byte alignment
@@ -152,10 +173,6 @@ void* krealloc(void* ptr, size_t new_size) {
     }
     return new_ptr;
 }
-
-void* malloc(size_t size) { return kmalloc(size); }
-void free(void* ptr) { (void)ptr; } 
-void* realloc(void* ptr, size_t size) { return krealloc(ptr, size); }
 
 void* memset(void* dest, int val, size_t len) {
     uint8_t* p = dest;
@@ -365,7 +382,7 @@ void print_string(const char* str) {
     while (*str) print_char(*str++);
 }
 
-static void itoa(long long value, char* str, int base) {
+void itoa(long long value, char* str, int base) {
     char temp[32]; int i = 0; int is_negative = 0;
     if (value < 0 && base == 10) { is_negative = 1; value = -value; }
     do {
@@ -378,6 +395,10 @@ static void itoa(long long value, char* str, int base) {
     for (int j = 0; j < len; j++) str[j] = temp[len - j - 1];
     str[len] = '\0';
 }
+
+/* -------------------------------------------------------------
+   Formatting String Utilities
+   ------------------------------------------------------------- */
 
 int vsnprintf(char* str, size_t size, const char* format, va_list args) {
     size_t written = 0;
@@ -422,34 +443,35 @@ int fputs(const char* str, FILE* stream) { (void)stream; print_string(str); retu
    4. HARDWARE PORT COMMUNICATIONS & INTERRUPTS
    ============================================================= */
 
-void sys_reboot() { outb(0x64, 0xFE); }
-void sys_shutdown() { outw(0x604, 0x2000); }
-
-char* fgets_freestanding(char* str, int num) {
-    int i = 0;
-    while (i < num - 1) {
-        char c = keyboard_get_char();
-        if (c == '\n') {
-            print_char('\n');
-            break;
-        } else if (c == '\b') {
-            if (i > 0) {
-                i--;
-                print_char('\b');
-            }
-        } else if (c != 0) {
-            print_char(c);
-            str[i++] = c;
-        }
-    }
-    str[i] = '\0'; 
-    return str;
-}
-
-char* fgets(char* str, int num, FILE* stream) { (void)stream; return fgets_freestanding(str, num); }
+uint8_t inb(uint16_t port) { uint8_t ret; __asm__ volatile("inb %1, %0" : "=a"(ret) : "Nd"(port)); return ret; }
+void outb(uint16_t port, uint8_t val) { __asm__ volatile("outb %0, %1" : : "a"(val), "Nd"(port)); }
+void outw(uint16_t port, uint16_t val) { __asm__ volatile("outw %0, %1" : : "a"(val), "Nd"(port)); }
+uint32_t inl(uint16_t port) { uint32_t ret; __asm__ volatile("inl %1, %0" : "=a"(ret) : "Nd"(port)); return ret; }
+void outl(uint16_t port, uint32_t val) { __asm__ volatile("outl %0, %1" : : "a"(val), "Nd"(port)); }
 
 /* =============================================================
-   5. AHCI SATA NATIVE STORAGE DRIVER
+   5. KEYBOARD AND SYSTEM INPUT
+   ============================================================= */
+
+char keyboard_get_char() {
+    static const char scan_to_ascii[] = {
+        0, 0, '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', '\b',
+        '\t', 'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '[', ']', '\n',
+        0, 'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', '\'', '`', 0,
+        '\\', 'z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/', 0, '*', 0, ' '
+    };
+    while (1) {
+        if (inb(0x64) & 1) {
+            uint8_t scancode = inb(0x60);
+            if (scancode < sizeof(scan_to_ascii) && scan_to_ascii[scancode] != 0) {
+                return scan_to_ascii[scancode];
+            }
+        }
+    }
+}
+
+/* =============================================================
+   6. AHCI SATA NATIVE STORAGE DRIVER
    ============================================================= */
 
 int ahci_read(HBAPort *port, uint32_t startl, uint32_t starth, uint32_t count, uint16_t *buf) {
@@ -557,45 +579,6 @@ int ahci_flush_cache(HBAPort *port) {
     return 1;
 }
 
-void* get_ahci_base() {
-    for (uint16_t bus = 0; bus < 256; bus++) {
-        for (uint8_t slot = 0; slot < 32; slot++) {
-            uint32_t vendor = pci_config_read(bus, slot, 0, 0);
-            if (vendor == 0xFFFFFFFF) continue;
-            
-            uint32_t header_reg = pci_config_read(bus, slot, 0, 0x0C);
-            uint8_t header_type = (header_reg >> 16) & 0xFF;
-            uint8_t func_limit = (header_type & 0x80) ? 8 : 1;
-            
-            for (uint8_t func = 0; func < func_limit; func++) {
-                uint32_t dev_vendor = pci_config_read(bus, slot, func, 0);
-                if (dev_vendor == 0xFFFFFFFF) continue;
-                
-                uint32_t class_sub = pci_config_read(bus, slot, func, 0x08);
-                uint8_t class_code = (class_sub >> 24) & 0xFF;
-                uint8_t subclass = (class_sub >> 16) & 0xFF;
-                uint8_t prog_if = (class_sub >> 8) & 0xFF;
-                
-                if ((class_code == 0x01 && subclass == 0x06 && prog_if == 0x01) || 
-                    (class_code == 0x01 && subclass == 0x04)) {
-                    
-                    uint32_t bar5 = pci_config_read(bus, slot, func, 0x24);
-                    uint32_t ahci_address = bar5 & 0xFFFFFFF0;
-                    if (ahci_address == 0) {
-                        pci_config_write(bus, slot, func, 0x24, 0xFEB00000);
-                        ahci_address = 0xFEB00000;
-                    }
-
-                    uint32_t cmd = pci_config_read(bus, slot, func, 0x04);
-                    pci_config_write(bus, slot, func, 0x04, cmd | 0x02 | 0x04); 
-                    return (void*)ahci_address;
-                }
-            }
-        }
-    }
-    return NULL;
-}
-
 void find_ahci_device() {
     print_string("Probing PCI Bus for AHCI storage controllers...\n");
     HBAMem* hba_mem = (HBAMem*)get_ahci_base(); 
@@ -659,7 +642,7 @@ void find_ahci_device() {
 }
 
 /* =============================================================
-   6. DYNAMIC FILE STORAGE AND FILESYSTEM UTILITIES
+   7. DYNAMIC FILE STORAGE AND FILESYSTEM UTILITIES
    ============================================================= */
 
 FILE* fopen(const char* filename, const char* mode) {
@@ -777,10 +760,7 @@ const char* get_dynamic_file_list() {
     }
     if (count == 0) strcat(file_list_buffer, "  (Directory is empty)\n");
 
-    void* list_str = allocate_string(file_list_buffer, strlen(file_list_buffer));
-    env_define(global_env, "sys_list_dir", make_obj_val(list_str));
-
-    run_script(dma_script_buffer, global_env);
+    return file_list_buffer;
 }
 
 /* -------------------------------------------------------------
@@ -816,21 +796,8 @@ void run_easec(const char* filename) {
     void* global_env = create_env(NULL);
     
     // Scan real mapped directory on the fly
-    char file_list_buffer[1024];
-    memset(file_list_buffer, 0, sizeof(file_list_buffer));
-    strcpy(file_list_buffer, "Files mapped on SATA drive:\n");
-    int count = 0;
-    for (int i = 0; i < MAX_FILES; i++) {
-        if (dma_dir_table.entries[i].start_lba > 0) {
-            char line[128];
-            snprintf(line, sizeof(line), "  - %-16s [LBA: %4d]\n", dma_dir_table.entries[i].filename, dma_dir_table.entries[i].start_lba);
-            strcat(file_list_buffer, line);
-            count++;
-        }
-    }
-    if (count == 0) strcat(file_list_buffer, "  (Directory is empty)\n");
-
-    void* list_str = allocate_string(file_list_buffer, strlen(file_list_buffer));
+    const char* live_list = get_dynamic_file_list();
+    void* list_str = allocate_string(live_list, strlen(live_list));
     env_define(global_env, "sys_list_dir", make_obj_val(list_str));
 
     run_script(dma_script_buffer, global_env);
@@ -897,9 +864,9 @@ void run_install() {
     print_string("Please detach your installation media and reboot computer.\n");
 }
 
-/* -------------------------------------------------------------
-   Critical CPU Initializers
-   ------------------------------------------------------------- */
+/* =============================================================
+   7. CPU CONTROL INITIALIZERS AND SHELL DRIVER LOOP
+   ============================================================= */
 
 void enable_fpu() {
     uint32_t cr0;
@@ -909,10 +876,6 @@ void enable_fpu() {
     __asm__ volatile("mov %0, %%cr0" :: "r"(cr0));
     __asm__ volatile("fninit"); 
 }
-
-/* -------------------------------------------------------------
-   Main Shell Entry
-   ------------------------------------------------------------- */
 
 void kernel_main(uint32_t magic, uint32_t addr) {
     global_multiboot_magic = magic;
