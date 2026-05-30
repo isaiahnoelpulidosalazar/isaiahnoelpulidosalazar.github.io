@@ -1,5 +1,6 @@
 #![no_std]
 #![no_main]
+#![feature(c_variadic)] // Enables native C-style variadic arguments on Nightly
 
 use core::panic::PanicInfo;
 use core::alloc::{GlobalAlloc, Layout};
@@ -116,14 +117,14 @@ mod ahci {
         pub is: u32, pub ie: u32, pub cmd: u32, pub reserved0: u32,
         pub tfd: u32, pub sig: u32, pub ssts: u32, pub sctl: u32,
         pub serr: u32, pub sact: u32, pub ci: u32, pub sntf: u32,
-        pub fbs: pub u32, pub reserved1: [u32; 11], pub vendor: [u32; 4],
+        pub fbs: u32, pub reserved1: [u32; 11], pub vendor: [u32; 4],
     }
 
     #[repr(C)]
     pub struct HbaMem {
         pub cap: u32, pub ghc: u32, pub is: u32, pub pi: u32,
         pub vs: u32, pub ccc_ctl: u32, pub ccc_pts: u32, pub em_loc: u32,
-        pub em_ctl: u32, pub cap2: pub u32, pub bohc: u32, pub reserved: [u8; 116],
+        pub em_ctl: u32, pub cap2: u32, pub bohc: u32, pub reserved: [u8; 116],
         pub vendor: [u8; 96], pub ports: [HbaPort; 32],
     }
 
@@ -177,7 +178,7 @@ pub unsafe extern "C" fn realloc(ptr: *mut u8, size: usize) -> *mut u8 {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn printf(format: *const u8, mut args: ...) -> i32 {
+pub unsafe extern "C" fn printf(format: *const u8, mut _args: ...) -> i32 {
     let mut i = 0;
     while *format.add(i) != 0 {
         WRITER.write_byte(*format.add(i));
