@@ -16,13 +16,15 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y nasm gcc-multilib genisoimage
 
-    - name: Compile and Build ISO
+    - name: Compile and Build ISO/Image
       run: |
         cd os
         make
 
-    - name: Upload ISO Artifact
+    - name: Upload Built Images
       uses: actions/upload-artifact@v4
       with:
-        name: inpsos-iso
-        path: os/inpsos.iso
+        name: inpsos-builds
+        path: |
+          os/inpsos.iso
+          os/inpsos.img
