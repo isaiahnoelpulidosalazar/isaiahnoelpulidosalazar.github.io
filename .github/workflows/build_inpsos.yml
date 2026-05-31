@@ -19,7 +19,7 @@ jobs:
     - name: Build Operating System
       run: |
         cd os
-        make iso
+        make
 
     - name: Upload Bootable ISO
       uses: actions/upload-artifact@v4
