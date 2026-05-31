@@ -178,29 +178,54 @@ char* read_file(HBA_Port* disk, const char* name, uint32_t* out_size) {
     return NULL;
 }
 
-// Easec preinstalled system commands
-const char* list_easec_src = 
-"note [ list.easec - Lists files ]\n"
-"say \"Installed .easec programs on disk:\"\n"
-"say \"- list.easec\"\n"
-"say \"- create_file.easec\"\n"
-"say \"- delete_file.easec\"\n";
+// Dynamic VM Environment Populator
+typedef enum { VAL_NULL, VAL_BOOL, VAL_INT, VAL_FLOAT, VAL_OBJ } ValType;
+typedef struct {
+    ValType type;
+    union {
+        int boolean;
+        long long integer;
+        double floating;
+        void* obj;
+    } as;
+} Value;
 
-const char* create_file_easec_src =
-"note [ create_file.easec - Creates a new file ]\n"
-"say \"Enter target filename:\"\n"
-"var text filename get\n"
-"say \"Enter content to write:\"\n"
-"var text content get\n"
-"file create filename content\n"
-"say \"File created successfully.\"\n";
+typedef struct { void* obj; Value* items; int capacity; int count; } ObjArray;
 
-const char* delete_file_easec_src =
-"note [ delete_file.easec - Deletes a file ]\n"
-"say \"Enter target filename:\"\n"
-"var text filename get\n"
-"file delete filename\n"
-"say \"File deleted successfully.\"\n";
+#define OBJ_VAL(o) ((Value){VAL_OBJ, {.obj = (void*)(o)}})
+
+extern Value make_array();
+extern void env_define(void* env, const char* name, Value val);
+extern void* allocate_string(const char* chars, int length);
+extern void* safe_alloc(size_t size);
+extern Value make_int(long long i);
+
+void register_filesystem_env(void* env) {
+    read_directory(active_ports[1]);
+    int count = 0;
+    for (int i = 0; i < 10; i++) {
+        if (dir_cache[i].used) count++;
+    }
+    
+    // Bind file_count
+    env_define(env, "file_count", make_int(count));
+    
+    // Bind files array
+    Value arr_val = make_array();
+    ObjArray* arr = (ObjArray*)arr_val.as.obj;
+    arr->count = count;
+    arr->capacity = count;
+    arr->items = (Value*)safe_alloc(sizeof(Value) * count);
+    
+    int idx = 0;
+    for (int i = 0; i < 10; i++) {
+        if (dir_cache[i].used) {
+            void* name = allocate_string(dir_cache[i].filename, strlen(dir_cache[i].filename));
+            arr->items[idx++] = OBJ_VAL(name);
+        }
+    }
+    env_define(env, "files", arr_val);
+}
 
 void run_installer() {
     kputs("\nPreparing physical installation disk validation...\n");
@@ -211,28 +236,36 @@ void run_installer() {
     HBA_Port* src = active_ports[0];
     HBA_Port* dest = active_ports[1];
     
-    kputs("SATA physical target detected on Port 1. Installing bootloader & kernel... ");
-    uint8_t* kernel_buffer = malloc(64 * 1024);
+    kputs("SATA physical target detected on Port 1. Installing bootloader & kernel (Sectors 0 to 128)... ");
+    uint8_t* sector_buffer = malloc(512);
     for (int s = 0; s < 128; s++) {
-        ahci_read(src, s, 0, 1, (uint16_t*)(kernel_buffer + s * 512));
+        if (!ahci_read(src, s, 0, 1, (uint16_t*)sector_buffer)) {
+            kputs("\nError: Failed to read kernel sector from installation medium!\n");
+            free(sector_buffer);
+            return;
+        }
+        if (!ahci_write(dest, s, 0, 1, (uint16_t*)sector_buffer)) {
+            kputs("\nError: Failed to write kernel sector to target drive!\n");
+            free(sector_buffer);
+            return;
+        }
     }
-    for (int s = 0; s < 128; s++) {
-        ahci_write(dest, s, 0, 1, (uint16_t*)(kernel_buffer + s * 512));
-    }
-    free(kernel_buffer);
     kputs("Done.\n");
     
-    kputs("Initializing disk filesystem blocks... ");
-    uint8_t* empty_sector = malloc(512);
-    memset(empty_sector, 0, 512);
-    ahci_write(dest, DIRECTORY_SECTOR, 0, 1, (uint16_t*)empty_sector);
-    free(empty_sector);
-    kputs("Done.\n");
-    
-    kputs("Deploying core system programs (*.easec)... ");
-    create_file(dest, "list.easec", list_easec_src, strlen(list_easec_src));
-    create_file(dest, "create_file.easec", create_file_easec_src, strlen(create_file_easec_src));
-    create_file(dest, "delete_file.easec", delete_file_easec_src, strlen(delete_file_easec_src));
+    kputs("Cloning populated filesystem dynamically from installation medium (Sectors 129 to 200)... ");
+    for (int s = 129; s <= 200; s++) {
+        if (!ahci_read(src, s, 0, 1, (uint16_t*)sector_buffer)) {
+            kputs("\nError: Failed to read filesystem sector from installation medium!\n");
+            free(sector_buffer);
+            return;
+        }
+        if (!ahci_write(dest, s, 0, 1, (uint16_t*)sector_buffer)) {
+            kputs("\nError: Failed to write filesystem sector to target drive!\n");
+            free(sector_buffer);
+            return;
+        }
+    }
+    free(sector_buffer);
     kputs("Done.\n");
     
     kputs("\nSUCCESS! inpsos installation complete.\n");
@@ -289,6 +322,8 @@ void k_main() {
             uint32_t fsize = 0;
             char* script_src = read_file(active_ports[1], input_buffer, &fsize);
             if (script_src) {
+                // Dynamically populate live directory environment properties
+                register_filesystem_env(global_env);
                 run_script(script_src, global_env);
                 free(script_src);
             } else if (strcmp(input_buffer, "help") == 0) {

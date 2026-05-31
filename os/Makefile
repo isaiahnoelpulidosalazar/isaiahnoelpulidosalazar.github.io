@@ -5,7 +5,6 @@ ASM = nasm
 CFLAGS = -m32 -ffreestanding -fno-pie -fno-builtin -nostdlib -O2 -Ikernel
 LDFLAGS = -m elf_i386 -T linker.ld
 
-# Locate GCC's runtime helper library for 32-bit architectures
 LIBGCC = $(shell $(CC) -m32 -print-libgcc-file-name)
 
 KERNEL_OBJS = \
@@ -35,14 +34,21 @@ kernel/ahci.o: kernel/ahci.c
 kernel/easec.o: kernel/easec.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
-# Link the kernel binary together with libgcc.a
 kernel.bin: $(KERNEL_OBJS)
 	$(LD) $(LDFLAGS) -o $@ $(KERNEL_OBJS) $(LIBGCC)
 
-inpsos.img: boot/boot.bin kernel.bin
+# Build raw filesystem binary dynamically from programs/ directory
+fs.bin: $(wildcard programs/*.easec)
+	python3 pack_fs.py
+
+inpsos.img: boot/boot.bin kernel.bin fs.bin
 	dd if=/dev/zero of=$@ bs=512 count=2880
+	# Write bootloader to Sector 0
 	dd if=boot/boot.bin of=$@ conv=notrunc bs=512 count=1
+	# Write kernel starting from Sector 1
 	dd if=kernel.bin of=$@ conv=notrunc seek=1 bs=512
+	# Write populated filesystem binary starting from Sector 129
+	dd if=fs.bin of=$@ conv=notrunc seek=129 bs=512
 
 inpsos.iso: inpsos.img
 	mkdir -p iso_root
@@ -50,5 +56,5 @@ inpsos.iso: inpsos.img
 	genisoimage -b inpsos.img -o $@ iso_root/
 
 clean:
-	rm -f boot/*.bin boot/*.o kernel/*.o *.bin *.img *.iso
+	rm -f boot/*.bin boot/*.o kernel/*.o *.bin *.img *.iso fs.bin
 	rm -rf iso_root
