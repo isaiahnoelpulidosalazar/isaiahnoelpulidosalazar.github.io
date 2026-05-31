@@ -6,7 +6,8 @@ AS = nasm
 COMMON_FLAGS = -m32 -ffreestanding -O2 -Wall -Wextra -fno-stack-protector -fno-pie -fno-stack-clash-protection -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=0
 CFLAGS = $(COMMON_FLAGS)
 CXXFLAGS = $(COMMON_FLAGS) -fno-exceptions -fno-rtti
-LDFLAGS = -T linker.ld -nostdlib
+# Added: -Wl,--oformat,binary to output a raw flat binary instead of an ELF file
+LDFLAGS = -T linker.ld -nostdlib -Wl,--oformat,binary
 
 BOOT_BIN = boot/boot.bin
 KERNEL_BIN = kernel.bin
@@ -48,7 +49,7 @@ easec/easec.o: easec/easec.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(KERNEL_BIN): $(OBJ)
-	# Link via CXX with libgcc resolved automatically
+	# Link via CXX with libgcc resolved automatically and raw binary formatting
 	$(CXX) -m32 $(LDFLAGS) $(OBJ) -lgcc -o $@
 
 $(ISO_IMAGE): $(BOOT_BIN) $(KERNEL_BIN)
@@ -58,7 +59,6 @@ $(ISO_IMAGE): $(BOOT_BIN) $(KERNEL_BIN)
 	
 	mkdir -p iso_stage
 	cp $(OS_IMAGE) iso_stage/
-	# Corrected: removed the invalid '-no-emul-toc' option
 	xorriso -as mkisofs -b $(OS_IMAGE) -o $(ISO_IMAGE) iso_stage/
 
 clean:
