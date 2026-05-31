@@ -1,5 +1,6 @@
 #ifndef AHCI_H
 #define AHCI_H
+#define DIRECTORY_SECTOR 256
 
 #include "libc.h"
 

@@ -47,7 +47,7 @@ inpsos.img: boot/boot.bin kernel.bin fs.bin
 	dd if=/dev/zero of=$@ bs=512 count=2880
 	dd if=boot/boot.bin of=$@ conv=notrunc bs=512 count=1
 	dd if=kernel.bin of=$@ conv=notrunc seek=1 bs=512
-	dd if=fs.bin of=$@ conv=notrunc seek=129 bs=512
+	dd if=fs.bin of=$@ conv=notrunc seek=256 bs=512
 
 inpsos.iso: inpsos.img
 	mkdir -p iso_root

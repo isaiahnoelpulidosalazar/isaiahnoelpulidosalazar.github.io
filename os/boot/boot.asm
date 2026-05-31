@@ -43,12 +43,22 @@ print_string:
     ret
 
 load_kernel:
-    ; Setup BIOS Extended Read (INT 13h, AH=42h) Disk Address Packet (DAP)
+    ; Load first block of 120 sectors (Sectors 1 to 120) to segment 0x1000 (0x10000 physical)
     mov [dap_segment], word KERNEL_OFFSET
     mov [dap_offset], word 0x0000
-    mov [dap_sector_low], dword 1 ; Start right after boot sector
-    mov [dap_count], word 127     ; Load 127 sectors (enough for the kernel)
+    mov [dap_sector_low], dword 1
+    mov [dap_count], word 120
+    mov ah, 0x42
+    mov dl, [boot_drive]
+    mov si, dap
+    int 0x13
+    jc .error
 
+    ; Load second block of 120 sectors (Sectors 121 to 240) to segment 0x1F00 (0x1F000 physical) [1]
+    mov [dap_segment], word 0x1F00
+    mov [dap_offset], word 0x0000
+    mov [dap_sector_low], dword 121
+    mov [dap_count], word 120
     mov ah, 0x42
     mov dl, [boot_drive]
     mov si, dap

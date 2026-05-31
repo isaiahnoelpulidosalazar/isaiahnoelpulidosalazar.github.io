@@ -15,7 +15,7 @@ def pack_fs(programs_dir, out_file):
     files = sorted([f for f in os.listdir(programs_dir) if f.endswith('.easec')])
     files = files[:10]
     
-    # File data starts immediately after the directory sector (Sector 129)
+    # File data starts immediately after the directory sector (Sector 256)
     current_relative_sector = 1
     file_data_blocks = bytearray()
     
@@ -29,8 +29,16 @@ def pack_fs(programs_dir, out_file):
         if num_sectors == 0:
             num_sectors = 1
             
-        absolute_start_sector = 129 + current_relative_sector
+        # Sector 256 boundary shift
+        absolute_start_sector = 256 + current_relative_sector
         
+        # Format InpsFileEntry struct (48 bytes total):
+        # char filename[32];      (32s)
+        # uint32_t start_sector;  (I)
+        # uint32_t num_sectors;   (I)
+        # uint32_t size;          (I)
+        # uint8_t used;           (B)
+        # Padding to 48 bytes     (3x)
         entry_bytes = struct.pack('<32sIIIB3x', 
                                   filename.encode('utf-8')[:31], 
                                   absolute_start_sector, 
@@ -51,7 +59,7 @@ def pack_fs(programs_dir, out_file):
         offset = i * 48
         dir_sector[offset:offset+48] = entry
         
-    # Write the installer magic signature to the last 4 bytes of Sector 129 (offset 508)
+    # Write the installer magic signature to the last 4 bytes of Sector 256 (offset 508)
     dir_sector[508:512] = b'INST'
         
     # Write raw fs.bin

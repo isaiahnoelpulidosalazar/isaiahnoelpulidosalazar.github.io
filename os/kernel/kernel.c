@@ -14,7 +14,7 @@ extern void run_script(const char* source, void* env);
 extern HBA_Port* active_ports[32];
 extern int active_port_count;
 
-#define DIRECTORY_SECTOR 129
+#define DIRECTORY_SECTOR 256
 struct InpsFileEntry dir_cache[10];
 bool is_installed_mode = false;
 
@@ -247,10 +247,10 @@ void run_installer() {
     }
     kputs("Done.\n");
     
-    kputs("Deploying kernel image (Sectors 1 to 128) directly from physical memory... ");
+    kputs("Deploying kernel image (Sectors 1 to 255) directly from physical memory... ");
     // Copy the exact running kernel segments from physical memory address 0x10000 [1]
     uint8_t* ram_kernel = (uint8_t*)0x10000;
-    for (int s = 1; s <= 128; s++) {
+    for (int s = 1; s <= 255; s++) {
         uint8_t* ram_offset = ram_kernel + (s - 1) * 512;
         if (!ahci_write(dest, s, 0, 1, (uint16_t*)ram_offset)) {
             kputs("Failed!\n"); return;
@@ -258,7 +258,7 @@ void run_installer() {
     }
     kputs("Done.\n");
     
-    kputs("Deploying packed filesystem files directly from RAM (Sectors 129 to 200)... ");
+    kputs("Deploying packed filesystem files directly from RAM (Sectors 256 to 320)... ");
     int fs_sectors = fs_bin_len / 512;
     if (fs_sectors == 0) fs_sectors = 1;
     
@@ -268,12 +268,12 @@ void run_installer() {
         if (bytes_to_copy > 512) bytes_to_copy = 512;
         memcpy(sector_buffer, fs_bin + (s * 512), bytes_to_copy);
         
-        // Write the final "INPS" marker onto the HDD to identify it as completed installation
+        // Write the final "INPS" marker onto the HDD
         if (s == 0) {
             memcpy(&((uint8_t*)sector_buffer)[508], "INPS", 4);
         }
         
-        if (!ahci_write(dest, 129 + s, 0, 1, (uint16_t*)sector_buffer)) {
+        if (!ahci_write(dest, 256 + s, 0, 1, (uint16_t*)sector_buffer)) {
             kputs("Failed!\n"); return;
         }
     }
