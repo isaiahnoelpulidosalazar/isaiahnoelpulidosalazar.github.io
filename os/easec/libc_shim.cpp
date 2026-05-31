@@ -151,6 +151,7 @@ extern "C" {
     }
 
     int fprintf(void* stream, const char* format, ...) {
+        (void)stream; // Silence unused parameter warning
         kprint(format);
         return 0;
     }
