@@ -1,21 +1,28 @@
-ENTRY(kernel_main)
+ENTRY(_start)
+OUTPUT_FORMAT("binary")
 
-SECTIONS {
-    . = 0x10000;
+SECTIONS
+{
+    . = 0x10000; /* Segment boundary mapping for custom boot sector jump */
 
-    .text : {
+    .text : ALIGN(4)
+    {
         *(.text)
     }
 
-    .rodata : {
+    .rodata : ALIGN(4)
+    {
         *(.rodata)
     }
 
-    .data : {
+    .data : ALIGN(4)
+    {
         *(.data)
     }
 
-    .bss : {
+    .bss : ALIGN(4)
+    {
         *(.bss)
+        *(COMMON)
     }
 }

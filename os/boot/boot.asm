@@ -1,101 +1,26 @@
-[org 0x7C00]
 [bits 16]
+[org 0x7c00]
 
-jmp start
-
-; MBR Partition Table & BIOS Parameter Block padding (Mandatory for BIOS floppy boot recognition)
-times 90-($-$$) db 0 
+KERNEL_OFFSET equ 0x1000  ; Segment where kernel is loaded (0x10000 physical)
 
 start:
-    cld                 ; Clear Direction Flag (Critical: guarantees lodsb moves forward)
-    cli                 ; Disable interrupts during segment setups
+    ; Reset segments
     xor ax, ax
     mov ds, ax
     mov es, ax
     mov ss, ax
-    mov sp, 0x7C00      ; Set stack pointer directly below the boot sector
-    sti                 ; Restore interrupts
+    mov sp, 0x7c00
 
-    ; Save the boot drive index passed by the BIOS in DL
+    mov si, MSG_BOOTING
+    call print_string
+
+    ; Save boot drive index
     mov [boot_drive], dl
 
-    ; Display greeting
-    mov si, msg_loading
-    call print_string
+    ; Load kernel from physical disk
+    call load_kernel
 
-    ; Strict bypass: If boot drive is a floppy/emulated floppy (DL < 0x80),
-    ; we must bypass buggy BIOS LBA support and use the safe CHS path.
-    mov dl, [boot_drive]
-    cmp dl, 0x80
-    jb lba_fallback
-
-    ; Check if modern BIOS LBA extensions are available (Only for HDD/CD-ROM)
-    mov ah, 0x41
-    mov bx, 0x55AA
-    int 0x13
-    jc lba_fallback
-
-    ; Attempt LBA Load (Only for HDD/CD-ROM)
-    mov ah, 0x42
-    mov si, disk_packet
-    int 0x13
-    jc lba_fallback
-
-    jmp transition_pm
-
-lba_fallback:
-    ; CHS fallback loader for El Torito Floppy Emulation (e.g. ISO boot)
-    mov cx, 256         ; Load 256 sectors (128KB, fully covers the 97KB+ kernel)
-    mov ax, 1           ; Start reading from LBA sector 1 (directly after MBR)
-    mov dx, 0x1000      ; Destination Segment
-    mov es, dx
-    xor bx, bx          ; Destination ES:BX = 0x1000:0000 (0x10000 physical address)
-
-read_loop:
-    push cx
-    push ax
-    push bx
-
-    ; Convert LBA (AX) to CHS geometry for a standard 1.44MB Floppy (18 SPT, 2 Heads)
-    xor dx, dx
-    mov cx, 36          ; 18 sectors/track * 2 heads
-    div cx              ; AX = Cylinder (LBA / 36), DX = Remainder (LBA % 36)
-    mov ch, al          ; CH = Cylinder
-    
-    mov ax, dx          ; AX = Remainder
-    mov cl, 18
-    div cl              ; AL = Head (Remainder / 18), AH = Sector - 1 (Remainder % 18)
-    mov dh, al          ; DH = Head
-    mov cl, ah
-    inc cl              ; CL = Sector (1-based index)
-    
-    mov dl, [boot_drive]
-
-    ; Issue BIOS Read Sector Command
-    mov ax, 0x0201      ; AH = 02h (Read), AL = 01 (1 sector)
-    int 0x13
-    jc disk_error_chs
-
-    pop bx
-    pop ax
-    pop cx
-
-    ; Safely advance segment by 512 bytes (32 paragraphs) to bypass 16-bit offset bounds
-    mov dx, es
-    add dx, 32
-    mov es, dx
-
-    inc ax              ; Next sequential LBA sector
-    loop read_loop
-    jmp transition_pm
-
-disk_error_chs:
-    mov si, msg_disk_err
-    call print_string
-    jmp hang
-
-transition_pm:
-    ; Transition to 32-bit Protected Mode
+    ; Switch to Protected Mode
     cli
     lgdt [gdt_descriptor]
     mov eax, cr0
@@ -103,49 +28,69 @@ transition_pm:
     mov cr0, eax
     jmp CODE_SEG:init_pm
 
-hang:
-    cli
-    hlt
-    jmp hang
-
+[bits 16]
 print_string:
+    pusha
+.loop:
     lodsb
     or al, al
     jz .done
-    mov ah, 0x0E
+    mov ah, 0x0e
     int 0x10
-    jmp print_string
+    jmp .loop
 .done:
+    popa
     ret
 
-; LBA Packet Structure for AH=42h (SATA/HDD boots)
+load_kernel:
+    ; Setup BIOS Extended Read (INT 13h, AH=42h) Disk Address Packet (DAP)
+    mov [dap_segment], word KERNEL_OFFSET
+    mov [dap_offset], word 0x0000
+    mov [dap_sector_low], dword 1 ; Start right after boot sector
+    mov [dap_count], word 127     ; Load 127 sectors (enough for the kernel)
+
+    mov ah, 0x42
+    mov dl, [boot_drive]
+    mov si, dap
+    int 0x13
+    jc .error
+    ret
+.error:
+    mov si, MSG_ERR_DISK
+    call print_string
+    hlt
+
+boot_drive: db 0x80
+
+; Disk Address Packet Structure
 align 4
-disk_packet:
-    db 0x10         ; Packet size (16 bytes)
-    db 0            ; Reserved
-    dw 256          ; Read 256 sectors (128KB)
-    dw 0x0000       ; Offset
-    dw 0x1000       ; Segment
-    dq 1            ; Start LBA Sector 1
+dap:
+    db 0x10
+    db 0
+dap_count:
+    dw 0
+dap_offset:
+    dw 0
+dap_segment:
+    dw 0
+dap_sector_low:
+    dd 0
+dap_sector_high:
+    dd 0
 
-boot_drive: db 0
-msg_loading: db "Loading inpsos...", 0x0D, 0x0A, 0
-msg_disk_err: db "Error: Disk read failure.", 0
-
-; Global Descriptor Table (GDT)
+; Global Descriptor Table
 gdt_start:
-gdt_null:
     dd 0x0
     dd 0x0
 gdt_code:
-    dw 0xFFFF
+    dw 0xffff
     dw 0x0
     db 0x0
     db 10011010b
     db 11001111b
     db 0x0
 gdt_data:
-    dw 0xFFFF
+    dw 0xffff
     dw 0x0
     db 0x0
     db 10010010b
@@ -171,8 +116,11 @@ init_pm:
     mov ebp, 0x90000
     mov esp, ebp
 
-    ; Jump directly to the loaded C++ kernel entry point
+    ; Jump straight into our physical kernel entry
     jmp 0x10000
 
+MSG_BOOTING: db "Loading inpsos bootloader...", 13, 10, 0
+MSG_ERR_DISK: db "Disk read error!", 13, 10, 0
+
 times 510-($-$$) db 0
-dw 0xAA55
+dw 0xaa55

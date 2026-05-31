@@ -1,6 +1,0 @@
-say "Enter filename to create:"
-var text fname get
-say "Enter body text context:"
-var text fcontent get
-file create fname fcontent
-say "File created successfully."

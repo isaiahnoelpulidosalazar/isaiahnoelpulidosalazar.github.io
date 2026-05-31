@@ -8,20 +8,20 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout Repository
+    - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Install Build Toolchain
+    - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y gcc-multilib g++-multilib nasm xorriso mtools
+        sudo apt-get install -y nasm gcc-multilib genisoimage
 
-    - name: Build Operating System
+    - name: Compile and Build ISO
       run: |
         cd os
         make
 
-    - name: Upload Bootable ISO
+    - name: Upload ISO Artifact
       uses: actions/upload-artifact@v4
       with:
         name: inpsos-iso
