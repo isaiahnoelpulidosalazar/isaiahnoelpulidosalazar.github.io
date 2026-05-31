@@ -58,7 +58,8 @@ $(ISO_IMAGE): $(BOOT_BIN) $(KERNEL_BIN)
 	
 	mkdir -p iso_stage
 	cp $(OS_IMAGE) iso_stage/
-	xorriso -as mkisofs -b $(OS_IMAGE) -no-emul-toc -boot-load-size 4 -o $(ISO_IMAGE) iso_stage/
+	# Corrected: removed the invalid '-no-emul-toc' option
+	xorriso -as mkisofs -b $(OS_IMAGE) -o $(ISO_IMAGE) iso_stage/
 
 clean:
 	rm -rf $(OBJ) $(BOOT_BIN) $(KERNEL_BIN) $(OS_IMAGE) $(ISO_IMAGE) iso_stage
