@@ -1,8 +1,11 @@
-CC = gcc -m32
-CXX = g++ -m32
+CC = gcc
+CXX = g++
 AS = nasm
 
-CFLAGS = -ffreestanding -O2 -Wall -Wextra -fno-exceptions -fno-rtti
+# Shared freestanding flags to disable hosted dependencies and stack protection wrappers
+COMMON_FLAGS = -m32 -ffreestanding -O2 -Wall -Wextra -fno-stack-protector -fno-pie -fno-stack-clash-protection -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=0
+CFLAGS = $(COMMON_FLAGS)
+CXXFLAGS = $(COMMON_FLAGS) -fno-exceptions -fno-rtti
 LDFLAGS = -T linker.ld -nostdlib
 
 BOOT_BIN = boot/boot.bin
@@ -17,27 +20,42 @@ OBJ = kernel/kernel.o \
       shell/shell.o \
       easec/easec.o
 
+.PHONY: all clean iso
+
 all: $(ISO_IMAGE)
+
+iso: $(ISO_IMAGE)
 
 $(BOOT_BIN): boot/boot.asm
 	$(AS) -f bin $< -o $@
 
-%.o: %.cpp
-	$(CXX) $(CFLAGS) -c $< -o $@
+kernel/kernel.o: kernel/kernel.cpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+drivers/ahci.o: drivers/ahci.cpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+fs/simple_fs.o: fs/simple_fs.cpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+easec/libc_shim.o: easec/libc_shim.cpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+shell/shell.o: shell/shell.cpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 easec/easec.o: easec/easec.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(KERNEL_BIN): $(OBJ)
-	ld -m elf_i386 $(LDFLAGS) $(OBJ) -o $@
+	# Link via CXX with libgcc resolved automatically
+	$(CXX) -m32 $(LDFLAGS) $(OBJ) -lgcc -o $@
 
 $(ISO_IMAGE): $(BOOT_BIN) $(KERNEL_BIN)
-	# Compile floppy disk container mapping to fit physical standard size limits
 	dd if=/dev/zero of=$(OS_IMAGE) bs=512 count=2880
 	dd if=$(BOOT_BIN) of=$(OS_IMAGE) conv=notrunc bs=512 count=1
 	dd if=$(KERNEL_BIN) of=$(OS_IMAGE) conv=notrunc bs=512 seek=1
 	
-	# Pack the filesystem image structure into bootable El-Torito CD ISO payload
 	mkdir -p iso_stage
 	cp $(OS_IMAGE) iso_stage/
 	xorriso -as mkisofs -b $(OS_IMAGE) -no-emul-toc -boot-load-size 4 -o $(ISO_IMAGE) iso_stage/

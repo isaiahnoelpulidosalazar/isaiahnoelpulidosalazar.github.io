@@ -6,6 +6,7 @@
 #define SCREEN_HEIGHT 25
 
 extern "C" void kernel_main();
+extern "C" void init_ctype_table(); // Added local pointer linkage
 
 // Simple VGA Text Mode Driver
 int cursor_x = 0;
@@ -38,7 +39,6 @@ void kprint_char(char c) {
     }
 
     if (cursor_y >= SCREEN_HEIGHT) {
-        // Simple scroll up
         for (int y = 1; y < SCREEN_HEIGHT; y++) {
             for (int x = 0; x < SCREEN_WIDTH; x++) {
                 vga_buffer[(y - 1) * SCREEN_WIDTH + x] = vga_buffer[y * SCREEN_WIDTH + x];
@@ -57,7 +57,6 @@ void kprint(const char* str) {
     }
 }
 
-// Basic Port IO operations
 void outb(uint16_t port, uint8_t val) {
     asm volatile ("outb %0, %1" : : "a"(val), "Nd"(port));
 }
@@ -78,11 +77,9 @@ void outl(uint16_t port, uint32_t val) {
     asm volatile ("outl %0, %1" : : "a"(val), "Nd"(port));
 }
 
-// Custom Bare-metal Memory Allocator (Heap)
-uintptr_t free_memory_start = 0x500000; // 5MB limit offset
+uintptr_t free_memory_start = 0x500000;
 
 void* kmalloc(size_t size) {
-    // 8-byte alignment
     size = (size + 7) & ~7;
     void* allocated = (void*)free_memory_start;
     free_memory_start += size;
@@ -90,20 +87,18 @@ void* kmalloc(size_t size) {
 }
 
 void kfree(void* ptr) {
-    (void)ptr; // Silence unused parameter warning
+    (void)ptr;
 }
 
 void* krealloc(void* ptr, size_t new_size) {
     if (!ptr) return kmalloc(new_size);
     void* new_ptr = kmalloc(new_size);
-    // Rough copy block copy - Assuming small allocations for environment structures
     for (size_t i = 0; i < new_size; i++) {
         ((char*)new_ptr)[i] = ((char*)ptr)[i];
     }
     return new_ptr;
 }
 
-// Bare-Metal Keyboard Input Driver
 char kget_char() {
     static const char scancode_table[] = {
         0,  27, '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', '\b',
@@ -113,9 +108,9 @@ char kget_char() {
     };
 
     while (1) {
-        if (inb(0x64) & 1) { // Check buffer status flag
+        if (inb(0x64) & 1) {
             uint8_t scancode = inb(0x60);
-            if (!(scancode & 0x80)) { // Keydown event
+            if (!(scancode & 0x80)) {
                 if (scancode < sizeof(scancode_table)) {
                     return scancode_table[scancode];
                 }
@@ -149,6 +144,7 @@ void kget_string(char* buffer, int max_len) {
 extern void shell_init();
 
 extern "C" void kernel_main() {
+    init_ctype_table(); // Init the standard trait array first before booting the shell
     clear_screen();
     kprint("---------------------------------------------------\n");
     kprint("  inpsos kernel successfully loaded in real hardware  \n");
