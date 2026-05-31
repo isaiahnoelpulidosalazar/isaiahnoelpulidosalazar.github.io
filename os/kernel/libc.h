@@ -8,8 +8,12 @@
 #define bool  _Bool
 #define true  1
 #define false 0
-#define NULL  ((void*)0)
 
+#ifndef NULL
+#define NULL  ((void*)0)
+#endif
+
+// Standard functions
 void* memset(void* dest, int val, size_t len);
 void* memcpy(void* dest, const void* src, size_t len);
 size_t strlen(const char* str);
@@ -29,11 +33,13 @@ int strcasecmp(const char* s1, const char* s2);
 long long atoll(const char* str);
 double atof(const char* str);
 
+// Custom allocator mapped to kernel allocator
 void* malloc(size_t size);
 void free(void* ptr);
 void* realloc(void* ptr, size_t size);
 char* strdup(const char* s);
 
+// StdIO replacements
 #define EOF (-1)
 #define stdin  ((KFILE*)1)
 #define stdout ((KFILE*)2)
@@ -43,8 +49,8 @@ typedef struct {
     char filename[32];
     uint32_t cursor;
     uint32_t size;
-    int mode;
-    char* buffer;
+    int mode; // 'r'=1, 'w'=2, 'a'=3
+    char* buffer; // file data loaded in memory
 } KFILE;
 
 #define FILE KFILE
@@ -60,6 +66,7 @@ int fputs(const char* s, KFILE* stream);
 char* fgets(char* s, int size, KFILE* stream);
 int remove(const char* filename);
 
+// Error/exit function
 void exit(int status);
 
 #endif

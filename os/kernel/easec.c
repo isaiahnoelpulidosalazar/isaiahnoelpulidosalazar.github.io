@@ -55,34 +55,11 @@ typedef enum {
 
 int allow_implicit_call = 1;
 
-long long get_time_ms() {
-#ifdef _MSC_VER
-    struct __timeb64 timebuffer;
-    _ftime64(&timebuffer);
-    return (long long)(timebuffer.time) * 1000 + timebuffer.millitm;
-#else
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    return (long long)(tv.tv_sec) * 1000 + (tv.tv_usec) / 1000;
-#endif
-}
-
-void sleep_ms(long long ms) {
-#ifdef _MSC_VER
-    Sleep((DWORD)ms);
-#else
-    struct timespec ts;
-    ts.tv_sec = ms / 1000;
-    ts.tv_nsec = (ms % 1000) * 1000000;
-    nanosleep(&ts, NULL);
-#endif
-}
-
 size_t bytes_allocated = 0;
 
 void* safe_alloc(size_t size) {
     size_t* ptr = (size_t*)malloc(size + sizeof(size_t));
-    if (!ptr) { fprintf(stderr, "Fatal: Out of memory.\n"); exit(1); }
+    if (!ptr) { printf("Fatal: Out of memory.\n"); exit(1); }
     memset(ptr + 1, 0, size);
     *ptr = size;
     bytes_allocated += size;
@@ -102,7 +79,7 @@ void* safe_realloc(void* p, size_t new_size) {
     size_t* ptr = (size_t*)p - 1;
     size_t old_size = *ptr;
     size_t* new_ptr = (size_t*)realloc(ptr, new_size + sizeof(size_t));
-    if (!new_ptr) { fprintf(stderr, "Fatal: Out of memory.\n"); exit(1); }
+    if (!new_ptr) { printf("Fatal: Out of memory.\n"); exit(1); }
     *new_ptr = new_size;
     bytes_allocated -= old_size;
     bytes_allocated += new_size;
@@ -400,7 +377,7 @@ typedef struct {
     int env_count;
     int env_capacity;
     
-        char** import_stack;
+    char** import_stack;
     int import_count;
     int import_capacity;
 } VM;
@@ -602,11 +579,11 @@ void table_remove_white(Table* table) {
 void gc_collect() {
     if (vm.gc_paused) return;
     
-        for (Value* slot = vm.stack; slot < vm.stack_top; slot++) {
+    for (Value* slot = vm.stack; slot < vm.stack_top; slot++) {
         mark_value(*slot);
     }
     
-        for (int i = 0; i < vm.frame_count; i++) {
+    for (int i = 0; i < vm.frame_count; i++) {
         mark_object((Object*)vm.frames[i].job);
         if (vm.frames[i].env != NULL) mark_env(vm.frames[i].env);
     }
@@ -857,7 +834,7 @@ void advance_parser() {
 
 void error_at(EasecToken* token, const char* message) {
     if (had_error) return;
-    fprintf(stderr, "Parse Error line %d: %s. Got '%s'\n", token->line, message, token->text);
+    printf("Parse Error line %d: %s. Got '%s'\n", token->line, message, token->text);
     had_error = 1;
 }
 
@@ -1124,7 +1101,7 @@ Stmt* parse_statement() {
         Stmt* s = make_stmt(STMT_JOB, line); s->as.job_decl.name = ast_strdup(parser_curr.text); advance_parser();
         s->as.job_decl.params = NULL; s->as.job_decl.param_count = 0; skip_newlines();
         
-                if (parser_curr.type != TOKEN_LBRACKET) {
+        if (parser_curr.type != TOKEN_LBRACKET) {
             while (parser_curr.type == TOKEN_IDENTIFIER) {
                 s->as.job_decl.params = AST_REALLOC_ARRAY(s->as.job_decl.params, char*, s->as.job_decl.param_count, s->as.job_decl.param_count + 1);
                 s->as.job_decl.params[s->as.job_decl.param_count++] = ast_strdup(parser_curr.text); advance_parser();
@@ -1194,7 +1171,7 @@ int emit_jump(Compiler* compiler, uint8_t instruction, int line) {
 void patch_jump(Compiler* compiler, int offset) {
     int jump = compiler->chunk->count - offset - 2;
     if (jump > 65535) {
-        fprintf(stderr, "Jump offset overflow.\n");
+        printf("Jump offset overflow.\n");
         exit(1);
     }
     compiler->chunk->code[offset] = (jump >> 8) & 0xff;
@@ -1205,7 +1182,7 @@ void emit_loop(Compiler* compiler, int loop_start, int line) {
     write_chunk(compiler->chunk, OP_LOOP, line);
     int offset = compiler->chunk->count - loop_start + 2;
     if (offset > 65535) {
-        fprintf(stderr, "Loop offset overflow.\n");
+        printf("Loop offset overflow.\n");
         exit(1);
     }
     write_chunk(compiler->chunk, (offset >> 8) & 0xff, line);
@@ -2049,4 +2026,19 @@ void run_script(const char* source, Env* env) {
         vm.frame_count = saved_frame_count;
         vm.stack_top = saved_stack_top;
     }
+}
+
+void run_file(const char* path, Env* env) {
+    FILE* f = fopen(path, "rb");
+    if (!f) { printf("Error: Could not open file %s\n", path); exit(1); }
+    
+    long size = f->size;
+    char* source = safe_alloc(size + 1);
+    size_t read_bytes = fread(source, 1, size, f); source[read_bytes] = '\0'; fclose(f);
+    
+    Lexer old_lexer = lexer; EasecToken old_curr = parser_curr; EasecToken old_prev = parser_prev;
+    run_script(source, env);
+    lexer = old_lexer; parser_curr = old_curr; parser_prev = old_prev;
+    
+    safe_free(source);
 }
