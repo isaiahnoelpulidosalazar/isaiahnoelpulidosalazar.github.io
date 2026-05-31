@@ -27,15 +27,69 @@ start:
     mov bx, 0x55AA
     mov dl, [boot_drive]
     int 0x13
-    jc lba_not_supported
+    jc lba_fallback      ; If LBA is unsupported, fall back to CHS
 
-    ; Load Kernel via LBA Read Packet
+    ; Attempt LBA Load
     mov ah, 0x42
     mov dl, [boot_drive]
     mov si, disk_packet
     int 0x13
-    jc disk_error
+    jc lba_fallback      ; If LBA read fails, fall back to CHS
 
+    jmp transition_pm
+
+lba_fallback:
+    ; CHS fallback loader (Ideal for El Torito Floppy Emulation on ISO boot)
+    mov cx, 256         ; Load 256 sectors (128KB, plenty of room for 97KB+ kernel)
+    mov ax, 1           ; Start reading from LBA sector 1 (directly after MBR)
+    mov dx, 0x1000      ; Target Segment
+    mov es, dx
+    xor bx, bx          ; Destination ES:BX = 0x1000:0000 (0x10000 physical)
+
+read_loop:
+    push cx
+    push ax
+    push bx
+
+    ; Convert LBA (AX) to CHS geometry for a standard 1.44MB Floppy (18 SPT, 2 Heads)
+    xor dx, dx
+    mov cx, 36          ; 18 sectors/track * 2 heads
+    div cx              ; AX = Cylinder (LBA / 36), DX = Remainder (LBA % 36)
+    mov ch, al          ; CH = Cylinder
+    
+    mov ax, dx          ; AX = Remainder
+    mov cl, 18
+    div cl              ; AL = Head (Remainder / 18), AH = Sector - 1 (Remainder % 18)
+    mov dh, al          ; DH = Head
+    mov cl, ah
+    inc cl              ; CL = Sector (1-based)
+    
+    mov dl, [boot_drive]
+
+    ; Issue BIOS Read Sector Command
+    mov ax, 0x0201      ; AH = 02h (Read), AL = 01 (1 sector)
+    int 0x13
+    jc disk_error_chs
+
+    pop bx
+    pop ax
+    pop cx
+
+    ; Safely advance segment by 512 bytes (32 paragraphs) to bypass 64KB BX bounds limits
+    mov dx, es
+    add dx, 32
+    mov es, dx
+
+    inc ax              ; Advance to next sequential LBA sector
+    loop read_loop
+    jmp transition_pm
+
+disk_error_chs:
+    mov si, msg_disk_err
+    call print_string
+    jmp hang
+
+transition_pm:
     ; Transition to 32-bit Protected Mode
     cli
     lgdt [gdt_descriptor]
@@ -43,16 +97,6 @@ start:
     or eax, 0x1
     mov cr0, eax
     jmp CODE_SEG:init_pm
-
-lba_not_supported:
-    mov si, msg_no_lba
-    call print_string
-    jmp hang
-
-disk_error:
-    mov si, msg_disk_err
-    call print_string
-    jmp hang
 
 hang:
     cli
@@ -69,19 +113,18 @@ print_string:
 .done:
     ret
 
-; LBA Packet Structure for AH=42h
+; LBA Packet Structure for AH=42h (Hard Drive installation)
 align 4
 disk_packet:
     db 0x10         ; Packet size (16 bytes)
     db 0            ; Reserved
-    dw 64           ; Number of sectors to read (32KB kernel space)
+    dw 256          ; Updated: Read 256 sectors (128KB) to fully load the kernel
     dw 0x0000       ; Destination Offset
     dw 0x1000       ; Destination Segment (0x10000 physical)
     dq 1            ; Start LBA Sector (Sector 1, directly after MBR)
 
 boot_drive: db 0
 msg_loading: db "Loading inpsos...", 0x0D, 0x0A, 0
-msg_no_lba:  db "Error: LBA extensions not supported.", 0
 msg_disk_err: db "Error: Disk read failure.", 0
 
 ; Global Descriptor Table (GDT)
@@ -125,6 +168,3 @@ init_pm:
 
     ; Jump directly to the loaded C++ kernel entry point
     jmp 0x10000
-
-times 510-($-$$) db 0
-dw 0xAA55
