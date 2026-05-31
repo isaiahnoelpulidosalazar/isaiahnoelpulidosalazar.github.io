@@ -12,7 +12,6 @@ extern bool create_file(const char* name, const char* content, size_t size);
 extern bool read_file(const char* name, char* output_buffer, size_t max_size);
 extern bool delete_file_fs(const char* name);
 
-// Setup structural mock mapping context for freestanding Files
 struct FILE {
     char filename[32];
     char mode[4];
@@ -22,27 +21,25 @@ struct FILE {
     bool is_write;
 };
 
-// Global standard streams
 FILE* stderr_stream = (FILE*)1;
 FILE* stdin_stream = (FILE*)2;
 
-// Standard library locale lookup table setup
 static unsigned short ctype_table[384] = {0};
-
-void init_ctype_table() {
-    for (int i = 0; i < 256; i++) {
-        unsigned short mask = 0;
-        if (i >= 'a' && i <= 'z') mask |= 0x200 | 0x400 | 0x8 | 0x4000 | 0x8000;
-        if (i >= 'A' && i <= 'Z') mask |= 0x100 | 0x400 | 0x8 | 0x4000 | 0x8000;
-        if (i >= '0' && i <= '9') mask |= 0x800 | 0x8 | 0x4000 | 0x8000;
-        if (i == ' ' || i == '\t' || i == '\r' || i == '\n' || i == '\v' || i == '\f') mask |= 0x2000;
-        ctype_table[128 + i] = mask;
-    }
-}
 
 extern "C" {
     FILE* stderr = stderr_stream;
     FILE* stdin = stdin_stream;
+
+    void init_ctype_table() {
+        for (int i = 0; i < 256; i++) {
+            unsigned short mask = 0;
+            if (i >= 'a' && i <= 'z') mask |= 0x200 | 0x400 | 0x8 | 0x4000 | 0x8000;
+            if (i >= 'A' && i <= 'Z') mask |= 0x100 | 0x400 | 0x8 | 0x4000 | 0x8000;
+            if (i >= '0' && i <= '9') mask |= 0x800 | 0x8 | 0x4000 | 0x8000;
+            if (i == ' ' || i == '\t' || i == '\r' || i == '\n' || i == '\v' || i == '\f') mask |= 0x2000;
+            ctype_table[128 + i] = mask;
+        }
+    }
 
     const unsigned short int **__ctype_b_loc(void) {
         static const unsigned short int *ctype_ptr = &ctype_table[128];
@@ -224,7 +221,6 @@ extern "C" {
         while (1) { asm volatile ("hlt"); }
     }
 
-    // Bare-metal File I/O mappings to the direct SATA simple filesystem interface
     FILE* fopen(const char* filename, const char* mode) {
         FILE* f = (FILE*)kmalloc(sizeof(FILE));
         memset(f, 0, sizeof(FILE));
@@ -232,7 +228,7 @@ extern "C" {
         strncpy(f->mode, mode, 3);
 
         if (mode[0] == 'r') {
-            char* temp = (char*)kmalloc(16384); // Allocates a maximum read limit space
+            char* temp = (char*)kmalloc(16384);
             if (read_file(filename, temp, 16384)) {
                 f->size = strlen(temp);
                 f->buffer = (char*)kmalloc(f->size + 1);
@@ -307,7 +303,121 @@ extern "C" {
         return nullptr;
     }
 
-    // Bare-metal timer setups without system interrupt hooks
+    int vsnprintf(char* buf, size_t size, const char* format, va_list args) {
+        size_t written = 0;
+        const char* p = format;
+        
+        while (*p && written < size - 1) {
+            if (*p == '%') {
+                p++;
+                if (*p == '\0') break;
+                
+                if (*p == 's') {
+                    const char* s = va_arg(args, const char*);
+                    if (!s) s = "(null)";
+                    while (*s && written < size - 1) {
+                        buf[written++] = *s++;
+                    }
+                } else if (*p == 'd') {
+                    int val = va_arg(args, int);
+                    char temp[16];
+                    int i = 0;
+                    if (val == 0) {
+                        temp[i++] = '0';
+                    } else {
+                        bool neg = false;
+                        if (val < 0) { neg = true; val = -val; }
+                        while (val > 0) {
+                            temp[i++] = (val % 10) + '0';
+                            val /= 10;
+                        }
+                        if (neg) temp[i++] = '-';
+                    }
+                    while (i > 0 && written < size - 1) {
+                        buf[written++] = temp[--i];
+                    }
+                } else if (strncmp(p, "lld", 3) == 0) {
+                    p += 2;
+                    long long val = va_arg(args, long long);
+                    char temp[32];
+                    int i = 0;
+                    if (val == 0) {
+                        temp[i++] = '0';
+                    } else {
+                        bool neg = false;
+                        if (val < 0) { neg = true; val = -val; }
+                        while (val > 0) {
+                            temp[i++] = (val % 10) + '0';
+                            val /= 10;
+                        }
+                        if (neg) temp[i++] = '-';
+                    }
+                    while (i > 0 && written < size - 1) {
+                        buf[written++] = temp[--i];
+                    }
+                } else if (*p == 'g' || *p == 'f') {
+                    double val = va_arg(args, double);
+                    char temp[32];
+                    int i = 0;
+                    if (val == 0.0) {
+                        temp[i++] = '0';
+                    } else {
+                        bool neg = false;
+                        if (val < 0.0) { neg = true; val = -val; }
+                        long long ipart = (long long)val;
+                        double fpart = val - (double)ipart;
+                        long long fipart = (long long)(fpart * 10000.0);
+                        if (fipart < 0) fipart = -fipart;
+                        
+                        if (fipart > 0) {
+                            for (int k = 0; k < 4; k++) {
+                                temp[i++] = (fipart % 10) + '0';
+                                fipart /= 10;
+                            }
+                            temp[i++] = '.';
+                        }
+                        
+                        if (ipart == 0) {
+                            temp[i++] = '0';
+                        } else {
+                            while (ipart > 0) {
+                                temp[i++] = (ipart % 10) + '0';
+                                ipart /= 10;
+                            }
+                        }
+                        if (neg) temp[i++] = '-';
+                    }
+                    while (i > 0 && written < size - 1) {
+                        buf[written++] = temp[--i];
+                    }
+                } else {
+                    buf[written++] = *p;
+                }
+            } else {
+                buf[written++] = *p;
+            }
+            p++;
+        }
+        buf[written] = '\0';
+        return written;
+    }
+
+    int snprintf(char* buf, size_t size, const char* format, ...) {
+        va_list args;
+        va_start(args, format);
+        int ret = vsnprintf(buf, size, format, args);
+        va_end(args);
+        return ret;
+    }
+
+    int sprintf(char* buf, const char* format, ...) {
+        va_list args;
+        va_start(args, format);
+        int ret = vsnprintf(buf, 8192, format, args);
+        va_end(args);
+        return ret;
+    }
+
     static long long mock_time_ms = 1000000;
 
     int gettimeofday(void* tv, void* tz) {
@@ -318,7 +428,7 @@ extern "C" {
         } *t = (struct tv_struct*)tv;
 
         if (t) {
-            mock_time_ms += 10; // Virtual forward clock ticks
+            mock_time_ms += 10;
             t->tv_sec = mock_time_ms / 1000;
             t->tv_usec = (mock_time_ms % 1000) * 1000;
         }
@@ -327,7 +437,7 @@ extern "C" {
 
     int nanosleep(const void* req, void* rem) {
         (void)req; (void)rem;
-        for (volatile int i = 0; i < 2000000; i++); // Busy spin loop to emulate timed wait
+        for (volatile int i = 0; i < 2000000; i++);
         return 0;
     }
 }
