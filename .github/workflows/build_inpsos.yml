@@ -6,89 +6,23 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
-      
-      - name: Install Rust (Nightly)
-        uses: dtolnay/rust-toolchain@nightly
-        with:
-          components: rust-src
-          targets: x86_64-unknown-uefi, x86_64-unknown-none
-          
-      - name: Install Dependencies
-        run: |
-          sudo apt-get update
-          # xorriso: ISO generator
-          # mtools & dosfstools: Creates FAT filesystem images without root loop-mounts
-          sudo apt-get install -y xorriso mtools lld clang dosfstools
-        
-      - name: Build Custom Bootloader
-        run: |
-          cd os/bootloader
-          cargo build --release --target x86_64-unknown-uefi
-        
-      - name: Build Kernel & Easec
-        run: |
-          cd os/kernel
-          cargo build --release --target x86_64-unknown-none
-        
-      - name: Create Bootable ISO
-        run: |
-          # 1. Dynamically locate the UEFI bootloader binary (.efi)
-          BOOTLOADER_PATH=$(find . -type f -name "*.efi" | grep "release" | head -n 1)
-          if [ -z "$BOOTLOADER_PATH" ]; then
-            echo "Error: compiled UEFI bootloader (.efi) not found!"
-            exit 1
-          fi
-          
-          # 2. Dynamically locate the compiled kernel ELF binary (inpsos_kernel)
-          KERNEL_PATH=$(find . -type f \( -name "inpsos_kernel" -o -name "kernel" \) | grep "release" | grep -v "/deps/" | grep -v "/build/" | grep -v "/incremental/" | head -n 1)
-          if [ -z "$KERNEL_PATH" ]; then
-            echo "Error: kernel binary not found!"
-            exit 1
-          fi
-          
-          # 3. Locate the rootfs folder
-          ROOTFS_PATH="os/rootfs"
-          if [ ! -d "$ROOTFS_PATH" ]; then
-            echo "Error: os/rootfs folder not found!"
-            exit 1
-          fi
-          
-          # 4. Create a 32MB FAT partition image representing the ESP (EFI System Partition)
-          # We use mtools so we don't need root/sudo mount permissions inside the container.
-          truncate -s 32M efi.img
-          mkfs.vfat efi.img
-          
-          # Copy the bootloader and kernel into the FAT filesystem
-          mmd -i efi.img ::/EFI
-          mmd -i efi.img ::/EFI/BOOT
-          mcopy -i efi.img "$BOOTLOADER_PATH" ::/EFI/BOOT/BOOTX64.EFI
-          mcopy -i efi.img "$KERNEL_PATH" ::/kernel.elf
-          
-          # Copy the easec rootfs scripts into the ESP
-          mmd -i efi.img ::/os
-          mcopy -s -i efi.img "$ROOTFS_PATH" ::/os/
-          
-          # 5. Pack into ISO Structure
-          mkdir -p iso/boot
-          cp efi.img iso/boot/efi.img
-          
-          # 6. Generate a UEFI Hybrid bootable ISO with xorriso
-          xorriso -as mkisofs \
-            -R -f \
-            -eltorito-alt-boot \
-            -e boot/efi.img \
-            -no-emul-boot \
-            -isohybrid-gpt-basdat \
-            -o inpsos.iso iso/
-            
-          # 7. Inject install.easec directly into Sector 10 (offset 5120 bytes) of the ISO 
-          # This allows the raw AHCI block-reader in the kernel main loop to read it on boot.
-          dd if=os/rootfs/install.easec of=inpsos.iso bs=512 seek=10 conv=notrunc
-            
-      - name: Upload ISO Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: inpsos
-          path: inpsos.iso
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Install Build Toolchain
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gcc-multilib g++-multilib nasm xorriso mtools
+
+    - name: Build Operating System
+      run: |
+        cd os
+        make iso
+
+    - name: Upload Bootable ISO
+      uses: actions/upload-artifact@v4
+      with:
+        name: inpsos-iso
+        path: os/inpsos.iso

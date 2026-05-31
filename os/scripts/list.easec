@@ -1,0 +1,3 @@
+say "System Files on Disk:"
+var text file_list get
+say file_list

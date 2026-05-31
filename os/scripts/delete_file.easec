@@ -1,0 +1,4 @@
+say "Enter targeted filename to remove:"
+var text targetname get
+file delete targetname
+say "Target file dropped successfully."
