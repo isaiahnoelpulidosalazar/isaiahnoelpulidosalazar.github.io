@@ -33,6 +33,10 @@ void pci_write_word(uint16_t bus, uint16_t slot, uint16_t func, uint16_t offset,
 void find_ahci() {
     for (uint32_t bus = 0; bus < 256; bus++) {
         for (uint32_t slot = 0; slot < 32; slot++) {
+            // Fast PCI optimization: If function 0 is empty (0xFFFF), skip slots 1-7 immediately
+            uint32_t dev_id = pci_read_word(bus, slot, 0, 0x00);
+            if ((dev_id & 0xFFFF) == 0xFFFF) continue;
+            
             for (uint32_t func = 0; func < 8; func++) {
                 uint32_t pci_class = pci_read_word(bus, slot, func, 0x08);
                 uint8_t class_code = (pci_class >> 24) & 0xFF;
@@ -41,6 +45,7 @@ void find_ahci() {
                 if (class_code == 0x01 && subclass == 0x06) {
                     uint32_t abar = pci_read_word(bus, slot, func, 0x24);
                     hba_mem = (HBA_Mem*)abar;
+                    
                     uint32_t cmd = pci_read_word(bus, slot, func, 0x04);
                     pci_write_word(bus, slot, func, 0x04, cmd | 0x07);
                     return;
@@ -51,9 +56,14 @@ void find_ahci() {
 }
 
 void init_ahci_port(HBA_Port* port) {
-    port->cmd &= ~0x0001;
-    port->cmd &= ~0x0010;
-    while (port->cmd & 0x4000 || port->cmd & 0x8000);
+    port->cmd &= ~0x0001; // Stop command execution engine (ST)
+    port->cmd &= ~0x0010; // Stop FIS receive engine (FRE)
+
+    // Hardware Spinlock Timeout: Prevents hanging on physical drive reset state
+    int timeout = 1000000;
+    while ((port->cmd & 0x4000 || port->cmd & 0x8000) && timeout > 0) {
+        timeout--;
+    }
 
     uint8_t* clb_mem = kmalloc(1024 + 1024);
     uint32_t clb_addr = ((uint32_t)clb_mem + 1023) & ~1023;
@@ -68,8 +78,8 @@ void init_ahci_port(HBA_Port* port) {
     memset((void*)clb_addr, 0, 1024);
     memset((void*)fb_addr, 0, 256);
 
-    port->cmd |= 0x0010;
-    port->cmd |= 0x0001;
+    port->cmd |= 0x0010; // Start FIS receive engine (FRE)
+    port->cmd |= 0x0001; // Start command execution engine (ST)
 }
 
 void init_ahci() {
@@ -135,12 +145,26 @@ bool ahci_read(HBA_Port* port, uint32_t startl, uint32_t starth, uint32_t count,
     
     int spin = 0;
     while ((port->tfd & (0x80 | 0x08)) && spin < 1000000) { spin++; }
-    if (spin == 1000000) return false;
+    if (spin == 1000000) {
+        kfree(cmd_tbl_mem);
+        return false;
+    }
     
     port->ci = 1 << slot;
+    
+    // Command Issue Timeout: Prevents freezing if the physical drive fails to reply
+    int spin_ci = 0;
     while (1) {
         if ((port->ci & (1 << slot)) == 0) break;
-        if (port->is & (1 << 30)) return false;
+        if (port->is & (1 << 30)) {
+            kfree(cmd_tbl_mem);
+            return false;
+        }
+        spin_ci++;
+        if (spin_ci > 1000000) {
+            kfree(cmd_tbl_mem);
+            return false; // Hardware read timed out safely
+        }
     }
     
     kfree(cmd_tbl_mem);
@@ -188,12 +212,26 @@ bool ahci_write(HBA_Port* port, uint32_t startl, uint32_t starth, uint32_t count
     
     int spin = 0;
     while ((port->tfd & (0x80 | 0x08)) && spin < 1000000) { spin++; }
-    if (spin == 1000000) return false;
+    if (spin == 1000000) {
+        kfree(cmd_tbl_mem);
+        return false;
+    }
     
     port->ci = 1 << slot;
+    
+    // Command Issue Timeout: Prevents freezing if the physical drive fails to write
+    int spin_ci = 0;
     while (1) {
         if ((port->ci & (1 << slot)) == 0) break;
-        if (port->is & (1 << 30)) return false;
+        if (port->is & (1 << 30)) {
+            kfree(cmd_tbl_mem);
+            return false;
+        }
+        spin_ci++;
+        if (spin_ci > 1000000) {
+            kfree(cmd_tbl_mem);
+            return false; // Hardware write timed out safely
+        }
     }
     
     kfree(cmd_tbl_mem);
