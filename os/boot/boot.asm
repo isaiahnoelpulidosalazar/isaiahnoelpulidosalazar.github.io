@@ -1,9 +1,10 @@
 [org 0x7C00]
 [bits 16]
 
-; Standard 3-byte boot jump sequence to appease legacy BIOS checks
-jmp short start
-nop
+jmp start
+
+; MBR Partition Table & BIOS Parameter Block padding (Mandatory for BIOS floppy boot recognition)
+times 90-($-$$) db 0 
 
 start:
     cld                 ; Clear Direction Flag (Critical: guarantees lodsb moves forward)
@@ -22,19 +23,23 @@ start:
     mov si, msg_loading
     call print_string
 
-    ; Check if modern BIOS LBA extensions are available
+    ; Strict bypass: If boot drive is a floppy/emulated floppy (DL < 0x80),
+    ; we must bypass buggy BIOS LBA support and use the safe CHS path.
+    mov dl, [boot_drive]
+    cmp dl, 0x80
+    jb lba_fallback
+
+    ; Check if modern BIOS LBA extensions are available (Only for HDD/CD-ROM)
     mov ah, 0x41
     mov bx, 0x55AA
-    mov dl, [boot_drive]
     int 0x13
-    jc lba_fallback      ; Fall back to CHS if LBA is not supported
+    jc lba_fallback
 
-    ; Attempt LBA Load
+    ; Attempt LBA Load (Only for HDD/CD-ROM)
     mov ah, 0x42
-    mov dl, [boot_drive]
     mov si, disk_packet
     int 0x13
-    jc lba_fallback      ; Fall back to CHS if LBA read fails
+    jc lba_fallback
 
     jmp transition_pm
 
