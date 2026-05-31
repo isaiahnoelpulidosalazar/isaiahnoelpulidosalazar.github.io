@@ -5,6 +5,9 @@ ASM = nasm
 CFLAGS = -m32 -ffreestanding -fno-pie -fno-builtin -nostdlib -O2 -Ikernel
 LDFLAGS = -m elf_i386 -T linker.ld
 
+# Locate GCC's runtime helper library for 32-bit architectures
+LIBGCC = $(shell $(CC) -m32 -print-libgcc-file-name)
+
 KERNEL_OBJS = \
 	boot/kernel_entry.o \
 	kernel/kernel.o \
@@ -32,8 +35,9 @@ kernel/ahci.o: kernel/ahci.c
 kernel/easec.o: kernel/easec.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
+# Link the kernel binary together with libgcc.a
 kernel.bin: $(KERNEL_OBJS)
-	$(LD) $(LDFLAGS) -o $@ $(KERNEL_OBJS)
+	$(LD) $(LDFLAGS) -o $@ $(KERNEL_OBJS) $(LIBGCC)
 
 inpsos.img: boot/boot.bin kernel.bin
 	dd if=/dev/zero of=$@ bs=512 count=2880

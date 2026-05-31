@@ -460,3 +460,8 @@ void exit(int status) {
     printf("OS user-process exited with status %d.\n", status);
     while(1);
 }
+
+void abort(void) {
+    printf("\nKernel panic: abort() called from runtime library.\n");
+    while (1);
+}

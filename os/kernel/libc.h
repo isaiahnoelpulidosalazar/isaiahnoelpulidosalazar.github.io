@@ -68,5 +68,6 @@ int remove(const char* filename);
 
 // Error/exit function
 void exit(int status);
+void abort(void);
 
 #endif
