@@ -1,50 +1,50 @@
 [org 0x7C00]
 [bits 16]
 
-jmp start
-
-; MBR Partition Table and Signature spacing
-times 90-($-$$) db 0 
+; Standard 3-byte boot jump sequence to appease legacy BIOS checks
+jmp short start
+nop
 
 start:
-    cli
+    cld                 ; Clear Direction Flag (Critical: guarantees lodsb moves forward)
+    cli                 ; Disable interrupts during segment setups
     xor ax, ax
     mov ds, ax
     mov es, ax
     mov ss, ax
-    mov sp, 0x7C00
-    sti
+    mov sp, 0x7C00      ; Set stack pointer directly below the boot sector
+    sti                 ; Restore interrupts
 
-    ; Save boot drive number
+    ; Save the boot drive index passed by the BIOS in DL
     mov [boot_drive], dl
 
-    ; Print greeting
+    ; Display greeting
     mov si, msg_loading
     call print_string
 
-    ; Check BIOS LBA extensions availability
+    ; Check if modern BIOS LBA extensions are available
     mov ah, 0x41
     mov bx, 0x55AA
     mov dl, [boot_drive]
     int 0x13
-    jc lba_fallback      ; If LBA is unsupported, fall back to CHS
+    jc lba_fallback      ; Fall back to CHS if LBA is not supported
 
     ; Attempt LBA Load
     mov ah, 0x42
     mov dl, [boot_drive]
     mov si, disk_packet
     int 0x13
-    jc lba_fallback      ; If LBA read fails, fall back to CHS
+    jc lba_fallback      ; Fall back to CHS if LBA read fails
 
     jmp transition_pm
 
 lba_fallback:
-    ; CHS fallback loader (Ideal for El Torito Floppy Emulation on ISO boot)
-    mov cx, 256         ; Load 256 sectors (128KB, plenty of room for 97KB+ kernel)
+    ; CHS fallback loader for El Torito Floppy Emulation (e.g. ISO boot)
+    mov cx, 256         ; Load 256 sectors (128KB, fully covers the 97KB+ kernel)
     mov ax, 1           ; Start reading from LBA sector 1 (directly after MBR)
-    mov dx, 0x1000      ; Target Segment
+    mov dx, 0x1000      ; Destination Segment
     mov es, dx
-    xor bx, bx          ; Destination ES:BX = 0x1000:0000 (0x10000 physical)
+    xor bx, bx          ; Destination ES:BX = 0x1000:0000 (0x10000 physical address)
 
 read_loop:
     push cx
@@ -62,7 +62,7 @@ read_loop:
     div cl              ; AL = Head (Remainder / 18), AH = Sector - 1 (Remainder % 18)
     mov dh, al          ; DH = Head
     mov cl, ah
-    inc cl              ; CL = Sector (1-based)
+    inc cl              ; CL = Sector (1-based index)
     
     mov dl, [boot_drive]
 
@@ -75,12 +75,12 @@ read_loop:
     pop ax
     pop cx
 
-    ; Safely advance segment by 512 bytes (32 paragraphs) to bypass 64KB BX bounds limits
+    ; Safely advance segment by 512 bytes (32 paragraphs) to bypass 16-bit offset bounds
     mov dx, es
     add dx, 32
     mov es, dx
 
-    inc ax              ; Advance to next sequential LBA sector
+    inc ax              ; Next sequential LBA sector
     loop read_loop
     jmp transition_pm
 
@@ -113,15 +113,15 @@ print_string:
 .done:
     ret
 
-; LBA Packet Structure for AH=42h (Hard Drive installation)
+; LBA Packet Structure for AH=42h (SATA/HDD boots)
 align 4
 disk_packet:
     db 0x10         ; Packet size (16 bytes)
     db 0            ; Reserved
-    dw 256          ; Updated: Read 256 sectors (128KB) to fully load the kernel
-    dw 0x0000       ; Destination Offset
-    dw 0x1000       ; Destination Segment (0x10000 physical)
-    dq 1            ; Start LBA Sector (Sector 1, directly after MBR)
+    dw 256          ; Read 256 sectors (128KB)
+    dw 0x0000       ; Offset
+    dw 0x1000       ; Segment
+    dq 1            ; Start LBA Sector 1
 
 boot_drive: db 0
 msg_loading: db "Loading inpsos...", 0x0D, 0x0A, 0
@@ -168,3 +168,6 @@ init_pm:
 
     ; Jump directly to the loaded C++ kernel entry point
     jmp 0x10000
+
+times 510-($-$$) db 0
+dw 0xAA55

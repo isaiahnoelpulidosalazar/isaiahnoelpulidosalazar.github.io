@@ -5,7 +5,7 @@ My website
 
 # androiddependency
 
-**androiddependency** is an Android library that eliminates boilerplate across projects. Includes Check (a class for validation), Convert (a class for data conversion), EasySQL (a simplified SQLite CRUD wrapper), FlippableImageView with custom animations, a custom RoundedAlertDialog with a modern card view, SimpleList for dynamic data binding, and an async URLRequest utility with callback runnables..
+**androiddependency** is an Android library that eliminates boilerplate across projects. Includes Check (a class for validation), Convert (a class for data conversion), EasySQL (a simplified SQLite CRUD wrapper), FlippableImageView with custom animations, a custom RoundedAlertDialog with a modern card view, SimpleList for dynamic data binding, and an async URLRequest utility with callback runnables.
 
 ---
 
