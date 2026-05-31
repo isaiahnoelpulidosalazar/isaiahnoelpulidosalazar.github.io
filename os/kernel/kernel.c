@@ -237,16 +237,14 @@ void run_installer() {
     HBA_Port* dest = active_ports[1];
     
     kputs("SATA physical target detected on Port 1. Installing bootloader & kernel (Sectors 0 to 128)... ");
-    uint8_t* sector_buffer = malloc(512);
+    uint32_t sector_buffer[128]; // 512 bytes, 4-byte aligned
     for (int s = 0; s < 128; s++) {
         if (!ahci_read(src, s, 0, 1, (uint16_t*)sector_buffer)) {
             kputs("\nError: Failed to read kernel sector from installation medium!\n");
-            free(sector_buffer);
             return;
         }
         if (!ahci_write(dest, s, 0, 1, (uint16_t*)sector_buffer)) {
             kputs("\nError: Failed to write kernel sector to target drive!\n");
-            free(sector_buffer);
             return;
         }
     }
@@ -256,16 +254,22 @@ void run_installer() {
     for (int s = 129; s <= 200; s++) {
         if (!ahci_read(src, s, 0, 1, (uint16_t*)sector_buffer)) {
             kputs("\nError: Failed to read filesystem sector from installation medium!\n");
-            free(sector_buffer);
             return;
         }
         if (!ahci_write(dest, s, 0, 1, (uint16_t*)sector_buffer)) {
             kputs("\nError: Failed to write filesystem sector to target drive!\n");
-            free(sector_buffer);
             return;
         }
     }
-    free(sector_buffer);
+    kputs("Done.\n");
+    
+    kputs("Finalizing target filesystem magic identity mapping... ");
+    // Read the target directory block, rewrite the signature to "INPS", and write back
+    if (ahci_read(dest, DIRECTORY_SECTOR, 0, 1, (uint16_t*)sector_buffer)) {
+        uint8_t* byte_ptr = (uint8_t*)sector_buffer;
+        memcpy(&byte_ptr[508], "INPS", 4);
+        ahci_write(dest, DIRECTORY_SECTOR, 0, 1, (uint16_t*)sector_buffer);
+    }
     kputs("Done.\n");
     
     kputs("\nSUCCESS! inpsos installation complete.\n");
@@ -281,12 +285,43 @@ void k_main() {
     init_allocator();
     init_ahci();
     
-    if (active_port_count > 0) {
-        read_directory(active_ports[0]);
-        if (dir_cache[0].used) {
-            is_installed_mode = true;
-            active_ports[1] = active_ports[0]; // Map active filesystem partition
+    HBA_Port* installer_port = NULL;
+    HBA_Port* installed_port = NULL;
+    
+    uint32_t sector_buffer[128]; // 512 bytes, aligned
+    
+    // Scan all active SATA ports for magic file indicators
+    for (int i = 0; i < active_port_count; i++) {
+        HBA_Port* port = active_ports[i];
+        if (ahci_read(port, DIRECTORY_SECTOR, 0, 1, (uint16_t*)sector_buffer)) {
+            uint8_t* byte_ptr = (uint8_t*)sector_buffer;
+            if (memcmp(&byte_ptr[508], "INPS", 4) == 0) {
+                installed_port = port;
+                break;
+            } else if (memcmp(&byte_ptr[508], "INST", 4) == 0) {
+                installer_port = port;
+            }
         }
+    }
+    
+    // Route execution context safely
+    if (installed_port) {
+        is_installed_mode = true;
+        active_ports[1] = installed_port; // Active runtime disk (destination)
+    } else if (installer_port) {
+        is_installed_mode = false;
+        active_ports[0] = installer_port; // Installer source disk
+        
+        // Map the secondary active port as the target installation drive
+        active_ports[1] = NULL;
+        for (int i = 0; i < active_port_count; i++) {
+            if (active_ports[i] != installer_port) {
+                active_ports[1] = active_ports[i];
+                break;
+            }
+        }
+    } else {
+        is_installed_mode = false; // Failsafe state
     }
     
     if (is_installed_mode) {
@@ -322,7 +357,6 @@ void k_main() {
             uint32_t fsize = 0;
             char* script_src = read_file(active_ports[1], input_buffer, &fsize);
             if (script_src) {
-                // Dynamically populate live directory environment properties
                 register_filesystem_env(global_env);
                 run_script(script_src, global_env);
                 free(script_src);

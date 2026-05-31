@@ -62,11 +62,14 @@ def pack_fs(programs_dir, out_file):
         offset = i * 48
         dir_sector[offset:offset+48] = entry
         
+    # Write the installer magic signature to the last 4 bytes of Sector 129 (offset 508)
+    dir_sector[508:512] = b'INST'
+        
     with open(out_file, 'wb') as out:
         out.write(dir_sector)
         out.write(file_data_blocks)
         
-    print(f"Packed {len(files)} files into {out_file} successfully.")
+    print(f"Packed {len(files)} files into {out_file} with magic signature 'INST'.")
 
 if __name__ == '__main__':
     pack_fs('programs', 'fs.bin')
