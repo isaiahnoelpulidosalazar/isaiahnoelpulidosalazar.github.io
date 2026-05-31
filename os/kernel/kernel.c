@@ -1,6 +1,10 @@
 #include "libc.h"
 #include "ahci.h"
 
+// Pull in the compile-time embedded RAM binaries
+#include "boot_bin.h"
+#include "fs_bin.h"
+
 extern void init_allocator();
 extern void init_ahci();
 extern void init_vm();
@@ -207,10 +211,8 @@ void register_filesystem_env(void* env) {
         if (dir_cache[i].used) count++;
     }
     
-    // Bind file_count
     env_define(env, "file_count", make_int(count));
     
-    // Bind files array
     Value arr_val = make_array();
     ObjArray* arr = (ObjArray*)arr_val.as.obj;
     arr->count = count;
@@ -227,53 +229,58 @@ void register_filesystem_env(void* env) {
     env_define(env, "files", arr_val);
 }
 
+// 100% self-contained RAM-based installer
 void run_installer() {
-    kputs("\nPreparing physical installation disk validation...\n");
-    if (active_port_count < 2) {
-        kputs("Error: Physical target drive not detected. Set up two active AHCI storage controllers!\n");
+    kputs("\nStarting bare-metal installation of inpsos...\n");
+    if (active_port_count < 1) {
+        kputs("Error: No SATA hard drive detected! Ensure SATA is enabled in BIOS.\n");
         return;
     }
-    HBA_Port* src = active_ports[0];
-    HBA_Port* dest = active_ports[1];
+    HBA_Port* dest = active_ports[1]; // Physical target drive
     
-    kputs("SATA physical target detected on Port 1. Installing bootloader & kernel (Sectors 0 to 128)... ");
-    uint32_t sector_buffer[128]; // 512 bytes, 4-byte aligned
-    for (int s = 0; s < 128; s++) {
-        if (!ahci_read(src, s, 0, 1, (uint16_t*)sector_buffer)) {
-            kputs("\nError: Failed to read kernel sector from installation medium!\n");
-            return;
-        }
-        if (!ahci_write(dest, s, 0, 1, (uint16_t*)sector_buffer)) {
-            kputs("\nError: Failed to write kernel sector to target drive!\n");
-            return;
+    kputs("Installing custom MBR bootloader to Sector 0... ");
+    uint32_t sector_buffer[128]; // 512-byte aligned buffer
+    memset(sector_buffer, 0, 512);
+    memcpy(sector_buffer, boot_bin, boot_bin_len > 512 ? 512 : boot_bin_len);
+    if (!ahci_write(dest, 0, 0, 1, (uint16_t*)sector_buffer)) {
+        kputs("Failed!\n"); return;
+    }
+    kputs("Done.\n");
+    
+    kputs("Deploying kernel image (Sectors 1 to 128) directly from physical memory... ");
+    // Copy the exact running kernel segments from physical memory address 0x10000 [1]
+    uint8_t* ram_kernel = (uint8_t*)0x10000;
+    for (int s = 1; s <= 128; s++) {
+        uint8_t* ram_offset = ram_kernel + (s - 1) * 512;
+        if (!ahci_write(dest, s, 0, 1, (uint16_t*)ram_offset)) {
+            kputs("Failed!\n"); return;
         }
     }
     kputs("Done.\n");
     
-    kputs("Cloning populated filesystem dynamically from installation medium (Sectors 129 to 200)... ");
-    for (int s = 129; s <= 200; s++) {
-        if (!ahci_read(src, s, 0, 1, (uint16_t*)sector_buffer)) {
-            kputs("\nError: Failed to read filesystem sector from installation medium!\n");
-            return;
+    kputs("Deploying packed filesystem files directly from RAM (Sectors 129 to 200)... ");
+    int fs_sectors = fs_bin_len / 512;
+    if (fs_sectors == 0) fs_sectors = 1;
+    
+    for (int s = 0; s < fs_sectors; s++) {
+        memset(sector_buffer, 0, 512);
+        int bytes_to_copy = fs_bin_len - (s * 512);
+        if (bytes_to_copy > 512) bytes_to_copy = 512;
+        memcpy(sector_buffer, fs_bin + (s * 512), bytes_to_copy);
+        
+        // Write the final "INPS" marker onto the HDD to identify it as completed installation
+        if (s == 0) {
+            memcpy(&((uint8_t*)sector_buffer)[508], "INPS", 4);
         }
-        if (!ahci_write(dest, s, 0, 1, (uint16_t*)sector_buffer)) {
-            kputs("\nError: Failed to write filesystem sector to target drive!\n");
-            return;
+        
+        if (!ahci_write(dest, 129 + s, 0, 1, (uint16_t*)sector_buffer)) {
+            kputs("Failed!\n"); return;
         }
     }
     kputs("Done.\n");
     
-    kputs("Finalizing target filesystem magic identity mapping... ");
-    // Read the target directory block, rewrite the signature to "INPS", and write back
-    if (ahci_read(dest, DIRECTORY_SECTOR, 0, 1, (uint16_t*)sector_buffer)) {
-        uint8_t* byte_ptr = (uint8_t*)sector_buffer;
-        memcpy(&byte_ptr[508], "INPS", 4);
-        ahci_write(dest, DIRECTORY_SECTOR, 0, 1, (uint16_t*)sector_buffer);
-    }
-    kputs("Done.\n");
-    
-    kputs("\nSUCCESS! inpsos installation complete.\n");
-    kputs("Eject the installation ISO, restart, and boot from target hard drive.\n");
+    kputs("\nSUCCESS! inpsos has been physically installed to your hard drive.\n");
+    kputs("Please remove your USB installation drive and restart your computer!\n");
 }
 
 void k_main() {
@@ -285,12 +292,10 @@ void k_main() {
     init_allocator();
     init_ahci();
     
-    HBA_Port* installer_port = NULL;
     HBA_Port* installed_port = NULL;
-    
     uint32_t sector_buffer[128]; // 512 bytes, aligned
     
-    // Scan all active SATA ports for magic file indicators
+    // Scan all detected SATA ports for an already installed OS marker
     for (int i = 0; i < active_port_count; i++) {
         HBA_Port* port = active_ports[i];
         if (ahci_read(port, DIRECTORY_SECTOR, 0, 1, (uint16_t*)sector_buffer)) {
@@ -298,37 +303,27 @@ void k_main() {
             if (memcmp(&byte_ptr[508], "INPS", 4) == 0) {
                 installed_port = port;
                 break;
-            } else if (memcmp(&byte_ptr[508], "INST", 4) == 0) {
-                installer_port = port;
             }
         }
     }
     
-    // Route execution context safely
+    // Route execution logic
     if (installed_port) {
         is_installed_mode = true;
-        active_ports[1] = installed_port; // Active runtime disk (destination)
-    } else if (installer_port) {
-        is_installed_mode = false;
-        active_ports[0] = installer_port; // Installer source disk
-        
-        // Map the secondary active port as the target installation drive
-        active_ports[1] = NULL;
-        for (int i = 0; i < active_port_count; i++) {
-            if (active_ports[i] != installer_port) {
-                active_ports[1] = active_ports[i];
-                break;
-            }
-        }
+        active_ports[1] = installed_port; // Set target drive as current working disk
     } else {
-        is_installed_mode = false; // Failsafe state
+        is_installed_mode = false;
+        // On real hardware, your USB is invisible to AHCI. The only visible port is your HDD!
+        if (active_port_count > 0) {
+            active_ports[1] = active_ports[0]; // Set target drive to HDD
+        }
     }
     
     if (is_installed_mode) {
         kputs("Booted from primary hard drive. inpsos is active.\n");
         kputs("Type a program name to execute (e.g. list.easec)\n\n");
     } else {
-        kputs("Booted from installation ISO.\n");
+        kputs("Booted from installation USB medium.\n");
         kputs("Type 'install' to physically write inpsos to your hard drive.\n\n");
     }
     
