@@ -15,6 +15,17 @@ extern void kputc(char c);
 extern void kputs(const char* s);
 extern char kget_char();
 
+long long get_time_ms(void) {
+    uint64_t tsc;
+    __asm__ volatile ("rdtsc" : "=A"(tsc));
+    return (long long)(tsc / 2000000); // 2GHz CPU tick rate conversion
+}
+
+void sleep_ms(long long ms) {
+    long long start = get_time_ms();
+    while (get_time_ms() - start < ms);
+}
+
 void init_allocator() {
     free_list_head = (BlockHeader*)HEAP_START;
     free_list_head->size = HEAP_MAX - sizeof(BlockHeader);

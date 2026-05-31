@@ -13,6 +13,10 @@
 #define NULL  ((void*)0)
 #endif
 
+// Timing standard functions
+long long get_time_ms(void);
+void sleep_ms(long long ms);
+
 // Standard functions
 void* memset(void* dest, int val, size_t len);
 void* memcpy(void* dest, const void* src, size_t len);
@@ -66,8 +70,6 @@ int fputs(const char* s, KFILE* stream);
 char* fgets(char* s, int size, KFILE* stream);
 int remove(const char* filename);
 
-// Error/exit function
-void exit(int status);
 void abort(void);
 
 #endif

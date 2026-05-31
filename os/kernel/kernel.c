@@ -64,8 +64,18 @@ void scroll() {
 }
 
 void kputc(char c) {
-    if (c == '\n') { cursor_x = 0; cursor_y++; }
-    else if (c == '\r') { cursor_x = 0; }
+    // 1. Boundary check: Always execute scrolling BEFORE writing characters [1]
+    if (cursor_y >= VGA_HEIGHT) {
+        scroll();
+    }
+    
+    if (c == '\n') { 
+        cursor_x = 0; 
+        cursor_y++; 
+    }
+    else if (c == '\r') { 
+        cursor_x = 0; 
+    }
     else if (c == '\b') {
         if (cursor_x > 0) {
             cursor_x--;
@@ -75,8 +85,16 @@ void kputc(char c) {
         VGA_MEM[cursor_y * VGA_WIDTH + cursor_x] = (term_color << 8) | c;
         cursor_x++;
     }
-    if (cursor_x >= VGA_WIDTH) { cursor_x = 0; cursor_y++; }
-    scroll();
+    
+    if (cursor_x >= VGA_WIDTH) { 
+        cursor_x = 0; 
+        cursor_y++; 
+    }
+    
+    // 2. Double-check scrolling boundary after moving cursor index [1]
+    if (cursor_y >= VGA_HEIGHT) {
+        scroll();
+    }
     update_cursor();
 }
 

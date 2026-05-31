@@ -59,10 +59,12 @@ void init_ahci_port(HBA_Port* port) {
     port->cmd &= ~0x0001; // Stop command execution engine (ST)
     port->cmd &= ~0x0010; // Stop FIS receive engine (FRE)
 
-    // Hardware Spinlock Timeout: Prevents hanging on physical drive reset state
-    int timeout = 1000000;
-    while ((port->cmd & 0x4000 || port->cmd & 0x8000) && timeout > 0) {
-        timeout--;
+    // Hardware Spinlock Timeout using CPU TSC
+    long long start_spin = get_time_ms();
+    while ((port->cmd & 0x4000 || port->cmd & 0x8000)) {
+        if (get_time_ms() - start_spin > 100) { // 100ms timeout
+            break;
+        }
     }
 
     uint8_t* clb_mem = kmalloc(1024 + 1024);
@@ -143,27 +145,26 @@ bool ahci_read(HBA_Port* port, uint32_t startl, uint32_t starth, uint32_t count,
     cmdfis->count_low = (uint8_t)count;
     cmdfis->count_high = (uint8_t)(count >> 8);
     
-    int spin = 0;
-    while ((port->tfd & (0x80 | 0x08)) && spin < 1000000) { spin++; }
-    if (spin == 1000000) {
-        kfree(cmd_tbl_mem);
-        return false;
+    long long start_spin = get_time_ms();
+    while ((port->tfd & (0x80 | 0x08))) {
+        if (get_time_ms() - start_spin > 1000) { // Robust 1-second timeout [1]
+            kfree(cmd_tbl_mem);
+            return false;
+        }
     }
     
     port->ci = 1 << slot;
     
-    // Command Issue Timeout: Prevents freezing if the physical drive fails to reply
-    int spin_ci = 0;
+    long long start_ci = get_time_ms();
     while (1) {
         if ((port->ci & (1 << slot)) == 0) break;
         if (port->is & (1 << 30)) {
             kfree(cmd_tbl_mem);
             return false;
         }
-        spin_ci++;
-        if (spin_ci > 1000000) {
+        if (get_time_ms() - start_ci > 1000) { // Robust 1-second timeout [1]
             kfree(cmd_tbl_mem);
-            return false; // Hardware read timed out safely
+            return false; // Hardware read timed out safely [1]
         }
     }
     
@@ -210,27 +211,26 @@ bool ahci_write(HBA_Port* port, uint32_t startl, uint32_t starth, uint32_t count
     cmdfis->count_low = (uint8_t)count;
     cmdfis->count_high = (uint8_t)(count >> 8);
     
-    int spin = 0;
-    while ((port->tfd & (0x80 | 0x08)) && spin < 1000000) { spin++; }
-    if (spin == 1000000) {
-        kfree(cmd_tbl_mem);
-        return false;
+    long long start_spin = get_time_ms();
+    while ((port->tfd & (0x80 | 0x08))) {
+        if (get_time_ms() - start_spin > 1000) { // Robust 1-second timeout [1]
+            kfree(cmd_tbl_mem);
+            return false;
+        }
     }
     
     port->ci = 1 << slot;
     
-    // Command Issue Timeout: Prevents freezing if the physical drive fails to write
-    int spin_ci = 0;
+    long long start_ci = get_time_ms();
     while (1) {
         if ((port->ci & (1 << slot)) == 0) break;
         if (port->is & (1 << 30)) {
             kfree(cmd_tbl_mem);
             return false;
         }
-        spin_ci++;
-        if (spin_ci > 1000000) {
+        if (get_time_ms() - start_ci > 1000) { // Robust 1-second timeout [1]
             kfree(cmd_tbl_mem);
-            return false; // Hardware write timed out safely
+            return false; // Hardware write timed out safely [1]
         }
     }
     

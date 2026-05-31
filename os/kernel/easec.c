@@ -1,17 +1,5 @@
 #include "libc.h"
 
-// Define high-precision time from CPU Time Stamp Counter (TSC)
-long long get_time_ms() {
-    uint64_t tsc;
-    __asm__ volatile ("rdtsc" : "=A"(tsc));
-    return (long long)(tsc / 2000000); // 2GHz clock rate conversion
-}
-
-void sleep_ms(long long ms) {
-    long long start = get_time_ms();
-    while (get_time_ms() - start < ms);
-}
-
 typedef enum {
     TOKEN_EOF, TOKEN_NEWLINE, TOKEN_LPAREN, TOKEN_RPAREN, TOKEN_LBRACKET, TOKEN_RBRACKET,
     TOKEN_LBRACE, TOKEN_RBRACE, TOKEN_COMMA, TOKEN_COLON, TOKEN_DOT, TOKEN_PLUS, TOKEN_MINUS,
