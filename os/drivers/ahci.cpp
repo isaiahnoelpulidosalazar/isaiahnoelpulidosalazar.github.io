@@ -1,3 +1,4 @@
+#include <stddef.h> // Added to define size_t
 #include "ahci.h"
 
 extern void kprint(const char* str);
@@ -13,6 +14,8 @@ void probe_pci_ahci() {
 }
 
 void port_rebase(HBA_port* port, int port_no) {
+    (void)port_no; // Silence unused parameter warning
+
     // Configure dynamic DMA memory mappings to allow reading physical sectors safely
     port->cmd &= ~0x0001; // Stop command engine (ST = 0)
     port->cmd &= ~0x0010; // Stop FIS receive (FRE = 0)

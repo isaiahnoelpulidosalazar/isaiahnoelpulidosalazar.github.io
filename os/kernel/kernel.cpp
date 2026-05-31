@@ -90,8 +90,7 @@ void* kmalloc(size_t size) {
 }
 
 void kfree(void* ptr) {
-    // Simple bump allocator does not free individual blocks in real-time,
-    // relying on garbage collection cycles or system reboot to reclaim total space.
+    (void)ptr; // Silence unused parameter warning
 }
 
 void* krealloc(void* ptr, size_t new_size) {
