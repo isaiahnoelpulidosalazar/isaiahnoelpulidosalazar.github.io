@@ -1,1 +1,837 @@
-document.addEventListener("DOMContentLoaded",()=>{window.currentAppTheme="Blue",window.currentAppDarkMode=!1,window.globalCanvasClasses="padding-40px";const e=new ECButton("Export",{variant:"filled"});e.element.className+=" width-100% padding-10px",e.onClick(function(){let e="    // ECWebsite Generated JS Components\n",t="",a=0;t+=function t(l,n){let i="";return Array.from(l.children).filter(e=>e.classList.contains("canvas-item")||e.classList.contains("col-layout")).forEach(l=>{if(l.classList.contains("col-layout"))return i+=`${n}<div class="flex-1 display-flex flexDirection-column gap-12px boxSizing-border-box minWidth-200px">\n`,i+=t(l,n+"  "),void(i+=`${n}</div>\n`);const r=l.dataset.type,o=l.ecObj._builder_data||{},s=o.className?` ${o.className}`:"";if(r.startsWith("Layout:")){let e="display-flex gap-16px width-100% boxSizing-border-box flexWrap-wrap";"Layout: Card Container"===r&&(e+=" eccard padding-24px"),i+=`${n}<div class="${e}${s}">\n`,i+=t(l.ecObj.element,n+"  "),i+=`${n}</div>\n`}else if(r.startsWith("Typography:")){const e=o.tag||"p",t=l.ecObj.element.className.replace("canvas-item","").replace("selected","").replace(/drop-zone|drag-over/g,"").trim(),a=(o.text||"").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\n/g,"<br>");i+=`${n}<${e} class="${t}${s}">${a}</${e}>\n`}else{a++;const t=`ec_anchor_${a}`;i+=`${n}\x3c!-- Placeholder for ${r} --\x3e\n`,i+=`${n}<div id="${t}"></div>\n`;const l="comp_"+a;e+=function(e,t,a){let l=`    // ${e}\n    `;const n=e=>JSON.stringify(e||""),i=e=>Number(e)||0;switch(e){case"ECSidebar":l+=`var ${a} = new ECSidebar(${n(t.title)}).setWidth(${n(t.width)});`;break;case"ECTopbar":l+=`var ${a} = new ECTopbar(${n(t.title)});`;break;case"ECBanner":l+=`var ${a} = new ECBanner(${n(t.text)}, {loop: ${!!t.loop}, dismissible: ${!!t.dismissible}});`;break;case"ECStepper":l+=`var ${a} = new ECStepper(${JSON.stringify((t.steps||[]).map(e=>e.label))}, ${i(t.currentStep)});`;break;case"ECCarousel":l+=`var ${a} = new ECCarousel();\n`,(t.items||[]).forEach(e=>{l+=`    ${a}.addItem(${n(e.html)});\n`});break;case"ECHero":l+=`var ${a} = new ECHero(${JSON.stringify(t)});`;break;case"ECMediaCard":l+=`var ${a} = new ECMediaCard(${JSON.stringify(t)});`;break;case"ECAvatar":l+=`var ${a} = new ECAvatar(${JSON.stringify(t)});`;break;case"ECBreadcrumbs":l+=`var ${a} = new ECBreadcrumbs(${JSON.stringify(t.items)}, ${n(t.separator)});`;break;case"ECProgressBar":l+=`var ${a} = new ECProgressBar(${JSON.stringify(t)});\n`,t.height&&(l+=`    ${a}.setHeight(${i(t.height)});\n`);break;case"ECCountdown":l+=`var ${a} = new ECCountdown(${n(t.targetDate)});`;break;case"ECBadge":l+=`var ${a} = new ECBadge(${n(t.label)}, ${n(t.type)});`;break;case"ECSpinner":l+=`var ${a} = new ECSpinner({ size: ${n(t.size)} });`;break;case"ECAccordion":l+=`var ${a} = new ECAccordion({allowMultiple: ${!!t.allowMultiple}});\n`,(t.items||[]).forEach(e=>{l+=`    ${a}.addItem(${n(e.title)}, ${n(e.content)}, ${!!e.open});\n`});break;case"ECList":l+=`var ${a} = new ECList({variant: ${n(t.variant)}, direction: ${n(t.direction)}});\n`,(t.items||[]).forEach(e=>{l+=`    ${a}.addItem(${n(e.text)});\n`});break;case"ECDivider":l+=`var ${a} = new ECDivider(${JSON.stringify(t)});`;break;case"ECButton":l+=`var ${a} = new ECButton(${n(t.label)}, {variant: ${n(t.variant)}});\n`,t.disabled&&(l+=`    ${a}.disable();\n`);break;case"ECRadio":l+=`var ${a} = new ECRadio("rad_" + Math.random().toString(36).substr(2, 9), ${JSON.stringify(t.options)});`;break;case"ECToggle":l+=`var ${a} = new ECToggle(${n(t.label)}, ${!!t.checked});`;break;case"ECCheckbox":l+=`var ${a} = new ECCheckbox(${n(t.label)}, ${!!t.checked});`;break;case"ECTextbox":l+=`var ${a} = new ECTextbox(${JSON.stringify(t)});`;break;case"ECDropdown":l+=`var ${a} = new ECDropdown({label: ${n(t.label)}, items: ${JSON.stringify(t.options)}});`;break;case"ECSlider":let e=t.ticks?t.ticks.split(","):null;l+=`var ${a} = new ECSlider({label: ${n(t.label)}, min: ${i(t.min)}, max: ${i(t.max)}, step: ${i(t.step)}, value: ${i(t.value)}, suffix: ${n(t.suffix)}, ticks: ${JSON.stringify(e)}});`;break;case"ECDatePicker":l+=`var ${a} = new ECDatePicker(${JSON.stringify(t)});`;break;case"ECFileUpload":l+=`var ${a} = new ECFileUpload(${JSON.stringify(t)});`;break;case"ECRating":l+=`var ${a} = new ECRating(${JSON.stringify(t)});`;break;default:l+=`var ${a} = { element: document.createElement("div") }; ${a}.element.textContent = "Unknown Component";`}return t.className&&(l+=`\n    if(${a} && ${a}.element) ${a}.element.className += " " + ${n(t.className)};`),l+=`\n    if(${a} && ${a}.setTheme) ${a}.setTheme(window.ECTheme['${window.currentAppTheme}']);`,window.currentAppDarkMode&&(l+=`\n    if(${a} && ${a}.enableDarkMode) ${a}.enableDarkMode();`),l+"\n"}(r,o,l),e+=`    document.getElementById('${t}').replaceWith(${l}.element || ${l});\n\n`}}),i}(document.getElementById("canvas"),"  ");const l=window.currentAppDarkMode?"#1a1a2e":"#f1f3f5",n=`<!DOCTYPE html>\n<html lang="en">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <title>ECWebsite</title>\n  <script>\n    ${u}\n  <\/script>\n  <script>\n    ${m}\n  <\/script>\n  <style>\n    /* Base Body Styling */\n    body {\n      margin: 0; min-height: 100vh; box-sizing: border-box;\n      background: ${l};\n    }\n  </style>\n</head>\n<body class="${window.globalCanvasClasses}">\n  \x3c!-- Hybrid Structure (Layouts & Typography in DOM, ECElements via JS anchors) --\x3e\n${t}\n  <script>\n  document.addEventListener("DOMContentLoaded", function() {\n${e}\n    // Re-trigger dynamic stylesheet to catch dynamically injected classes\n    if (window.ECStyleSheet) window.ECStyleSheet.scan();\n  });\n  <\/script>\n</body>\n</html>`,i=new Blob([n],{type:"text/html"}),r=URL.createObjectURL(i),o=document.createElement("a");o.href=r,o.download="ecwebsite.html",document.body.appendChild(o),o.click(),document.body.removeChild(o),URL.revokeObjectURL(r)}),document.getElementById("sidebar-footer").appendChild(e.element);class t{constructor(e,t){this.element=document.createElement(e),this.element.innerText=t;let a="margin-0 color-var(--ec-text,_#212529)";"h1"===e&&(a+=" fontSize-32px fontWeight-700 lineHeight-1.2"),"h2"===e&&(a+=" fontSize-24px fontWeight-600 lineHeight-1.3"),"p"===e&&(a+=" fontSize-16px lineHeight-1.6 color-var(--ec-text-muted,_#6c757d)"),this.element.className=a,this.element.dataset.baseClass=a,this._builder_data={text:t,tag:e,align:"left",className:""}}setText(e){this.element.innerText=e}setAlign(e){this.element.classList.remove("textAlign-left","textAlign-center","textAlign-right","textAlign-justify"),e&&"left"!==e&&this.element.classList.add(`textAlign-${e}`),this.element.dataset.baseClass=this.element.className.replace(this._builder_data.className||"","").trim()}setTheme(){}enableDarkMode(){}disableDarkMode(){}}class a{constructor(e){this.element=document.createElement("div"),this.element.className="container-layout display-flex gap-16px width-100% boxSizing-border-box flexWrap-wrap minHeight-60px","Card Container"===e&&this.element.classList.add("eccard","padding-24px"),this.cols=[],this._builder_data={columns:1},this.setColumns(1)}setColumns(e){for(e=parseInt(e,10),(isNaN(e)||e<1)&&(e=1),this._builder_data.columns=e;this.cols.length<e;){const e=document.createElement("div");e.className="col-layout drop-zone flex-1 display-flex flexDirection-column gap-12px boxSizing-border-box border-1px_dashed_#adb5bd minHeight-50px padding-12px borderRadius-6px background-rgba(255,255,255,0.2)",e.style.minWidth="200px",this.cols.push(e),this.element.appendChild(e)}for(;this.cols.length>e;){const e=this.cols.pop(),t=this.cols[0];if(t)for(;e.firstChild;)t.appendChild(e.firstChild);e.remove()}}getColumns(){return this._builder_data.columns}setTheme(){}enableDarkMode(){}disableDarkMode(){}}const l={"Typography: Heading":()=>new t("h1","Main Heading"),"Typography: Sub-heading":()=>new t("h2","Sub-heading"),"Typography: Paragraph":()=>new t("p","This is a paragraph of text. You can edit this directly from the properties panel to describe your content."),"Layout: Blank Container":()=>new a("Blank Container"),"Layout: Card Container":()=>new a("Card Container"),ECSidebar:()=>{const e=new ECSidebar("Sidebar");return e.element.classList.remove("display-none","transform-translateX(-100%)","position-fixed"),e.element.classList.add("display-block","transform-translateX(0)","position-relative"),e.element.style.height="300px",e.element.style.zIndex="1",e.element.dataset.builderFixed="ECSidebar",e._builder_data={title:"Sidebar",width:"260px"},e},ECTopbar:()=>{const e=new ECTopbar("Top Bar");return e.element.classList.remove("position-fixed"),e.element.classList.add("position-relative"),e.element.dataset.builderFixed="ECTopbar",e._builder_data={title:"Top Bar"},e},ECBanner:()=>{const e=new ECBanner("Announcement Banner!",{dismissible:!0,loop:!1});return e._builder_data={text:"Announcement Banner!",loop:!1,dismissible:!0},e},ECStepper:()=>{const e=new ECStepper(["Step 1","Step 2","Step 3"],1);return e._builder_data={steps:[{label:"Step 1"},{label:"Step 2"},{label:"Step 3"}],currentStep:1},e},ECCarousel:()=>{const e=new ECCarousel;return e.addItem('<div style="background:#1a73e8; color:#fff; height:150px; display:flex; align-items:center; justify-content:center; border-radius:10px;">Slide 1</div>'),e._builder_data={items:[{html:'<div style="background:#1a73e8; color:#fff; height:150px; display:flex; align-items:center; justify-content:center; border-radius:10px;">Slide 1</div>'}]},e},ECHero:()=>{const e=new ECHero({title:"Welcome",subtitle:"Start building your site",eyebrow:"GET STARTED"});return e.element.classList.remove("height-100vh"),e.element.style.padding="60px 20px",e.element.dataset.builderFixed="ECHero",e._builder_data={title:"Welcome",subtitle:"Start building your site",eyebrow:"GET STARTED",background:"",imageSrc:"",imageAlt:"",imageMaxWidth:""},e},ECMediaCard:()=>{const e=new ECMediaCard({author:"Jane Doe",content:"This is a media card.",imageSrc:"https://via.placeholder.com/400x200",imageHeight:"200px"});return e._builder_data={author:"Jane Doe",avatarSrc:"",timestamp:"",imageSrc:"https://via.placeholder.com/400x200",imageAlt:"",imageHeight:"200px",content:"This is a media card."},e},ECAvatar:()=>{const e=new ECAvatar({initials:"JD",size:"40px"});return e._builder_data={initials:"JD",size:"40px",src:"",alt:""},e},ECBreadcrumbs:()=>{const e=new ECBreadcrumbs([{label:"Home",href:"#"},{label:"Library",href:"#"}],"/");return e._builder_data={separator:"/",items:[{label:"Home",href:"#"},{label:"Library",href:"#"}]},e},ECProgressBar:()=>{const e=new ECProgressBar({value:50,label:"Loading...",showPercent:!0});return e._builder_data={value:50,label:"Loading...",showPercent:!0,height:8},e},ECCountdown:()=>{const e=new Date(Date.now()+864e5),t=new ECCountdown(e);return t._builder_data={targetDate:e.toISOString().split("T")[0]},t},ECBadge:()=>{const e=new ECBadge("Badge","primary");return e._builder_data={label:"Badge",type:"primary"},e},ECSpinner:()=>{const e=new ECSpinner({size:"md"});return e._builder_data={size:"md"},e},ECAccordion:()=>{const e=new ECAccordion({allowMultiple:!1,items:[{title:"Section 1",content:"Content 1",open:!0}]});return e._builder_data={allowMultiple:!1,items:[{title:"Section 1",content:"Content 1",open:!0}]},e},ECList:()=>{const e=new ECList({items:["Item 1","Item 2"],variant:"plain",direction:"vertical"});return e._builder_data={items:[{text:"Item 1"},{text:"Item 2"}],variant:"plain",direction:"vertical"},e},ECDivider:()=>{const e=new ECDivider({label:"Divider"});return e._builder_data={label:"Divider",thick:!1,dashed:!1},e},ECButton:()=>{const e=new ECButton("Button");return e._builder_data={label:"Button",variant:"filled",disabled:!1},e},ECRadio:()=>{const e=new ECRadio("radios",[{label:"Option A",value:"a"}]);return e._builder_data={options:[{value:"a",label:"Option A",checked:!1}]},e},ECToggle:()=>{const e=new ECToggle("Toggle Switch",!1);return e._builder_data={label:"Toggle Switch",checked:!1},e},ECCheckbox:()=>{const e=new ECCheckbox("Checkbox",!1);return e._builder_data={label:"Checkbox",checked:!1},e},ECTextbox:()=>{const e=new ECTextbox({label:"Text Input",placeholder:"Enter text"});return e._builder_data={label:"Text Input",placeholder:"Enter text",type:"text",value:""},e},ECDropdown:()=>{const e=new ECDropdown({label:"Dropdown",items:[{label:"Item 1",value:"1"}]});return e._builder_data={label:"Dropdown",options:[{value:"1",label:"Item 1"}]},e},ECSlider:()=>{const e=new ECSlider({label:"Range Slider",min:0,max:100,step:1,value:50});return e._builder_data={label:"Range Slider",min:0,max:100,step:1,value:50,suffix:"",ticks:""},e},ECDatePicker:()=>{const e=new ECDatePicker({label:"Date Picker"});return e._builder_data={label:"Date Picker",value:""},e},ECFileUpload:()=>{const e=new ECFileUpload;return e._builder_data={title:"Drag & Drop files here",subtitle:"or click to browse",accept:"*",multiple:!0,maxSize:0},e},ECRating:()=>{const e=new ECRating({value:3,max:5,readonly:!1,showLabel:!0});return e._builder_data={value:3,max:5,readonly:!1,showLabel:!0},e}},n=[{label:"Text",key:"text",type:"textarea",update:(e,t)=>e.setText(t)},{label:"Alignment",key:"align",type:"select",options:["left","center","right","justify"],update:(e,t)=>e.setAlign(t)}];function i(e,t){const a=e.ecObj._builder_data,l=t(a);l._builder_data=a,l.element.dataset.baseClass||(l.element.dataset.baseClass=l.element.className),e.ecObj.element.dataset.builderFixed&&(l.element.dataset.builderFixed=e.ecObj.element.dataset.builderFixed),a.className&&(l.element.className+=" "+a.className),e.replaceChild(l.element,e.ecObj.element),e.ecObj=l,l.setTheme&&l.setTheme(window.ECTheme[window.currentAppTheme]),window.currentAppDarkMode&&l.enableDarkMode?l.enableDarkMode():!window.currentAppDarkMode&&l.disableDarkMode&&l.disableDarkMode(),window.ECStyleSheet&&window.ECStyleSheet.scan()}const r={"Typography: Heading":n,"Typography: Sub-heading":n,"Typography: Paragraph":n,"Layout: Blank Container":[{label:"Columns",key:"columns",type:"number",update:(e,t)=>e.setColumns(t)}],"Layout: Card Container":[{label:"Columns",key:"columns",type:"number",update:(e,t)=>e.setColumns(t)}],ECSidebar:[{label:"Title",key:"title",type:"text",update:(e,t)=>e.setTitle(t)},{label:"Width",key:"width",type:"text",update:(e,t)=>e.setWidth(t)}],ECTopbar:[{label:"Title",key:"title",type:"text",update:(e,t)=>e.setTitle(t)}],ECBanner:[{label:"Text",key:"text",type:"text",update:(e,t,a)=>i(a,e=>new ECBanner(e.text,{loop:e.loop,dismissible:e.dismissible}))},{label:"Loop (Marquee)",key:"loop",type:"checkbox",update:(e,t,a)=>i(a,e=>new ECBanner(e.text,{loop:e.loop,dismissible:e.dismissible}))},{label:"Dismissible",key:"dismissible",type:"checkbox",update:(e,t,a)=>i(a,e=>new ECBanner(e.text,{loop:e.loop,dismissible:e.dismissible}))}],ECStepper:[{label:"Current Step Index",key:"currentStep",type:"number",update:(e,t,a)=>i(a,e=>new ECStepper((e.steps||[]).map(e=>e.label),Number(e.currentStep)))},{label:"Steps",key:"steps",type:"list",fields:[{key:"label",label:"Step Label"}],update:(e,t,a)=>i(a,e=>new ECStepper((e.steps||[]).map(e=>e.label),Number(e.currentStep)))}],ECCarousel:[{label:"Items (HTML)",key:"items",type:"list",fields:[{key:"html",label:"HTML Content",type:"textarea"}],update:(e,t,a)=>i(a,e=>{const t=new ECCarousel;return(e.items||[]).forEach(e=>t.addItem(e.html)),t})}],ECHero:[{label:"Eyebrow",key:"eyebrow",type:"text",update:(e,t,a)=>i(a,e=>new ECHero(e))},{label:"Title",key:"title",type:"text",update:(e,t,a)=>i(a,e=>new ECHero(e))},{label:"Subtitle",key:"subtitle",type:"textarea",update:(e,t,a)=>i(a,e=>new ECHero(e))},{label:"Background Color",key:"background",type:"text",update:(e,t,a)=>i(a,e=>new ECHero(e))},{label:"Image URL",key:"imageSrc",type:"text",update:(e,t,a)=>i(a,e=>new ECHero(e))},{label:"Image Alt",key:"imageAlt",type:"text",update:(e,t,a)=>i(a,e=>new ECHero(e))},{label:"Image Max Width",key:"imageMaxWidth",type:"text",update:(e,t,a)=>i(a,e=>new ECHero(e))}],ECMediaCard:[{label:"Author",key:"author",type:"text",update:(e,t,a)=>i(a,e=>new ECMediaCard(e))},{label:"Avatar URL",key:"avatarSrc",type:"text",update:(e,t,a)=>i(a,e=>new ECMediaCard(e))},{label:"Timestamp",key:"timestamp",type:"text",update:(e,t,a)=>i(a,e=>new ECMediaCard(e))},{label:"Image URL",key:"imageSrc",type:"text",update:(e,t,a)=>i(a,e=>new ECMediaCard(e))},{label:"Image Alt",key:"imageAlt",type:"text",update:(e,t,a)=>i(a,e=>new ECMediaCard(e))},{label:"Image Height",key:"imageHeight",type:"text",update:(e,t,a)=>i(a,e=>new ECMediaCard(e))},{label:"Content (HTML)",key:"content",type:"textarea",update:(e,t,a)=>i(a,e=>new ECMediaCard(e))}],ECAvatar:[{label:"Initials",key:"initials",type:"text",update:(e,t,a)=>i(a,e=>new ECAvatar(e))},{label:"Size (e.g. 40px)",key:"size",type:"text",update:(e,t,a)=>i(a,e=>new ECAvatar(e))},{label:"Image URL",key:"src",type:"text",update:(e,t,a)=>i(a,e=>new ECAvatar(e))},{label:"Image Alt",key:"alt",type:"text",update:(e,t,a)=>i(a,e=>new ECAvatar(e))}],ECBreadcrumbs:[{label:"Separator",key:"separator",type:"text",update:(e,t,a)=>i(a,e=>new ECBreadcrumbs(e.items,e.separator))},{label:"Crumb Items",key:"items",type:"list",fields:[{key:"label",label:"Label"},{key:"href",label:"URL"}],update:(e,t,a)=>i(a,e=>new ECBreadcrumbs(e.items,e.separator))}],ECProgressBar:[{label:"Value (0-100)",key:"value",type:"number",update:(e,t)=>e.setValue(t)},{label:"Label",key:"label",type:"text",update:(e,t)=>e.setLabel(t)},{label:"Show Percent",key:"showPercent",type:"checkbox",update:(e,t,a)=>i(a,e=>new ECProgressBar(e))},{label:"Height (px)",key:"height",type:"number",update:(e,t)=>e.setHeight(t)}],ECCountdown:[{label:"Target Date (YYYY-MM-DD)",key:"targetDate",type:"text",update:(e,t,a)=>{e.stop&&e.stop(),i(a,e=>new ECCountdown(e.targetDate))}}],ECBadge:[{label:"Label",key:"label",type:"text",update:(e,t)=>e.setLabel(t)},{label:"Type",key:"type",type:"select",options:["default","primary","success","warning","danger","info"],update:(e,t)=>e.setType(t)}],ECSpinner:[{label:"Size",key:"size",type:"select",options:["sm","md","lg"],update:(e,t)=>e.setSize(t)}],ECAccordion:[{label:"Allow Multiple Open",key:"allowMultiple",type:"checkbox",update:(e,t,a)=>i(a,e=>new ECAccordion(e))},{label:"Accordion Items",key:"items",type:"list",fields:[{key:"title",label:"Title"},{key:"content",label:"Content",type:"textarea"},{key:"open",label:"Start Open",type:"checkbox"}],update:(e,t,a)=>i(a,e=>{const t=new ECAccordion(e);return(e.items||[]).forEach(e=>t.addItem(e.title||"New Section",e.content||"",e.open)),t})}],ECList:[{label:"Variant",key:"variant",type:"select",options:["plain","bordered","striped","hoverable"],update:(e,t,a)=>i(a,e=>new ECList({variant:e.variant,direction:e.direction,items:(e.items||[]).map(e=>e.text)}))},{label:"Direction",key:"direction",type:"select",options:["vertical","horizontal"],update:(e,t,a)=>i(a,e=>new ECList({variant:e.variant,direction:e.direction,items:(e.items||[]).map(e=>e.text)}))},{label:"List Items",key:"items",type:"list",fields:[{key:"text",label:"Item Text"}],update:(e,t,a)=>i(a,e=>new ECList({variant:e.variant,direction:e.direction,items:(e.items||[]).map(e=>e.text)}))}],ECDivider:[{label:"Label",key:"label",type:"text",update:(e,t,a)=>i(a,e=>new ECDivider(e))},{label:"Thick",key:"thick",type:"checkbox",update:(e,t,a)=>i(a,e=>new ECDivider(e))},{label:"Dashed",key:"dashed",type:"checkbox",update:(e,t,a)=>i(a,e=>new ECDivider(e))}],ECButton:[{label:"Label",key:"label",type:"text",update:(e,t)=>e.setLabel(t)},{label:"Variant",key:"variant",type:"select",options:["filled","outline","white"],update:(e,t,a)=>i(a,e=>new ECButton(e.label||"Button",{variant:e.variant,disabled:e.disabled}))},{label:"Disabled",key:"disabled",type:"checkbox",update:(e,t)=>t?e.disable():e.enable()}],ECRadio:[{label:"Radio Options",key:"options",type:"list",fields:[{key:"value",label:"Value"},{key:"label",label:"Display Label"},{key:"checked",label:"Checked",type:"checkbox"}],update:(e,t,a)=>i(a,e=>{const t=new ECRadio("rad_"+Date.now());return(e.options||[]).forEach(e=>t.addOption(e.value||"val",e.label||e.value||"Option",e.checked)),t})}],ECToggle:[{label:"Label",key:"label",type:"text",update:(e,t)=>e.setLabel(t)},{label:"Checked",key:"checked",type:"checkbox",update:(e,t)=>e.setValue(t)}],ECCheckbox:[{label:"Label",key:"label",type:"text",update:(e,t)=>e.setLabel(t)},{label:"Checked",key:"checked",type:"checkbox",update:(e,t)=>e.setValue(t)}],ECTextbox:[{label:"Label",key:"label",type:"text",update:(e,t,a)=>i(a,e=>new ECTextbox(e))},{label:"Placeholder",key:"placeholder",type:"text",update:(e,t)=>e.setPlaceholder(t)},{label:"Type",key:"type",type:"select",options:["text","password","email","number"],update:(e,t,a)=>i(a,e=>new ECTextbox(e))},{label:"Value",key:"value",type:"text",update:(e,t)=>e.setValue(t)}],ECDropdown:[{label:"Label",key:"label",type:"text",update:(e,t,a)=>i(a,e=>{const t=new ECDropdown({label:e.label});return(e.options||[]).forEach(e=>t.addOption(e.value||"val",e.label||e.value||"Option")),t})},{label:"Dropdown Options",key:"options",type:"list",fields:[{key:"value",label:"Value"},{key:"label",label:"Display Label"}],update:(e,t,a)=>i(a,e=>{const t=new ECDropdown({label:e.label});return(e.options||[]).forEach(e=>t.addOption(e.value||"val",e.label||e.value||"Option")),t})}],ECSlider:[{label:"Label",key:"label",type:"text",update:(e,t,a)=>i(a,e=>new ECSlider({...e,ticks:e.ticks?e.ticks.split(","):null}))},{label:"Min",key:"min",type:"number",update:(e,t,a)=>i(a,e=>new ECSlider({...e,ticks:e.ticks?e.ticks.split(","):null}))},{label:"Max",key:"max",type:"number",update:(e,t,a)=>i(a,e=>new ECSlider({...e,ticks:e.ticks?e.ticks.split(","):null}))},{label:"Step",key:"step",type:"number",update:(e,t,a)=>i(a,e=>new ECSlider({...e,ticks:e.ticks?e.ticks.split(","):null}))},{label:"Value",key:"value",type:"number",update:(e,t)=>e.setValue(Number(t))},{label:"Suffix (e.g. px)",key:"suffix",type:"text",update:(e,t,a)=>i(a,e=>new ECSlider({...e,ticks:e.ticks?e.ticks.split(","):null}))},{label:"Ticks (comma separated)",key:"ticks",type:"text",update:(e,t,a)=>i(a,e=>new ECSlider({...e,ticks:e.ticks?e.ticks.split(","):null}))}],ECDatePicker:[{label:"Label",key:"label",type:"text",update:(e,t,a)=>i(a,e=>new ECDatePicker(e))},{label:"Value",key:"value",type:"text",update:(e,t)=>e.setValue(t)}],ECFileUpload:[{label:"Title",key:"title",type:"text",update:(e,t,a)=>i(a,e=>new ECFileUpload(e))},{label:"Subtitle",key:"subtitle",type:"text",update:(e,t,a)=>i(a,e=>new ECFileUpload(e))},{label:"Accept MIME Types",key:"accept",type:"text",update:(e,t,a)=>i(a,e=>new ECFileUpload(e))},{label:"Allow Multiple",key:"multiple",type:"checkbox",update:(e,t,a)=>i(a,e=>new ECFileUpload(e))},{label:"Max Size (bytes)",key:"maxSize",type:"number",update:(e,t,a)=>i(a,e=>new ECFileUpload({...e,maxSize:e.maxSize?Number(e.maxSize):null}))}],ECRating:[{label:"Value (0-5)",key:"value",type:"number",update:(e,t)=>e.setValue(t)},{label:"Max Stars",key:"max",type:"number",update:(e,t,a)=>i(a,e=>new ECRating(e))},{label:"Readonly",key:"readonly",type:"checkbox",update:(e,t,a)=>i(a,e=>new ECRating(e))},{label:"Show Label",key:"showLabel",type:"checkbox",update:(e,t,a)=>i(a,e=>new ECRating(e))}]},o={Typography:["Typography: Heading","Typography: Sub-heading","Typography: Paragraph"],"Layout & Navigation":["Layout: Blank Container","Layout: Card Container","ECSidebar","ECTopbar","ECBanner","ECBreadcrumbs","ECStepper","ECCarousel","ECHero","ECMediaCard"],"Data & Feedback":["ECProgressBar","ECCountdown","ECAvatar","ECBadge","ECSpinner","ECAccordion","ECList","ECDivider"],"Forms & Input":["ECButton","ECRadio","ECToggle","ECCheckbox","ECTextbox","ECDropdown","ECSlider","ECDatePicker","ECFileUpload","ECRating"]},s=document.getElementById("component-list");function d(e,t){const a=document.createElement("div");a.className="canvas-item",a.dataset.type=e,a.ecObj=t,t._builder_data||(t._builder_data={});const l=document.createElement("div");l.className="item-controls";const n=document.createElement("button");n.className="control-btn",n.innerHTML="&#9650;",n.onclick=e=>{e.stopPropagation(),a.previousElementSibling&&a.parentNode.insertBefore(a,a.previousElementSibling)};const i=document.createElement("button");i.className="control-btn",i.innerHTML="&#9660;",i.onclick=e=>{e.stopPropagation(),a.nextElementSibling&&a.parentNode.insertBefore(a.nextElementSibling,a)};const o=document.createElement("button");o.className="control-btn",o.innerHTML="&#10006;",o.onclick=e=>{e.stopPropagation(),a.remove(),c()},l.appendChild(n),l.appendChild(i),l.appendChild(o),a.appendChild(l);const s=t.element||t;return s.dataset.baseClass||(s.dataset.baseClass=s.className),a.appendChild(s),t.setTheme&&t.setTheme(window.ECTheme[window.currentAppTheme]),window.currentAppDarkMode&&t.enableDarkMode&&t.enableDarkMode(),a.onclick=e=>{e.stopPropagation(),document.querySelectorAll(".canvas-item").forEach(e=>e.classList.remove("selected")),a.classList.add("selected"),function(e){const t=document.getElementById("properties-panel"),a=e.dataset.type;t.innerHTML=`<h4 class="marginTop-0 color-var(--ec-text,_#212529) borderBottom-1px_solid_var(--ec-border,_#dee2e6) paddingBottom-8px">Editing: ${a}</h4>`;const l=e.ecObj,n=l.element||l;n.dataset.baseClass||(n.dataset.baseClass=n.className);let i=[];r[a]&&(i=i.concat(r[a]));i.push({label:"Custom Classes",key:"className",type:"text",update:(e,t)=>{const a=e.element||e;a.className=a.dataset.baseClass+" "+t,window.ECStyleSheet&&window.ECStyleSheet.scan()}}),i.forEach(a=>{if("list"===a.type){const n=document.createElement("label");n.className="fontSize-13px fontWeight-500 color-var(--ec-text-muted,_#6c757d)",n.textContent=a.label,t.appendChild(n);const i=document.createElement("div");i.className="display-flex flexDirection-column gap-8px marginTop-4px";const r=()=>{i.innerHTML="";const t=b(l,a)||[];t.forEach((n,o)=>{const s=document.createElement("div");s.className="background-var(--ec-surface,_#f8f9fa) border-1px_solid_var(--ec-border,_#dee2e6) padding-10px borderRadius-6px display-flex flexDirection-column gap-8px position-relative",a.fields.forEach(i=>{let r;"checkbox"===i.type?(r=new ECCheckbox(i.label,!!n[i.key]),r.onChange(r=>{n[i.key]=r,l._builder_data[a.key]=t,a.update(l,t,e)})):"textarea"===i.type?(r={element:document.createElement("textarea")},r.element.className="prop-textarea",r.element.rows=2,r.element.placeholder=i.label,r.element.value=n[i.key]||"",r.element.oninput=r=>{n[i.key]=r.target.value,l._builder_data[a.key]=t,a.update(l,t,e)}):"select"===i.type?(r=new ECDropdown({label:i.label,items:(i.options||[]).map(e=>({label:e,value:e}))}),r.setValue(n[i.key]||""),r.onChange(r=>{n[i.key]=r,l._builder_data[a.key]=t,a.update(l,t,e)})):(r=new ECTextbox({label:i.label,type:i.type||"text",value:n[i.key]||""}),r.onInput(r=>{n[i.key]=r,l._builder_data[a.key]=t,a.update(l,t,e)})),s.appendChild(r.element)});const d=new ECButton("Remove",{variant:"outline"}).setTheme(ECTheme.Red);d.element.className+=" padding-4px_8px fontSize-11px alignSelf-flex-end",d.onClick(()=>{t.splice(o,1),l._builder_data[a.key]=t,a.update(l,t,e),r()}),s.appendChild(d.element),i.appendChild(s)});const n=new ECButton("+ Add Item",{variant:"outline"});n.element.className+=" width-100% borderStyle-dashed background-var(--ec-bg,_#fff)",n.onClick(()=>{const n={};a.fields.forEach(e=>{"checkbox"===e.type?n[e.key]=!1:n[e.key]=""}),t.push(n),l._builder_data[a.key]=t,a.update(l,t,e),r()}),i.appendChild(n.element)};r(),t.appendChild(i)}else if("select"===a.type){let n=new ECDropdown({label:a.label,items:a.options.map(e=>({label:e,value:e}))});n.setValue(b(l,a)),n.onChange(t=>{l._builder_data[a.key]=t,a.update(l,t,e)}),t.appendChild(n.element)}else if("checkbox"===a.type){let n=new ECCheckbox(a.label,!!b(l,a));n.onChange(t=>{l._builder_data[a.key]=t,a.update(l,t,e)}),t.appendChild(n.element)}else if("textarea"===a.type){let n=document.createElement("div"),i=document.createElement("label");i.className="fontSize-13px fontWeight-500 color-var(--ec-text-muted,_#6c757d) display-block marginBottom-4px",i.textContent=a.label;let r=document.createElement("textarea");r.className="prop-textarea",r.rows=4,r.value=b(l,a),r.oninput=t=>{l._builder_data[a.key]=t.target.value,a.update(l,t.target.value,e)},n.appendChild(i),n.appendChild(r),t.appendChild(n)}else{let i="number"===a.type?"number":"text",r=new ECTextbox({label:a.label,value:b(l,a),type:i});"className"===a.key&&r.setValue(n.className.replace(n.dataset.baseClass,"").trim()),r.onInput(t=>{l._builder_data[a.key]=t,a.update(l,t,e)}),t.appendChild(r.element)}})}(a)},a}function p(){const e=document.getElementById("canvas");e.className="flex-1 overflowY-auto position-relative transition-background_0.3s,_color_0.3s drop-zone "+window.globalCanvasClasses,window.ECStyleSheet&&window.ECStyleSheet.scan(),window.currentAppDarkMode?e.style.backgroundColor="#1a1a2e":e.style.backgroundColor="#f1f3f5",document.querySelectorAll(".canvas-item").forEach(e=>{const t=e.ecObj;t&&(t.setTheme&&t.setTheme(window.ECTheme[window.currentAppTheme]),window.currentAppDarkMode&&t.enableDarkMode&&t.enableDarkMode(),!window.currentAppDarkMode&&t.disableDarkMode&&t.disableDarkMode())})}function c(){const e=document.getElementById("properties-panel");e.innerHTML='<h4 class="marginTop-0 color-var(--ec-text,_#212529) borderBottom-1px_solid_var(--ec-border,_#dee2e6) paddingBottom-8px">Global Settings</h4>';const t=new ECDropdown({label:"App Theme Colors",items:["Blue","Green","Red","Purple","Orange","Dark"].map(e=>({label:e,value:e}))});t.setValue(window.currentAppTheme),t.onChange(e=>{window.currentAppTheme=e,p()}),e.appendChild(t.element);const a=new ECToggle("Enable Dark Mode",window.currentAppDarkMode);a.onChange(e=>{window.currentAppDarkMode=e,p()}),e.appendChild(a.element);const l=new ECTextbox({label:"Page Custom Classes",placeholder:"e.g. padding-40px"});l.setValue(window.globalCanvasClasses),l.onInput(e=>{window.globalCanvasClasses=e,p()}),e.appendChild(l.element)}function b(e,t){return"checked"!==t.key&&"value"!==t.key||!e.getValue?"step"===t.key&&e.getStep?e.getStep():"columns"===t.key&&e.getColumns?e.getColumns():e._builder_data&&void 0!==e._builder_data[t.key]?e._builder_data[t.key]:"":e.getValue()}Object.keys(o).forEach(e=>{const t=document.createElement("div");t.className="fontSize-12px fontWeight-700 color-var(--ec-text-muted,_#6c757d) textTransform-uppercase margin-16px_0_8px_4px letterSpacing-0.05em",t.textContent=e,s.appendChild(t),o[e].forEach(e=>{const t=document.createElement("div");t.className="display-block width-100% padding-10px_12px marginBottom-8px background-var(--ec-surface,_#f8f9fa) border-1px_solid_var(--ec-border,_#dee2e6) borderRadius-6px cursor-grab textAlign-left fontSize-13px fontWeight-500 color-var(--ec-text,_#212529) transition-all_0.2s userSelect-none boxSizing-border-box hover:borderColor-var(--ec-accent,_#1a73e8)",t.textContent=e,t.draggable=!0,t.ondragstart=t=>{t.dataTransfer.setData("text/plain",e)},s.appendChild(t)})}),document.addEventListener("dragover",e=>{e.preventDefault();const t=e.target.closest(".drop-zone");document.querySelectorAll(".drag-over").forEach(e=>e.classList.remove("drag-over")),t&&t.classList.add("drag-over")}),document.addEventListener("dragleave",e=>{e.preventDefault();const t=e.target.closest(".drop-zone");t&&t.classList.remove("drag-over")}),document.addEventListener("drop",e=>{e.preventDefault(),document.querySelectorAll(".drag-over").forEach(e=>e.classList.remove("drag-over"));const t=e.dataTransfer.getData("text/plain");if(!t||!l[t])return;const a=e.target.closest(".drop-zone");if(a){const e=d(t,l[t]());a.appendChild(e),window.ECStyleSheet&&window.ECStyleSheet.scan()}}),document.addEventListener("click",e=>{e.target.closest(".canvas-item")||e.target.closest("#left-sidebar")||e.target.closest("#right-sidebar")||(document.querySelectorAll(".canvas-item").forEach(e=>e.classList.remove("selected")),c())});let u="",m="";fetch("https://isaiahnoelpulidosalazar.github.io/js/ECStyleSheet.js").then(e=>e.text()).then(e=>{u=e}),fetch("https://isaiahnoelpulidosalazar.github.io/js/ECElements.js").then(e=>e.text()).then(e=>{m=e}),c()});
+document.addEventListener("DOMContentLoaded", () => {
+  window.currentAppTheme = 'Blue';
+  window.currentAppDarkMode = false;
+  window.globalCanvasClasses = 'padding-40px'; 
+  const exportBtn = new ECButton('Export', { variant: 'filled' });
+  exportBtn.element.className += ' width-100% padding-10px';
+  exportBtn.onClick(exportToHybridHTML);
+  document.getElementById('sidebar-footer').appendChild(exportBtn.element);
+  class ECTypography {
+    constructor(tag, defaultText) {
+      this.element = document.createElement(tag);
+      this.element.innerText = defaultText;
+      
+      let baseClass = 'margin-0 color-var(--ec-text,_#212529)';
+      if (tag === 'h1') baseClass += ' fontSize-32px fontWeight-700 lineHeight-1.2';
+      if (tag === 'h2') baseClass += ' fontSize-24px fontWeight-600 lineHeight-1.3';
+      if (tag === 'p') baseClass += ' fontSize-16px lineHeight-1.6 color-var(--ec-text-muted,_#6c757d)';
+      
+      this.element.className = baseClass;
+      this.element.dataset.baseClass = baseClass;
+      this._builder_data = { text: defaultText, tag: tag, align: 'left', className: '' };
+    }
+    setText(text) { this.element.innerText = text; }
+    setAlign(align) {
+      this.element.classList.remove('textAlign-left', 'textAlign-center', 'textAlign-right', 'textAlign-justify');
+      if(align && align !== 'left') this.element.classList.add(`textAlign-${align}`);
+      this.element.dataset.baseClass = this.element.className.replace(this._builder_data.className || '', '').trim();
+    }
+    setTheme() {} enableDarkMode() {} disableDarkMode() {}
+  }
+  class LayoutContainer {
+    constructor(type) {
+      this.element = document.createElement('div');
+      this.element.className = 'container-layout display-flex gap-16px width-100% boxSizing-border-box flexWrap-wrap minHeight-60px';
+      if (type === 'Card Container') {
+        this.element.classList.add('eccard', 'padding-24px');
+      }
+      this.cols = [];
+      this._builder_data = { columns: 1 };
+      this.setColumns(1);
+    }
+    setColumns(n) {
+      n = parseInt(n, 10);
+      if (isNaN(n) || n < 1) n = 1;
+      this._builder_data.columns = n;
+      
+      while(this.cols.length < n) {
+        const col = document.createElement('div');
+        col.className = 'col-layout drop-zone flex-1 display-flex flexDirection-column gap-12px boxSizing-border-box border-1px_dashed_#adb5bd minHeight-50px padding-12px borderRadius-6px background-rgba(255,255,255,0.2)';
+        col.style.minWidth = '200px';
+        this.cols.push(col);
+        this.element.appendChild(col);
+      }
+      while(this.cols.length > n) {
+        const col = this.cols.pop();
+        const firstCol = this.cols[0];
+        if (firstCol) {
+          while(col.firstChild) firstCol.appendChild(col.firstChild);
+        }
+        col.remove();
+      }
+    }
+    getColumns() { return this._builder_data.columns; }
+    setTheme() {} enableDarkMode() {} disableDarkMode() {}
+  }
+  const componentFactory = {
+    'Typography: Heading': () => new ECTypography('h1', 'Main Heading'),
+    'Typography: Sub-heading': () => new ECTypography('h2', 'Sub-heading'),
+    'Typography: Paragraph': () => new ECTypography('p', 'This is a paragraph of text. You can edit this directly from the properties panel to describe your content.'),
+    
+    'Layout: Blank Container': () => new LayoutContainer('Blank Container'),
+    'Layout: Card Container': () => new LayoutContainer('Card Container'),
+    'ECSidebar': () => {
+      const s = new ECSidebar('Sidebar');
+      s.element.classList.remove('display-none', 'transform-translateX(-100%)', 'position-fixed');
+      s.element.classList.add('display-block', 'transform-translateX(0)', 'position-relative');
+      s.element.style.height = '300px'; s.element.style.zIndex = '1';
+      s.element.dataset.builderFixed = 'ECSidebar'; 
+      s._builder_data = { title: 'Sidebar', width: '260px' };
+      return s;
+    },
+    'ECTopbar': () => {
+      const t = new ECTopbar('Top Bar');
+      t.element.classList.remove('position-fixed');
+      t.element.classList.add('position-relative');
+      t.element.dataset.builderFixed = 'ECTopbar';
+      t._builder_data = { title: 'Top Bar' };
+      return t;
+    },
+    'ECBanner': () => {
+      const b = new ECBanner('Announcement Banner!', { dismissible: true, loop: false });
+      b._builder_data = { text: 'Announcement Banner!', loop: false, dismissible: true };
+      return b;
+    },
+    'ECStepper': () => {
+      const st = new ECStepper(['Step 1', 'Step 2', 'Step 3'], 1);
+      st._builder_data = { steps: [{label: 'Step 1'}, {label: 'Step 2'}, {label: 'Step 3'}], currentStep: 1 };
+      return st;
+    },
+    'ECCarousel': () => {
+      const c = new ECCarousel();
+      c.addItem('<div style="background:#1a73e8; color:#fff; height:150px; display:flex; align-items:center; justify-content:center; border-radius:10px;">Slide 1</div>');
+      c._builder_data = { items: [{html: '<div style="background:#1a73e8; color:#fff; height:150px; display:flex; align-items:center; justify-content:center; border-radius:10px;">Slide 1</div>'}] };
+      return c;
+    },
+    'ECHero': () => {
+      const h = new ECHero({ title: 'Welcome', subtitle: 'Start building your site', eyebrow: 'GET STARTED' });
+      h.element.classList.remove('height-100vh'); h.element.style.padding = '60px 20px';
+      h.element.dataset.builderFixed = 'ECHero';
+      h._builder_data = { title: 'Welcome', subtitle: 'Start building your site', eyebrow: 'GET STARTED', background: '', imageSrc: '', imageAlt: '', imageMaxWidth: '' };
+      return h;
+    },
+    'ECMediaCard': () => {
+      const m = new ECMediaCard({ author: 'Jane Doe', content: 'This is a media card.', imageSrc: 'https://via.placeholder.com/400x200', imageHeight: '200px' });
+      m._builder_data = { author: 'Jane Doe', avatarSrc: '', timestamp: '', imageSrc: 'https://via.placeholder.com/400x200', imageAlt: '', imageHeight: '200px', content: 'This is a media card.' };
+      return m;
+    },
+    'ECAvatar': () => {
+      const a = new ECAvatar({ initials: 'JD', size: '40px' });
+      a._builder_data = { initials: 'JD', size: '40px', src: '', alt: '' };
+      return a;
+    },
+    'ECBreadcrumbs': () => {
+      const b = new ECBreadcrumbs([{label: 'Home', href: '#'}, {label: 'Library', href: '#'}], '/');
+      b._builder_data = { separator: '/', items: [{label: 'Home', href: '#'}, {label: 'Library', href: '#'}] };
+      return b;
+    },
+    'ECProgressBar': () => {
+      const p = new ECProgressBar({ value: 50, label: 'Loading...', showPercent: true });
+      p._builder_data = { value: 50, label: 'Loading...', showPercent: true, height: 8 };
+      return p;
+    },
+    'ECCountdown': () => {
+      const dt = new Date(Date.now() + 86400000);
+      const c = new ECCountdown(dt);
+      c._builder_data = { targetDate: dt.toISOString().split('T')[0] };
+      return c;
+    },
+    'ECBadge': () => {
+      const b = new ECBadge('Badge', 'primary');
+      b._builder_data = { label: 'Badge', type: 'primary' };
+      return b;
+    },
+    'ECSpinner': () => {
+      const s = new ECSpinner({ size: 'md' });
+      s._builder_data = { size: 'md' };
+      return s;
+    },
+    'ECAccordion': () => {
+      const a = new ECAccordion({ allowMultiple: false, items: [{ title: 'Section 1', content: 'Content 1', open: true }] });
+      a._builder_data = { allowMultiple: false, items: [{title: 'Section 1', content: 'Content 1', open: true}] };
+      return a;
+    },
+    'ECList': () => {
+      const l = new ECList({ items: ['Item 1', 'Item 2'], variant: 'plain', direction: 'vertical' });
+      l._builder_data = { items: [{text: 'Item 1'}, {text: 'Item 2'}], variant: 'plain', direction: 'vertical' };
+      return l;
+    },
+    'ECDivider': () => {
+      const d = new ECDivider({ label: 'Divider' });
+      d._builder_data = { label: 'Divider', thick: false, dashed: false };
+      return d;
+    },
+    'ECButton': () => {
+      const b = new ECButton('Button');
+      b._builder_data = { label: 'Button', variant: 'filled', disabled: false };
+      return b;
+    },
+    'ECRadio': () => {
+      const r = new ECRadio('radios', [{label: 'Option A', value: 'a'}]);
+      r._builder_data = { options: [{value: 'a', label: 'Option A', checked: false}] };
+      return r;
+    },
+    'ECToggle': () => {
+      const t = new ECToggle('Toggle Switch', false);
+      t._builder_data = { label: 'Toggle Switch', checked: false };
+      return t;
+    },
+    'ECCheckbox': () => {
+      const c = new ECCheckbox('Checkbox', false);
+      c._builder_data = { label: 'Checkbox', checked: false };
+      return c;
+    },
+    'ECTextbox': () => {
+      const t = new ECTextbox({ label: 'Text Input', placeholder: 'Enter text' });
+      t._builder_data = { label: 'Text Input', placeholder: 'Enter text', type: 'text', value: '' };
+      return t;
+    },
+    'ECDropdown': () => {
+      const d = new ECDropdown({ label: 'Dropdown', items: [{label: 'Item 1', value: '1'}] });
+      d._builder_data = { label: 'Dropdown', options: [{value: '1', label: 'Item 1'}] };
+      return d;
+    },
+    'ECSlider': () => {
+      const s = new ECSlider({ label: 'Range Slider', min: 0, max: 100, step: 1, value: 50 });
+      s._builder_data = { label: 'Range Slider', min: 0, max: 100, step: 1, value: 50, suffix: '', ticks: '' };
+      return s;
+    },
+    'ECDatePicker': () => {
+      const d = new ECDatePicker({ label: 'Date Picker' });
+      d._builder_data = { label: 'Date Picker', value: '' };
+      return d;
+    },
+    'ECFileUpload': () => {
+      const f = new ECFileUpload();
+      f._builder_data = { title: 'Drag & Drop files here', subtitle: 'or click to browse', accept: '*', multiple: true, maxSize: 0 };
+      return f;
+    },
+    'ECRating': () => {
+      const r = new ECRating({ value: 3, max: 5, readonly: false, showLabel: true });
+      r._builder_data = { value: 3, max: 5, readonly: false, showLabel: true };
+      return r;
+    }
+  };
+  const typoProps = [
+    { label: 'Text', key: 'text', type: 'textarea', update: (o, v) => o.setText(v) },
+    { label: 'Alignment', key: 'align', type: 'select', options: ['left', 'center', 'right', 'justify'], update: (o, v) => o.setAlign(v) }
+  ];
+  function rebuildComponent(wrapper, constructFn) {
+      const data = wrapper.ecObj._builder_data;
+      const newObj = constructFn(data);
+      newObj._builder_data = data;
+      
+      if(!newObj.element.dataset.baseClass) newObj.element.dataset.baseClass = newObj.element.className;
+      
+      if (wrapper.ecObj.element.dataset.builderFixed) {
+          newObj.element.dataset.builderFixed = wrapper.ecObj.element.dataset.builderFixed;
+      }
+      if (data.className) newObj.element.className += ' ' + data.className;
+      wrapper.replaceChild(newObj.element, wrapper.ecObj.element);
+      wrapper.ecObj = newObj;
+      
+      if(newObj.setTheme) newObj.setTheme(window.ECTheme[window.currentAppTheme]);
+      if(window.currentAppDarkMode && newObj.enableDarkMode) newObj.enableDarkMode();
+      else if(!window.currentAppDarkMode && newObj.disableDarkMode) newObj.disableDarkMode();
+      
+      if(window.ECStyleSheet) window.ECStyleSheet.scan();
+  }
+  const propsConfig = {
+    'Typography: Heading': typoProps,
+    'Typography: Sub-heading': typoProps,
+    'Typography: Paragraph': typoProps,
+    
+    'Layout: Blank Container': [{ label: 'Columns', key: 'columns', type: 'number', update: (o, v) => o.setColumns(v) }],
+    'Layout: Card Container': [{ label: 'Columns', key: 'columns', type: 'number', update: (o, v) => o.setColumns(v) }],
+    'ECSidebar': [
+      { label: 'Title', key: 'title', type: 'text', update: (o, v) => o.setTitle(v) },
+      { label: 'Width', key: 'width', type: 'text', update: (o, v) => o.setWidth(v) }
+    ],
+    'ECTopbar': [{ label: 'Title', key: 'title', type: 'text', update: (o, v) => o.setTitle(v) }],
+    'ECBanner': [
+      { label: 'Text', key: 'text', type: 'text', update: (o, v, w) => rebuildComponent(w, d => new ECBanner(d.text, { loop: d.loop, dismissible: d.dismissible })) },
+      { label: 'Loop (Marquee)', key: 'loop', type: 'checkbox', update: (o, v, w) => rebuildComponent(w, d => new ECBanner(d.text, { loop: d.loop, dismissible: d.dismissible })) },
+      { label: 'Dismissible', key: 'dismissible', type: 'checkbox', update: (o, v, w) => rebuildComponent(w, d => new ECBanner(d.text, { loop: d.loop, dismissible: d.dismissible })) }
+    ],
+    'ECStepper': [
+      { label: 'Current Step Index', key: 'currentStep', type: 'number', update: (o, v, w) => rebuildComponent(w, d => new ECStepper((d.steps||[]).map(s=>s.label), Number(d.currentStep))) },
+      { label: 'Steps', key: 'steps', type: 'list', fields: [{key: 'label', label: 'Step Label'}], update: (o, v, w) => rebuildComponent(w, d => new ECStepper((d.steps||[]).map(s=>s.label), Number(d.currentStep))) }
+    ],
+    'ECCarousel': [
+      { label: 'Items (HTML)', key: 'items', type: 'list', fields: [{key: 'html', label: 'HTML Content', type: 'textarea'}], update: (o, v, w) => rebuildComponent(w, d => {
+          const c = new ECCarousel();
+          (d.items || []).forEach(i => c.addItem(i.html)); return c;
+      })}
+    ],
+    'ECHero': [
+      { label: 'Eyebrow', key: 'eyebrow', type: 'text', update: (o, v, w) => rebuildComponent(w, d => new ECHero(d)) },
+      { label: 'Title', key: 'title', type: 'text', update: (o, v, w) => rebuildComponent(w, d => new ECHero(d)) },
+      { label: 'Subtitle', key: 'subtitle', type: 'textarea', update: (o, v, w) => rebuildComponent(w, d => new ECHero(d)) },
+      { label: 'Background Color', key: 'background', type: 'text', update: (o, v, w) => rebuildComponent(w, d => new ECHero(d)) },
+      { label: 'Image URL', key: 'imageSrc', type: 'text', update: (o, v, w) => rebuildComponent(w, d => new ECHero(d)) },
+      { label: 'Image Alt', key: 'imageAlt', type: 'text', update: (o, v, w) => rebuildComponent(w, d => new ECHero(d)) },
+      { label: 'Image Max Width', key: 'imageMaxWidth', type: 'text', update: (o, v, w) => rebuildComponent(w, d => new ECHero(d)) }
+    ],
+    'ECMediaCard': [
+      { label: 'Author', key: 'author', type: 'text', update: (o, v, w) => rebuildComponent(w, d => new ECMediaCard(d)) },
+      { label: 'Avatar URL', key: 'avatarSrc', type: 'text', update: (o, v, w) => rebuildComponent(w, d => new ECMediaCard(d)) },
+      { label: 'Timestamp', key: 'timestamp', type: 'text', update: (o, v, w) => rebuildComponent(w, d => new ECMediaCard(d)) },
+      { label: 'Image URL', key: 'imageSrc', type: 'text', update: (o, v, w) => rebuildComponent(w, d => new ECMediaCard(d)) },
+      { label: 'Image Alt', key: 'imageAlt', type: 'text', update: (o, v, w) => rebuildComponent(w, d => new ECMediaCard(d)) },
+      { label: 'Image Height', key: 'imageHeight', type: 'text', update: (o, v, w) => rebuildComponent(w, d => new ECMediaCard(d)) },
+      { label: 'Content (HTML)', key: 'content', type: 'textarea', update: (o, v, w) => rebuildComponent(w, d => new ECMediaCard(d)) }
+    ],
+    'ECAvatar': [
+      { label: 'Initials', key: 'initials', type: 'text', update: (o, v, w) => rebuildComponent(w, d => new ECAvatar(d)) },
+      { label: 'Size (e.g. 40px)', key: 'size', type: 'text', update: (o, v, w) => rebuildComponent(w, d => new ECAvatar(d)) },
+      { label: 'Image URL', key: 'src', type: 'text', update: (o, v, w) => rebuildComponent(w, d => new ECAvatar(d)) },
+      { label: 'Image Alt', key: 'alt', type: 'text', update: (o, v, w) => rebuildComponent(w, d => new ECAvatar(d)) }
+    ],
+    'ECBreadcrumbs': [
+      { label: 'Separator', key: 'separator', type: 'text', update: (o, v, w) => rebuildComponent(w, d => new ECBreadcrumbs(d.items, d.separator)) },
+      { label: 'Crumb Items', key: 'items', type: 'list', fields: [{key: 'label', label: 'Label'}, {key: 'href', label: 'URL'}], update: (o, v, w) => rebuildComponent(w, d => new ECBreadcrumbs(d.items, d.separator)) }
+    ],
+    'ECProgressBar': [
+      { label: 'Value (0-100)', key: 'value', type: 'number', update: (o, v) => o.setValue(v) },
+      { label: 'Label', key: 'label', type: 'text', update: (o, v) => o.setLabel(v) },
+      { label: 'Show Percent', key: 'showPercent', type: 'checkbox', update: (o, v, w) => rebuildComponent(w, d => new ECProgressBar(d)) },
+      { label: 'Height (px)', key: 'height', type: 'number', update: (o, v) => o.setHeight(v) }
+    ],
+    'ECCountdown': [
+      { label: 'Target Date (YYYY-MM-DD)', key: 'targetDate', type: 'text', update: (o, v, w) => {
+          if(o.stop) o.stop();
+          rebuildComponent(w, d => new ECCountdown(d.targetDate));
+      }}
+    ],
+    'ECBadge': [
+      { label: 'Label', key: 'label', type: 'text', update: (o, v) => o.setLabel(v) },
+      { label: 'Type', key: 'type', type: 'select', options: ['default', 'primary', 'success', 'warning', 'danger', 'info'], update: (o, v) => o.setType(v) }
+    ],
+    'ECSpinner': [{ label: 'Size', key: 'size', type: 'select', options: ['sm', 'md', 'lg'], update: (o, v) => o.setSize(v) }],
+    'ECAccordion': [
+      { label: 'Allow Multiple Open', key: 'allowMultiple', type: 'checkbox', update: (o, v, w) => rebuildComponent(w, d => new ECAccordion(d)) },
+      { label: 'Accordion Items', key: 'items', type: 'list', fields: [{key: 'title', label: 'Title'}, {key: 'content', label: 'Content', type: 'textarea'}, {key: 'open', label: 'Start Open', type: 'checkbox'}], update: (o, v, w) => rebuildComponent(w, d => {
+          const acc = new ECAccordion(d);
+          (d.items || []).forEach(i => acc.addItem(i.title || 'New Section', i.content || '', i.open)); return acc;
+      })}
+    ],
+    'ECList': [
+      { label: 'Variant', key: 'variant', type: 'select', options: ['plain', 'bordered', 'striped', 'hoverable'], update: (o, v, w) => rebuildComponent(w, d => new ECList({ variant: d.variant, direction: d.direction, items: (d.items||[]).map(i=>i.text) })) },
+      { label: 'Direction', key: 'direction', type: 'select', options: ['vertical', 'horizontal'], update: (o, v, w) => rebuildComponent(w, d => new ECList({ variant: d.variant, direction: d.direction, items: (d.items||[]).map(i=>i.text) })) },
+      { label: 'List Items', key: 'items', type: 'list', fields: [{key: 'text', label: 'Item Text'}], update: (o, v, w) => rebuildComponent(w, d => new ECList({ variant: d.variant, direction: d.direction, items: (d.items||[]).map(i=>i.text) })) }
+    ],
+    'ECDivider': [
+      { label: 'Label', key: 'label', type: 'text', update: (o, v, w) => rebuildComponent(w, d => new ECDivider(d)) },
+      { label: 'Thick', key: 'thick', type: 'checkbox', update: (o, v, w) => rebuildComponent(w, d => new ECDivider(d)) },
+      { label: 'Dashed', key: 'dashed', type: 'checkbox', update: (o, v, w) => rebuildComponent(w, d => new ECDivider(d)) },
+    ],
+    'ECButton': [
+      { label: 'Label', key: 'label', type: 'text', update: (o, v) => o.setLabel(v) },
+      { label: 'Variant', key: 'variant', type: 'select', options: ['filled', 'outline', 'white'], update: (o, v, w) => rebuildComponent(w, d => new ECButton(d.label || 'Button', {variant: d.variant, disabled: d.disabled})) },
+      { label: 'Disabled', key: 'disabled', type: 'checkbox', update: (o, v) => v ? o.disable() : o.enable() }
+    ],
+    'ECRadio': [
+      { label: 'Radio Options', key: 'options', type: 'list', fields: [{key: 'value', label: 'Value'}, {key: 'label', label: 'Display Label'}, {key: 'checked', label: 'Checked', type: 'checkbox'}], update: (o, v, w) => rebuildComponent(w, d => {
+          const r = new ECRadio('rad_' + Date.now());
+          (d.options || []).forEach(opt => r.addOption(opt.value || 'val', opt.label || opt.value || 'Option', opt.checked));
+          return r;
+      })}
+    ],
+    'ECToggle': [
+      { label: 'Label', key: 'label', type: 'text', update: (o, v) => o.setLabel(v) },
+      { label: 'Checked', key: 'checked', type: 'checkbox', update: (o, v) => o.setValue(v) }
+    ],
+    'ECCheckbox': [
+      { label: 'Label', key: 'label', type: 'text', update: (o, v) => o.setLabel(v) },
+      { label: 'Checked', key: 'checked', type: 'checkbox', update: (o, v) => o.setValue(v) }
+    ],
+    'ECTextbox': [
+      { label: 'Label', key: 'label', type: 'text', update: (o, v, w) => rebuildComponent(w, d => new ECTextbox(d)) },
+      { label: 'Placeholder', key: 'placeholder', type: 'text', update: (o, v) => o.setPlaceholder(v) },
+      { label: 'Type', key: 'type', type: 'select', options: ['text', 'password', 'email', 'number'], update: (o, v, w) => rebuildComponent(w, d => new ECTextbox(d)) },
+      { label: 'Value', key: 'value', type: 'text', update: (o, v) => o.setValue(v) }
+    ],
+    'ECDropdown': [
+      { label: 'Label', key: 'label', type: 'text', update: (o, v, w) => rebuildComponent(w, d => {
+           const dr = new ECDropdown({label: d.label});
+           (d.options || []).forEach(opt => dr.addOption(opt.value || 'val', opt.label || opt.value || 'Option')); return dr;
+      })},
+      { label: 'Dropdown Options', key: 'options', type: 'list', fields: [{key: 'value', label: 'Value'}, {key: 'label', label: 'Display Label'}], update: (o, v, w) => rebuildComponent(w, d => {
+           const dr = new ECDropdown({label: d.label});
+           (d.options || []).forEach(opt => dr.addOption(opt.value || 'val', opt.label || opt.value || 'Option')); return dr;
+      })}
+    ],
+    'ECSlider': [
+      { label: 'Label', key: 'label', type: 'text', update: (o, v, w) => rebuildComponent(w, d => new ECSlider({ ...d, ticks: d.ticks ? d.ticks.split(',') : null })) },
+      { label: 'Min', key: 'min', type: 'number', update: (o, v, w) => rebuildComponent(w, d => new ECSlider({ ...d, ticks: d.ticks ? d.ticks.split(',') : null })) },
+      { label: 'Max', key: 'max', type: 'number', update: (o, v, w) => rebuildComponent(w, d => new ECSlider({ ...d, ticks: d.ticks ? d.ticks.split(',') : null })) },
+      { label: 'Step', key: 'step', type: 'number', update: (o, v, w) => rebuildComponent(w, d => new ECSlider({ ...d, ticks: d.ticks ? d.ticks.split(',') : null })) },
+      { label: 'Value', key: 'value', type: 'number', update: (o, v) => o.setValue(Number(v)) },
+      { label: 'Suffix (e.g. px)', key: 'suffix', type: 'text', update: (o, v, w) => rebuildComponent(w, d => new ECSlider({ ...d, ticks: d.ticks ? d.ticks.split(',') : null })) },
+      { label: 'Ticks (comma separated)', key: 'ticks', type: 'text', update: (o, v, w) => rebuildComponent(w, d => new ECSlider({ ...d, ticks: d.ticks ? d.ticks.split(',') : null })) }
+    ],
+    'ECDatePicker': [
+      { label: 'Label', key: 'label', type: 'text', update: (o, v, w) => rebuildComponent(w, d => new ECDatePicker(d)) },
+      { label: 'Value', key: 'value', type: 'text', update: (o, v) => o.setValue(v) }
+    ],
+    'ECFileUpload': [
+      { label: 'Title', key: 'title', type: 'text', update: (o, v, w) => rebuildComponent(w, d => new ECFileUpload(d)) },
+      { label: 'Subtitle', key: 'subtitle', type: 'text', update: (o, v, w) => rebuildComponent(w, d => new ECFileUpload(d)) },
+      { label: 'Accept MIME Types', key: 'accept', type: 'text', update: (o, v, w) => rebuildComponent(w, d => new ECFileUpload(d)) },
+      { label: 'Allow Multiple', key: 'multiple', type: 'checkbox', update: (o, v, w) => rebuildComponent(w, d => new ECFileUpload(d)) },
+      { label: 'Max Size (bytes)', key: 'maxSize', type: 'number', update: (o, v, w) => rebuildComponent(w, d => new ECFileUpload({ ...d, maxSize: d.maxSize ? Number(d.maxSize) : null })) }
+    ],
+    'ECRating': [
+      { label: 'Value (0-5)', key: 'value', type: 'number', update: (o, v) => o.setValue(v) },
+      { label: 'Max Stars', key: 'max', type: 'number', update: (o, v, w) => rebuildComponent(w, d => new ECRating(d)) },
+      { label: 'Readonly', key: 'readonly', type: 'checkbox', update: (o, v, w) => rebuildComponent(w, d => new ECRating(d)) },
+      { label: 'Show Label', key: 'showLabel', type: 'checkbox', update: (o, v, w) => rebuildComponent(w, d => new ECRating(d)) }
+    ]
+  };
+  const componentGroups = {
+    'Typography': [
+       'Typography: Heading', 'Typography: Sub-heading', 'Typography: Paragraph'
+    ],
+    'Layout & Navigation': [
+       'Layout: Blank Container', 'Layout: Card Container',
+       'ECSidebar', 'ECTopbar', 'ECBanner', 'ECBreadcrumbs', 'ECStepper', 'ECCarousel', 'ECHero', 'ECMediaCard'
+    ],
+    'Data & Feedback': [
+       'ECProgressBar', 'ECCountdown', 'ECAvatar', 'ECBadge', 'ECSpinner', 'ECAccordion', 'ECList', 'ECDivider'
+    ],
+    'Forms & Input': [
+       'ECButton', 'ECRadio', 'ECToggle', 'ECCheckbox', 'ECTextbox', 'ECDropdown', 'ECSlider', 'ECDatePicker', 'ECFileUpload', 'ECRating'
+    ]
+  };
+  const list = document.getElementById('component-list');
+  Object.keys(componentGroups).forEach(group => {
+    const title = document.createElement('div');
+    title.className = 'fontSize-12px fontWeight-700 color-var(--ec-text-muted,_#6c757d) textTransform-uppercase margin-16px_0_8px_4px letterSpacing-0.05em';
+    title.textContent = group;
+    list.appendChild(title);
+    componentGroups[group].forEach(type => {
+      const btn = document.createElement('div');
+      btn.className = 'display-block width-100% padding-10px_12px marginBottom-8px background-var(--ec-surface,_#f8f9fa) border-1px_solid_var(--ec-border,_#dee2e6) borderRadius-6px cursor-grab textAlign-left fontSize-13px fontWeight-500 color-var(--ec-text,_#212529) transition-all_0.2s userSelect-none boxSizing-border-box hover:borderColor-var(--ec-accent,_#1a73e8)';
+      btn.textContent = type;
+      btn.draggable = true;
+      btn.ondragstart = (e) => { e.dataTransfer.setData('text/plain', type); };
+      list.appendChild(btn);
+    });
+  });
+  function wrapComponent(type, ecObj) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'canvas-item';
+    wrapper.dataset.type = type;
+    wrapper.ecObj = ecObj;
+    if (!ecObj._builder_data) ecObj._builder_data = {};
+    
+    const controls = document.createElement('div');
+    controls.className = 'item-controls';
+    
+    const upBtn = document.createElement('button');
+    upBtn.className = 'control-btn';
+    upBtn.innerHTML = '&#9650;';
+    upBtn.onclick = (e) => {
+      e.stopPropagation();
+      if(wrapper.previousElementSibling) wrapper.parentNode.insertBefore(wrapper, wrapper.previousElementSibling);
+    };
+    
+    const downBtn = document.createElement('button');
+    downBtn.className = 'control-btn';
+    downBtn.innerHTML = '&#9660;';
+    downBtn.onclick = (e) => {
+      e.stopPropagation();
+      if(wrapper.nextElementSibling) wrapper.parentNode.insertBefore(wrapper.nextElementSibling, wrapper);
+    };
+    
+    const delBtn = document.createElement('button');
+    delBtn.className = 'control-btn';
+    delBtn.innerHTML = '&#10006;';
+    delBtn.onclick = (e) => {
+      e.stopPropagation();
+      wrapper.remove();
+      showGlobalProperties();
+    };
+    
+    controls.appendChild(upBtn);
+    controls.appendChild(downBtn);
+    controls.appendChild(delBtn);
+    wrapper.appendChild(controls);
+    
+    const contentEl = ecObj.element || ecObj;
+    if(!contentEl.dataset.baseClass) contentEl.dataset.baseClass = contentEl.className;
+    wrapper.appendChild(contentEl);
+    if(ecObj.setTheme) ecObj.setTheme(window.ECTheme[window.currentAppTheme]);
+    if(window.currentAppDarkMode && ecObj.enableDarkMode) ecObj.enableDarkMode();
+    wrapper.onclick = (e) => {
+      e.stopPropagation();
+      document.querySelectorAll('.canvas-item').forEach(el => el.classList.remove('selected'));
+      wrapper.classList.add('selected');
+      showProperties(wrapper);
+    };
+    
+    return wrapper;
+  }
+  document.addEventListener('dragover', e => {
+    e.preventDefault();
+    const target = e.target.closest('.drop-zone');
+    document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+    if (target) target.classList.add('drag-over');
+  });
+  document.addEventListener('dragleave', e => {
+    e.preventDefault();
+    const target = e.target.closest('.drop-zone');
+    if (target) target.classList.remove('drag-over');
+  });
+  document.addEventListener('drop', e => {
+    e.preventDefault();
+    document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+    
+    const type = e.dataTransfer.getData('text/plain');
+    if (!type || !componentFactory[type]) return;
+    
+    const target = e.target.closest('.drop-zone');
+    if (target) {
+      const ecObj = componentFactory[type]();
+      const wrapped = wrapComponent(type, ecObj);
+      target.appendChild(wrapped);
+      if (window.ECStyleSheet) window.ECStyleSheet.scan();
+    }
+  });
+  document.addEventListener('click', e => {
+    if(!e.target.closest('.canvas-item') && !e.target.closest('#left-sidebar') && !e.target.closest('#right-sidebar')) {
+      document.querySelectorAll('.canvas-item').forEach(el => el.classList.remove('selected'));
+      showGlobalProperties();
+    }
+  });
+  function applyGlobalSettings() {
+    const canvas = document.getElementById('canvas');
+    canvas.className = 'flex-1 overflowY-auto position-relative transition-background_0.3s,_color_0.3s drop-zone ' + window.globalCanvasClasses;
+    if(window.ECStyleSheet) window.ECStyleSheet.scan();
+    if(window.currentAppDarkMode) {
+        canvas.style.backgroundColor = '#1a1a2e';
+    } else {
+        canvas.style.backgroundColor = '#f1f3f5';
+    }
+    document.querySelectorAll('.canvas-item').forEach(wrapper => {
+      const ecObj = wrapper.ecObj;
+      if(ecObj) {
+        if(ecObj.setTheme) ecObj.setTheme(window.ECTheme[window.currentAppTheme]);
+        if(window.currentAppDarkMode && ecObj.enableDarkMode) ecObj.enableDarkMode();
+        if(!window.currentAppDarkMode && ecObj.disableDarkMode) ecObj.disableDarkMode();
+      }
+    });
+  }
+  function showGlobalProperties() {
+    const panel = document.getElementById('properties-panel');
+    panel.innerHTML = `<h4 class="marginTop-0 color-var(--ec-text,_#212529) borderBottom-1px_solid_var(--ec-border,_#dee2e6) paddingBottom-8px">Global Settings</h4>`;
+    
+    const themeDrop = new ECDropdown({ 
+        label: 'App Theme Colors', 
+        items: ['Blue', 'Green', 'Red', 'Purple', 'Orange', 'Dark'].map(t => ({label:t, value:t})) 
+    });
+    themeDrop.setValue(window.currentAppTheme);
+    themeDrop.onChange(val => { window.currentAppTheme = val; applyGlobalSettings(); });
+    panel.appendChild(themeDrop.element);
+    const darkToggle = new ECToggle('Enable Dark Mode', window.currentAppDarkMode);
+    darkToggle.onChange(val => { window.currentAppDarkMode = val; applyGlobalSettings(); });
+    panel.appendChild(darkToggle.element);
+    const classesBox = new ECTextbox({ label: 'Page Custom Classes', placeholder: 'e.g. padding-40px' });
+    classesBox.setValue(window.globalCanvasClasses);
+    classesBox.onInput(val => { window.globalCanvasClasses = val; applyGlobalSettings(); });
+    panel.appendChild(classesBox.element);
+  }
+  function getPropValue(obj, cfg) {
+    if(cfg.key === 'checked' || cfg.key === 'value') {
+       if(obj.getValue) return obj.getValue();
+    }
+    if(cfg.key === 'step' && obj.getStep) return obj.getStep();
+    if(cfg.key === 'columns' && obj.getColumns) return obj.getColumns();
+    if(obj._builder_data && obj._builder_data[cfg.key] !== undefined) return obj._builder_data[cfg.key];
+    return '';
+  }
+  function showProperties(wrapper) {
+    const panel = document.getElementById('properties-panel');
+    const type = wrapper.dataset.type;
+    panel.innerHTML = `<h4 class="marginTop-0 color-var(--ec-text,_#212529) borderBottom-1px_solid_var(--ec-border,_#dee2e6) paddingBottom-8px">Editing: ${type}</h4>`;
+    
+    const obj = wrapper.ecObj;
+    const el = obj.element || obj;
+    if(!el.dataset.baseClass) el.dataset.baseClass = el.className;
+    
+    let configs = [];
+    if (propsConfig[type]) configs = configs.concat(propsConfig[type]);
+    
+    configs.push({
+      label: 'Custom Classes', key: 'className', type: 'text',
+      update: (o, v) => {
+        const e = o.element || o;
+        e.className = e.dataset.baseClass + ' ' + v;
+        if(window.ECStyleSheet) window.ECStyleSheet.scan();
+      }
+    });
+    
+    configs.forEach(cfg => {
+      if (cfg.type === 'list') {
+        const lbl = document.createElement('label');
+        lbl.className = 'fontSize-13px fontWeight-500 color-var(--ec-text-muted,_#6c757d)';
+        lbl.textContent = cfg.label;
+        panel.appendChild(lbl);
+        const listContainer = document.createElement('div');
+        listContainer.className = 'display-flex flexDirection-column gap-8px marginTop-4px';
+        const renderList = () => {
+          listContainer.innerHTML = '';
+          const items = getPropValue(obj, cfg) || [];
+          items.forEach((item, index) => {
+            const itemBox = document.createElement('div');
+            itemBox.className = 'background-var(--ec-surface,_#f8f9fa) border-1px_solid_var(--ec-border,_#dee2e6) padding-10px borderRadius-6px display-flex flexDirection-column gap-8px position-relative';
+            cfg.fields.forEach(field => {
+              let fInput;
+              if (field.type === 'checkbox') {
+                  fInput = new ECCheckbox(field.label, !!item[field.key]);
+                  fInput.onChange(val => {
+                    item[field.key] = val; obj._builder_data[cfg.key] = items; cfg.update(obj, items, wrapper);
+                  });
+              } else if (field.type === 'textarea') {
+                  fInput = { element: document.createElement('textarea') };
+                  fInput.element.className = 'prop-textarea';
+                  fInput.element.rows = 2;
+                  fInput.element.placeholder = field.label;
+                  fInput.element.value = item[field.key] || '';
+                  fInput.element.oninput = (e) => {
+                    item[field.key] = e.target.value; obj._builder_data[cfg.key] = items; cfg.update(obj, items, wrapper);
+                  };
+              } else if (field.type === 'select') {
+                  fInput = new ECDropdown({ label: field.label, items: (field.options||[]).map(o => ({label: o, value: o})) });
+                  fInput.setValue(item[field.key] || '');
+                  fInput.onChange(val => {
+                    item[field.key] = val; obj._builder_data[cfg.key] = items; cfg.update(obj, items, wrapper);
+                  });
+              } else {
+                  fInput = new ECTextbox({ label: field.label, type: field.type || 'text', value: item[field.key] || '' });
+                  fInput.onInput(val => {
+                    item[field.key] = val; obj._builder_data[cfg.key] = items; cfg.update(obj, items, wrapper);
+                  });
+              }
+              itemBox.appendChild(fInput.element);
+            });
+            const delBtn = new ECButton('Remove', { variant: 'outline' }).setTheme(ECTheme.Red);
+            delBtn.element.className += ' padding-4px_8px fontSize-11px alignSelf-flex-end';
+            delBtn.onClick(() => {
+              items.splice(index, 1);
+              obj._builder_data[cfg.key] = items;
+              cfg.update(obj, items, wrapper);
+              renderList();
+            });
+            itemBox.appendChild(delBtn.element);
+            listContainer.appendChild(itemBox);
+          });
+          const addBtn = new ECButton('+ Add Item', { variant: 'outline' });
+          addBtn.element.className += ' width-100% borderStyle-dashed background-var(--ec-bg,_#fff)';
+          addBtn.onClick(() => {
+            const newItem = {};
+            cfg.fields.forEach(f => {
+                if (f.type === 'checkbox') newItem[f.key] = false;
+                else newItem[f.key] = '';
+            });
+            items.push(newItem);
+            obj._builder_data[cfg.key] = items;
+            cfg.update(obj, items, wrapper);
+            renderList();
+          });
+          listContainer.appendChild(addBtn.element);
+        };
+        renderList();
+        panel.appendChild(listContainer);
+      } else if (cfg.type === 'select') {
+          let dd = new ECDropdown({ label: cfg.label, items: cfg.options.map(o => ({label:o, value:o})) });
+          dd.setValue(getPropValue(obj, cfg));
+          dd.onChange(val => { obj._builder_data[cfg.key] = val; cfg.update(obj, val, wrapper); });
+          panel.appendChild(dd.element);
+      } else if (cfg.type === 'checkbox') {
+          let cb = new ECCheckbox(cfg.label, !!getPropValue(obj, cfg));
+          cb.onChange(val => { obj._builder_data[cfg.key] = val; cfg.update(obj, val, wrapper); });
+          panel.appendChild(cb.element);
+      } else if (cfg.type === 'textarea') {
+          let wrap = document.createElement('div');
+          let lbl = document.createElement('label');
+          lbl.className = 'fontSize-13px fontWeight-500 color-var(--ec-text-muted,_#6c757d) display-block marginBottom-4px';
+          lbl.textContent = cfg.label;
+          let ta = document.createElement('textarea');
+          ta.className = 'prop-textarea';
+          ta.rows = 4;
+          ta.value = getPropValue(obj, cfg);
+          ta.oninput = (e) => { obj._builder_data[cfg.key] = e.target.value; cfg.update(obj, e.target.value, wrapper); };
+          wrap.appendChild(lbl); wrap.appendChild(ta);
+          panel.appendChild(wrap);
+      } else {
+          let typeMap = cfg.type === 'number' ? 'number' : 'text';
+          let tb = new ECTextbox({ label: cfg.label, value: getPropValue(obj, cfg), type: typeMap });
+          if (cfg.key === 'className') tb.setValue(el.className.replace(el.dataset.baseClass, '').trim());
+          tb.onInput(val => { obj._builder_data[cfg.key] = val; cfg.update(obj, val, wrapper); });
+          panel.appendChild(tb.element);
+      }
+    });
+  }
+  function generateComponentJS(type, data, v) {
+    let code = `    // ${type}\n    `;
+    const safeStr = val => JSON.stringify(val || '');
+    const nSafe = val => Number(val) || 0;
+    
+    switch(type) {
+      case 'ECSidebar': code += `var ${v} = new ECSidebar(${safeStr(data.title)}).setWidth(${safeStr(data.width)});`; break;
+      case 'ECTopbar': code += `var ${v} = new ECTopbar(${safeStr(data.title)});`; break;
+      case 'ECBanner': code += `var ${v} = new ECBanner(${safeStr(data.text)}, {loop: ${!!data.loop}, dismissible: ${!!data.dismissible}});`; break;
+      case 'ECStepper': code += `var ${v} = new ECStepper(${JSON.stringify((data.steps||[]).map(s=>s.label))}, ${nSafe(data.currentStep)});`; break;
+      case 'ECCarousel': 
+          code += `var ${v} = new ECCarousel();\n`;
+          (data.items||[]).forEach(i => { code += `    ${v}.addItem(${safeStr(i.html)});\n`; });
+          break;
+      case 'ECHero': code += `var ${v} = new ECHero(${JSON.stringify(data)});`; break;
+      case 'ECMediaCard': code += `var ${v} = new ECMediaCard(${JSON.stringify(data)});`; break;
+      case 'ECAvatar': code += `var ${v} = new ECAvatar(${JSON.stringify(data)});`; break;
+      case 'ECBreadcrumbs': code += `var ${v} = new ECBreadcrumbs(${JSON.stringify(data.items)}, ${safeStr(data.separator)});`; break;
+      case 'ECProgressBar': 
+          code += `var ${v} = new ECProgressBar(${JSON.stringify(data)});\n`; 
+          if (data.height) code += `    ${v}.setHeight(${nSafe(data.height)});\n`;
+          break;
+      case 'ECCountdown': code += `var ${v} = new ECCountdown(${safeStr(data.targetDate)});`; break;
+      case 'ECBadge': code += `var ${v} = new ECBadge(${safeStr(data.label)}, ${safeStr(data.type)});`; break;
+      case 'ECSpinner': code += `var ${v} = new ECSpinner({ size: ${safeStr(data.size)} });`; break;
+      case 'ECAccordion': 
+          code += `var ${v} = new ECAccordion({allowMultiple: ${!!data.allowMultiple}});\n`;
+          (data.items||[]).forEach(i => { code += `    ${v}.addItem(${safeStr(i.title)}, ${safeStr(i.content)}, ${!!i.open});\n`; });
+          break;
+      case 'ECList': 
+          code += `var ${v} = new ECList({variant: ${safeStr(data.variant)}, direction: ${safeStr(data.direction)}});\n`;
+          (data.items||[]).forEach(i => { code += `    ${v}.addItem(${safeStr(i.text)});\n`; });
+          break;
+      case 'ECDivider': code += `var ${v} = new ECDivider(${JSON.stringify(data)});`; break;
+      case 'ECButton': 
+          code += `var ${v} = new ECButton(${safeStr(data.label)}, {variant: ${safeStr(data.variant)}});\n`;
+          if (data.disabled) code += `    ${v}.disable();\n`;
+          break;
+      case 'ECRadio': code += `var ${v} = new ECRadio("rad_" + Math.random().toString(36).substr(2, 9), ${JSON.stringify(data.options)});`; break;
+      case 'ECToggle': code += `var ${v} = new ECToggle(${safeStr(data.label)}, ${!!data.checked});`; break;
+      case 'ECCheckbox': code += `var ${v} = new ECCheckbox(${safeStr(data.label)}, ${!!data.checked});`; break;
+      case 'ECTextbox': code += `var ${v} = new ECTextbox(${JSON.stringify(data)});`; break;
+      case 'ECDropdown': code += `var ${v} = new ECDropdown({label: ${safeStr(data.label)}, items: ${JSON.stringify(data.options)}});`; break;
+      case 'ECSlider': 
+          let tks = data.ticks ? data.ticks.split(',') : null;
+          code += `var ${v} = new ECSlider({label: ${safeStr(data.label)}, min: ${nSafe(data.min)}, max: ${nSafe(data.max)}, step: ${nSafe(data.step)}, value: ${nSafe(data.value)}, suffix: ${safeStr(data.suffix)}, ticks: ${JSON.stringify(tks)}});`;
+          break;
+      case 'ECDatePicker': code += `var ${v} = new ECDatePicker(${JSON.stringify(data)});`; break;
+      case 'ECFileUpload': code += `var ${v} = new ECFileUpload(${JSON.stringify(data)});`; break;
+      case 'ECRating': code += `var ${v} = new ECRating(${JSON.stringify(data)});`; break;
+      default: code += `var ${v} = { element: document.createElement("div") }; ${v}.element.textContent = "Unknown Component";`; break;
+    }
+    
+    if(data.className) {
+        code += `\n    if(${v} && ${v}.element) ${v}.element.className += " " + ${safeStr(data.className)};`;
+    }
+    code += `\n    if(${v} && ${v}.setTheme) ${v}.setTheme(window.ECTheme['${window.currentAppTheme}']);`;
+    if (window.currentAppDarkMode) {
+        code += `\n    if(${v} && ${v}.enableDarkMode) ${v}.enableDarkMode();`;
+    }
+    return code + '\n';
+  }
+  let ecStyleSheetCode = '';
+  let ecElementsCode = '';
+  fetch("https://isaiahnoelpulidosalazar.github.io/js/ECStyleSheet.js")
+    .then(response => response.text())
+    .then(jsString => {
+      ecStyleSheetCode = jsString;
+    });
+  fetch("https://isaiahnoelpulidosalazar.github.io/js/ECElements.js")
+    .then(response => response.text())
+    .then(jsString => {
+      ecElementsCode = jsString;
+    });
+  function exportToHybridHTML() {
+    let jsCode = `    // ECWebsite Generated JS Components\n`;
+    let htmlOut = ``;
+    let varId = 0;
+    function processNode(node, indent) {
+        let out = '';
+        const items = Array.from(node.children).filter(c => c.classList.contains('canvas-item') || c.classList.contains('col-layout'));
+        items.forEach(child => {
+            if (child.classList.contains('col-layout')) {
+                out += `${indent}<div class="flex-1 display-flex flexDirection-column gap-12px boxSizing-border-box minWidth-200px">\n`;
+                out += processNode(child, indent + '  ');
+                out += `${indent}</div>\n`;
+                return;
+            }
+            const type = child.dataset.type;
+            const data = child.ecObj._builder_data || {};
+            const customClasses = data.className ? ` ${data.className}` : '';
+            if (type.startsWith('Layout:')) {
+                let baseCls = 'display-flex gap-16px width-100% boxSizing-border-box flexWrap-wrap';
+                if (type === 'Layout: Card Container') baseCls += ' eccard padding-24px';
+                out += `${indent}<div class="${baseCls}${customClasses}">\n`;
+                out += processNode(child.ecObj.element, indent + '  ');
+                out += `${indent}</div>\n`;
+            } 
+            else if (type.startsWith('Typography:')) {
+                const tag = data.tag || 'p';
+                const baseCls = child.ecObj.element.className.replace('canvas-item', '').replace('selected', '').replace(/drop-zone|drag-over/g, '').trim();
+                const textHTML = (data.text || '').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+                out += `${indent}<${tag} class="${baseCls}${customClasses}">${textHTML}</${tag}>\n`;
+            }
+            else {
+                varId++;
+                const anchorId = `ec_anchor_${varId}`;
+                out += `${indent}<!-- Placeholder for ${type} -->\n`;
+                out += `${indent}<div id="${anchorId}"></div>\n`;
+                const v = 'comp_' + varId;
+                jsCode += generateComponentJS(type, data, v);
+                jsCode += `    document.getElementById('${anchorId}').replaceWith(${v}.element || ${v});\n\n`;
+            }
+        });
+        return out;
+    }
+    htmlOut += processNode(document.getElementById('canvas'), '  ');
+    const bg = window.currentAppDarkMode ? '#1a1a2e' : '#f1f3f5';
+    const htmlContent = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ECWebsite</title>
+  <script>
+    ${ecStyleSheetCode}
+  <\/script>
+  <script>
+    ${ecElementsCode}
+  <\/script>
+  <style>
+    /* Base Body Styling */
+    body {
+      margin: 0; min-height: 100vh; box-sizing: border-box;
+      background: ${bg};
+    }
+  </style>
+</head>
+<body class="${window.globalCanvasClasses}">
+  <!-- Hybrid Structure (Layouts & Typography in DOM, ECElements via JS anchors) -->
+${htmlOut}
+  <script>
+  document.addEventListener("DOMContentLoaded", function() {
+${jsCode}
+    // Re-trigger dynamic stylesheet to catch dynamically injected classes
+    if (window.ECStyleSheet) window.ECStyleSheet.scan();
+  });
+  <\/script>
+</body>
+</html>`;
+    const blob = new Blob([htmlContent], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'ecwebsite.html';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+  showGlobalProperties();
+});

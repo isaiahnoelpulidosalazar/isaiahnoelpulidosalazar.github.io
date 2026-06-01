@@ -1,1 +1,36 @@
-const container=document.getElementById("particles");for(let n=0;n<64;n++){const n=document.createElement("div");n.className="particle",n.style.cssText=`\n        left: ${100*Math.random()}%;\n        animation-duration: ${8+14*Math.random()}s;\n        animation-delay: ${22*-Math.random()}s;\n        --dx: ${120*(Math.random()-.5)}px;\n        width: ${1+2*Math.random()}px;\n        height: ${1+2*Math.random()}px;\n        opacity: ${.3+.7*Math.random()};\n        background: ${Math.random()>.6?"rgba(29,233,182,0.7)":Math.random()>.5?"rgba(68,138,255,0.6)":"rgba(0,229,255,0.7)"};\n        box-shadow: 0 0 ${4+6*Math.random()}px currentColor;\n    `,container.appendChild(n)}document.body.addEventListener("dblclick",()=>{document.fullscreenElement?document.exitFullscreen():document.body.requestFullscreen()}),document.body.addEventListener("touchend",()=>{const n=(new Date).getTime(),e=n-(window.lastTouchEnd||0);e<300&&e>0&&(document.fullscreenElement?document.exitFullscreen():document.body.requestFullscreen()),window.lastTouchEnd=n});
+const container = document.getElementById('particles');
+for (let i = 0; i < 64; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    p.style.cssText = `
+        left: ${Math.random()*100}%;
+        animation-duration: ${8+Math.random()*14}s;
+        animation-delay: ${-Math.random()*22}s;
+        --dx: ${(Math.random()-0.5)*120}px;
+        width: ${1+Math.random()*2}px;
+        height: ${1+Math.random()*2}px;
+        opacity: ${0.3+Math.random()*0.7};
+        background: ${Math.random()>0.6 ? 'rgba(29,233,182,0.7)' : Math.random()>0.5 ? 'rgba(68,138,255,0.6)' : 'rgba(0,229,255,0.7)'};
+        box-shadow: 0 0 ${4+Math.random()*6}px currentColor;
+    `;
+    container.appendChild(p);
+}
+document.body.addEventListener("dblclick", () => {
+    if (!document.fullscreenElement) {
+        document.body.requestFullscreen();
+    } else {
+        document.exitFullscreen();
+    }
+});
+document.body.addEventListener("touchend", () => {
+    const now = new Date().getTime();
+    const timeSince = now - (window.lastTouchEnd || 0);
+    if (timeSince < 300 && timeSince > 0) {
+        if (!document.fullscreenElement) {
+            document.body.requestFullscreen();
+        } else {
+            document.exitFullscreen();
+        }
+    }
+    window.lastTouchEnd = now;
+});
