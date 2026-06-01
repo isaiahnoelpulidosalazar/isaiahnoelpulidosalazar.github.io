@@ -213,7 +213,7 @@ bool ahci_write(HBA_Port* port, uint32_t startl, uint32_t starth, uint32_t count
     
     long long start_spin = get_time_ms();
     while ((port->tfd & (0x80 | 0x08))) {
-        if (get_time_ms() - start_spin > 1000) { // Robust 1-second timeout [1]
+        if (get_time_ms() - start_spin > 1000) {
             kfree(cmd_tbl_mem);
             return false;
         }
@@ -228,9 +228,9 @@ bool ahci_write(HBA_Port* port, uint32_t startl, uint32_t starth, uint32_t count
             kfree(cmd_tbl_mem);
             return false;
         }
-        if (get_time_ms() - start_ci > 1000) { // Robust 1-second timeout [1]
+        if (get_time_ms() - start_ci > 1000) {
             kfree(cmd_tbl_mem);
-            return false; // Hardware write timed out safely [1]
+            return false;
         }
     }
     
