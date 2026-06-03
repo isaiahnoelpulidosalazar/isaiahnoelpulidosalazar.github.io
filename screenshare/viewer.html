@@ -94,7 +94,7 @@
 let sessionId = null;
 let ws = null;
 let pc = null;
-let candidateQueue = []; // Add this near your variables at the top of the script
+let candidateQueue = [];
 
 const WS_URL = 'wss://isaiahnoelpulidosalazar-github-io.onrender.com';
 const rtcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
@@ -196,12 +196,10 @@ async function handleMessage(msg) {
     return;
   }
 
-  // WebRTC Signaling
   if (type === 'offer') {
     if (pc) pc.close();
     pc = new RTCPeerConnection(rtcConfig);
 
-    // Create a robust media stream
     const remoteStream = new MediaStream();
     const video = document.getElementById('screenVideo');
     video.srcObject = remoteStream;
@@ -211,14 +209,13 @@ async function handleMessage(msg) {
     };
 
     pc.ontrack = (e) => {
-      remoteStream.addTrack(e.track); // Safer than using e.streams[0]
+      remoteStream.addTrack(e.track);
       video.style.display = 'block';
       document.getElementById('placeholder').style.display = 'none';
       document.getElementById('fsBtn').style.display = 'block';
       setStatus('active', 'Receiving screen ●');
       log('Screen stream started', 'ok');
       
-      // Force play in case browser paused it
       video.play().catch(err => console.warn('Autoplay blocked:', err));
     };
 
@@ -228,7 +225,6 @@ async function handleMessage(msg) {
     await pc.setLocalDescription(answer);
     ws.send(JSON.stringify({ type: 'answer', sender: 'viewer', payload: pc.localDescription }));
 
-    // Drain queued candidates now that remote description is set
     for (const candidate of candidateQueue) {
       await pc.addIceCandidate(candidate).catch(console.error);
     }
@@ -239,7 +235,6 @@ async function handleMessage(msg) {
     if (pc.remoteDescription && pc.remoteDescription.type) {
       await pc.addIceCandidate(new RTCIceCandidate(payload)).catch(console.error);
     } else {
-      // Queue it if the offer hasn't finished processing yet
       candidateQueue.push(new RTCIceCandidate(payload));
     }
   }
@@ -267,7 +262,6 @@ function leaveSession() {
   location.reload();
 }
 
-// Fetch stats every second
 setInterval(async () => {
   if (pc) {
     const stats = await pc.getStats();

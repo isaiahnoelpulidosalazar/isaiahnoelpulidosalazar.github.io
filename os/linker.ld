@@ -3,7 +3,7 @@ OUTPUT_FORMAT("binary")
 
 SECTIONS
 {
-    . = 0x10000; /* Segment boundary mapping for custom boot sector jump */
+    . = 0x10000;
 
     .text : ALIGN(4)
     {

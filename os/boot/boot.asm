@@ -1,10 +1,9 @@
 [bits 16]
 [org 0x7c00]
 
-KERNEL_OFFSET equ 0x1000  ; Segment where kernel is loaded (0x10000 physical)
+KERNEL_OFFSET equ 0x1000
 
 start:
-    ; Reset segments
     xor ax, ax
     mov ds, ax
     mov es, ax
@@ -14,13 +13,10 @@ start:
     mov si, MSG_BOOTING
     call print_string
 
-    ; Save boot drive index
     mov [boot_drive], dl
 
-    ; Load kernel from physical disk
     call load_kernel
 
-    ; Switch to Protected Mode
     cli
     lgdt [gdt_descriptor]
     mov eax, cr0
@@ -43,7 +39,6 @@ print_string:
     ret
 
 load_kernel:
-    ; Load first block of 120 sectors (Sectors 1 to 120) to segment 0x1000 (0x10000 physical)
     mov [dap_segment], word KERNEL_OFFSET
     mov [dap_offset], word 0x0000
     mov [dap_sector_low], dword 1
@@ -54,7 +49,6 @@ load_kernel:
     int 0x13
     jc .error
 
-    ; Load second block of 120 sectors (Sectors 121 to 240) to segment 0x1F00 (0x1F000 physical) [1]
     mov [dap_segment], word 0x1F00
     mov [dap_offset], word 0x0000
     mov [dap_sector_low], dword 121
@@ -72,7 +66,6 @@ load_kernel:
 
 boot_drive: db 0x80
 
-; Disk Address Packet Structure
 align 4
 dap:
     db 0x10
@@ -88,7 +81,6 @@ dap_sector_low:
 dap_sector_high:
     dd 0
 
-; Global Descriptor Table
 gdt_start:
     dd 0x0
     dd 0x0
@@ -126,7 +118,6 @@ init_pm:
     mov ebp, 0x90000
     mov esp, ebp
 
-    ; Jump straight into our physical kernel entry
     jmp 0x10000
 
 MSG_BOOTING: db "Loading inpsos bootloader...", 13, 10, 0

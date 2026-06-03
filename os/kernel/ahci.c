@@ -33,7 +33,6 @@ void pci_write_word(uint16_t bus, uint16_t slot, uint16_t func, uint16_t offset,
 void find_ahci() {
     for (uint32_t bus = 0; bus < 256; bus++) {
         for (uint32_t slot = 0; slot < 32; slot++) {
-            // Fast PCI optimization: If function 0 is empty (0xFFFF), skip slots 1-7 immediately
             uint32_t dev_id = pci_read_word(bus, slot, 0, 0x00);
             if ((dev_id & 0xFFFF) == 0xFFFF) continue;
             
@@ -56,13 +55,12 @@ void find_ahci() {
 }
 
 void init_ahci_port(HBA_Port* port) {
-    port->cmd &= ~0x0001; // Stop command execution engine (ST)
-    port->cmd &= ~0x0010; // Stop FIS receive engine (FRE)
+    port->cmd &= ~0x0001;
+    port->cmd &= ~0x0010;
 
-    // Hardware Spinlock Timeout using CPU TSC
     long long start_spin = get_time_ms();
     while ((port->cmd & 0x4000 || port->cmd & 0x8000)) {
-        if (get_time_ms() - start_spin > 100) { // 100ms timeout
+        if (get_time_ms() - start_spin > 100) {
             break;
         }
     }
@@ -80,8 +78,8 @@ void init_ahci_port(HBA_Port* port) {
     memset((void*)clb_addr, 0, 1024);
     memset((void*)fb_addr, 0, 256);
 
-    port->cmd |= 0x0010; // Start FIS receive engine (FRE)
-    port->cmd |= 0x0001; // Start command execution engine (ST)
+    port->cmd |= 0x0010;
+    port->cmd |= 0x0001;
 }
 
 void init_ahci() {
@@ -147,7 +145,7 @@ bool ahci_read(HBA_Port* port, uint32_t startl, uint32_t starth, uint32_t count,
     
     long long start_spin = get_time_ms();
     while ((port->tfd & (0x80 | 0x08))) {
-        if (get_time_ms() - start_spin > 1000) { // Robust 1-second timeout [1]
+        if (get_time_ms() - start_spin > 1000) {
             kfree(cmd_tbl_mem);
             return false;
         }
@@ -162,9 +160,9 @@ bool ahci_read(HBA_Port* port, uint32_t startl, uint32_t starth, uint32_t count,
             kfree(cmd_tbl_mem);
             return false;
         }
-        if (get_time_ms() - start_ci > 1000) { // Robust 1-second timeout [1]
+        if (get_time_ms() - start_ci > 1000) {
             kfree(cmd_tbl_mem);
-            return false; // Hardware read timed out safely [1]
+            return false;
         }
     }
     

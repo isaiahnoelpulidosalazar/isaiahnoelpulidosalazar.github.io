@@ -98,11 +98,11 @@ let stream = null;
 let pc = null;
 let isSharing = false;
 let viewerConnected = false;
-let candidateQueue = []; // Add this near your variables at the top of the script
+let candidateQueue = [];
 
 const BACKEND_URL = 'https://isaiahnoelpulidosalazar-github-io.onrender.com';
 const WS_URL = 'wss://isaiahnoelpulidosalazar-github-io.onrender.com';
-const rtcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }; // Free Google STUN
+const rtcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
 
 function log(msg, type = 'info') {
   const el = document.getElementById('log');
@@ -186,11 +186,9 @@ async function handleMessage(msg) {
     if (pc) pc.close();
   }
 
-  // WebRTC Signaling
   if (msg.type === 'answer' && pc) {
     await pc.setRemoteDescription(new RTCSessionDescription(msg.payload));
     
-    // Drain queued candidates
     for (const candidate of candidateQueue) {
       await pc.addIceCandidate(candidate).catch(console.error);
     }
@@ -215,7 +213,7 @@ function createPeerConnection() {
   };
 
   pc.onnegotiationneeded = async () => {
-    if (!viewerConnected) return; // Wait for viewer to join
+    if (!viewerConnected) return;
     try {
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
@@ -234,7 +232,7 @@ async function startSharing() {
   try {
     stream = await navigator.mediaDevices.getDisplayMedia({
       video: { cursor: 'always' },
-      audio: false, // You can change this to true if you want audio too
+      audio: false,
     });
 
     const video = document.getElementById('previewVideo');
@@ -294,7 +292,6 @@ function copyUrl() {
   });
 }
 
-// Fetch stats every second instead of manual frame counting
 setInterval(async () => {
   if (pc && isSharing) {
     const stats = await pc.getStats();

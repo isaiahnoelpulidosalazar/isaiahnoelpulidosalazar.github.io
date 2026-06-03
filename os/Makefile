@@ -22,7 +22,6 @@ boot/boot.bin: boot/boot.asm
 boot/kernel_entry.o: boot/kernel_entry.asm
 	$(ASM) -f elf32 $< -o $@
 
-# Automatically run Python packer to build C headers when files change
 kernel/fs_bin.h: boot/boot.bin pack_fs.py $(wildcard programs/*.easec)
 	python3 pack_fs.py
 

@@ -121,7 +121,6 @@ wss.on('connection', (ws, req) => {
       send(session.host, msg);
     }
 
-    // Ignore WebRTC setup spam in logs
     if (!['screen-frame', 'offer', 'answer', 'ice-candidate'].includes(type)) {
       console.log(`[ws] [${role}→relay] type=${type} session=${sessionId}`);
     }

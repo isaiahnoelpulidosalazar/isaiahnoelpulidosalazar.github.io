@@ -1,7 +1,7 @@
 #include "libc.h"
 
 #define HEAP_START 0x100000
-#define HEAP_MAX   0x2000000 // 32MB Kernel Heap
+#define HEAP_MAX   0x2000000
 
 typedef struct BlockHeader {
     size_t size;
@@ -18,7 +18,7 @@ extern char kget_char();
 long long get_time_ms(void) {
     uint64_t tsc;
     __asm__ volatile ("rdtsc" : "=A"(tsc));
-    return (long long)(tsc / 2000000); // 2GHz CPU tick rate conversion
+    return (long long)(tsc / 2000000);
 }
 
 void sleep_ms(long long ms) {

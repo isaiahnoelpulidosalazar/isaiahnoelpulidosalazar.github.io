@@ -1,7 +1,6 @@
 #include "libc.h"
 #include "ahci.h"
 
-// Pull in the compile-time embedded RAM binaries
 #include "boot_bin.h"
 #include "fs_bin.h"
 
@@ -18,7 +17,6 @@ extern int active_port_count;
 struct InpsFileEntry dir_cache[10];
 bool is_installed_mode = false;
 
-// VGA Console Drivers
 #define VGA_WIDTH  80
 #define VGA_HEIGHT 25
 #define VGA_MEM    ((volatile uint16_t*)0xB8000)
@@ -64,7 +62,6 @@ void scroll() {
 }
 
 void kputc(char c) {
-    // 1. Boundary check: Always execute scrolling BEFORE writing characters [1]
     if (cursor_y >= VGA_HEIGHT) {
         scroll();
     }
@@ -91,7 +88,6 @@ void kputc(char c) {
         cursor_y++; 
     }
     
-    // 2. Double-check scrolling boundary after moving cursor index [1]
     if (cursor_y >= VGA_HEIGHT) {
         scroll();
     }
@@ -119,7 +115,6 @@ char kget_char() {
     }
 }
 
-// InpsFS Filesystem Drivers
 void read_directory(HBA_Port* disk) {
     ahci_read(disk, DIRECTORY_SECTOR, 0, 1, (uint16_t*)dir_cache);
 }
@@ -200,7 +195,6 @@ char* read_file(HBA_Port* disk, const char* name, uint32_t* out_size) {
     return NULL;
 }
 
-// Dynamic VM Environment Populator
 typedef enum { VAL_NULL, VAL_BOOL, VAL_INT, VAL_FLOAT, VAL_OBJ } ValType;
 typedef struct {
     ValType type;
@@ -247,17 +241,16 @@ void register_filesystem_env(void* env) {
     env_define(env, "files", arr_val);
 }
 
-// 100% self-contained RAM-based installer
 void run_installer() {
     kputs("\nStarting bare-metal installation of inpsos...\n");
     if (active_port_count < 1) {
         kputs("Error: No SATA hard drive detected! Ensure SATA is enabled in BIOS.\n");
         return;
     }
-    HBA_Port* dest = active_ports[1]; // Physical target drive
+    HBA_Port* dest = active_ports[1];
     
     kputs("Installing custom MBR bootloader to Sector 0... ");
-    uint32_t sector_buffer[128]; // 512-byte aligned buffer
+    uint32_t sector_buffer[128];
     memset(sector_buffer, 0, 512);
     memcpy(sector_buffer, boot_bin, boot_bin_len > 512 ? 512 : boot_bin_len);
     if (!ahci_write(dest, 0, 0, 1, (uint16_t*)sector_buffer)) {
@@ -266,7 +259,6 @@ void run_installer() {
     kputs("Done.\n");
     
     kputs("Deploying kernel image (Sectors 1 to 255) directly from physical memory... ");
-    // Copy the exact running kernel segments from physical memory address 0x10000 [1]
     uint8_t* ram_kernel = (uint8_t*)0x10000;
     for (int s = 1; s <= 255; s++) {
         uint8_t* ram_offset = ram_kernel + (s - 1) * 512;
@@ -286,7 +278,6 @@ void run_installer() {
         if (bytes_to_copy > 512) bytes_to_copy = 512;
         memcpy(sector_buffer, fs_bin + (s * 512), bytes_to_copy);
         
-        // Write the final "INPS" marker onto the HDD
         if (s == 0) {
             memcpy(&((uint8_t*)sector_buffer)[508], "INPS", 4);
         }
@@ -311,9 +302,8 @@ void k_main() {
     init_ahci();
     
     HBA_Port* installed_port = NULL;
-    uint32_t sector_buffer[128]; // 512 bytes, aligned
+    uint32_t sector_buffer[128];
     
-    // Scan all detected SATA ports for an already installed OS marker
     for (int i = 0; i < active_port_count; i++) {
         HBA_Port* port = active_ports[i];
         if (ahci_read(port, DIRECTORY_SECTOR, 0, 1, (uint16_t*)sector_buffer)) {
@@ -325,15 +315,13 @@ void k_main() {
         }
     }
     
-    // Route execution logic
     if (installed_port) {
         is_installed_mode = true;
-        active_ports[1] = installed_port; // Set target drive as current working disk
+        active_ports[1] = installed_port;
     } else {
         is_installed_mode = false;
-        // On real hardware, your USB is invisible to AHCI. The only visible port is your HDD!
         if (active_port_count > 0) {
-            active_ports[1] = active_ports[0]; // Set target drive to HDD
+            active_ports[1] = active_ports[0];
         }
     }
     
