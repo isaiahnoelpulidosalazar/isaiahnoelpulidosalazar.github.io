@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-3KKEWWQ81M"></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-3KKEWWQ81M');
+        </script>
+        <meta http-equiv="X-UA-Compatible" content="IE=7">
+        <meta http-equiv="X-UA-Compatible" content="ie=edge">
+        <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="theme-color" content="#834A36">
+        <title>Women with Baskets</title>
+        <style>
+            @font-face {
+                font-family: Nunito;
+                src: url(fonts/Nunito.ttf);
+            }
+            html {
+                font-family: Nunito;
+            }
+            body {
+                background-color: #ECE8C2;
+                box-sizing: border-box;
+                margin: 0;
+            }
+            h1 {
+                text-align: center;
+            }
+            #title {
+                background-color: #834A36;
+                box-sizing: border-box;
+                color: white;
+                margin: 0 0 32px 0;
+                padding: 16px;
+                position: sticky;
+                top: 0;
+                width: 100%;
+            }
+            #title > h1, p {
+                margin: 0;
+                text-align: center;
+            }
+            #div1 {
+                display: grid;
+                grid-template-areas: "img4 img3 img1" "img6 img2 img5";
+                justify-content: center;
+            }
+            #div1 > img {
+                width: calc(600px * 0.3);
+            }
+            .img1 {
+                border-top-right-radius: 16px;
+                grid-area: img1;
+            }
+            .img2 {
+                grid-area: img2;
+            }
+            .img3 {
+                grid-area: img3;
+            }
+            .img4 {
+                border-top-left-radius: 16px;
+                grid-area: img4;
+            }
+            .img5 {
+                border-bottom-right-radius: 16px;
+                grid-area: img5;
+            }
+            .img6 {
+                border-bottom-left-radius: 16px;
+                grid-area: img6;
+            }
+            #description {
+                align-items: center;
+                display: grid;
+                grid-template-columns: 50% 50%;
+                justify-content: center;
+                justify-self: center;
+            }
+            #description > div {
+                padding: 16px;
+                width: calc(100% - 16px * 2);
+            }
+            #description > div > p {
+                text-align: justify;
+            }
+            #description > div > video {
+                border-radius: 16px;
+                margin: 16px;
+                width: calc(100% - 16px * 2);
+            }
+            @media (max-width: 1024px){
+                #description {
+                    grid-template-columns: 1fr;
+                }
+                #description > div {
+                    padding: unset;
+                    width: 540px;
+                }
+                #description > div > video {
+                    margin: 32px 0;
+                    width: 540px;
+                }
+            }
+            @media (max-width: 600px){
+                #div1 {
+                    padding: 0 5vw;
+                }
+                #div1 > img {
+                    width: 30vw;
+                }
+                #description {
+                    width: 90vw;
+                }
+                #description > div {
+                    width: 100%;
+                }
+                #description > div > video {
+                    width: 100%;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div id="title">
+            <h1>Women with Baskets</h1>
+            <p>By Anita Magsaysay-Ho</p>
+        </div>
+        <div id="div1">
+            <img src="images/Women with Baskets/1.jpg" alt="Women with Baskets 1" class="img1">
+            <img src="images/Women with Baskets/2.jpg" alt="Women with Baskets 2" class="img2">
+            <img src="images/Women with Baskets/3.jpg" alt="Women with Baskets 3" class="img3">
+            <img src="images/Women with Baskets/4.jpg" alt="Women with Baskets 4" class="img4">
+            <img src="images/Women with Baskets/5.jpg" alt="Women with Baskets 5" class="img5">
+            <img src="images/Women with Baskets/6.jpg" alt="Women with Baskets 6" class="img6">
+        </div>
+        <div id="description">
+            <div>
+                <h1>Anita Magsaysay-Ho</h1>
+                <p>A Filipina painter who specialized in Social Realism and post-Cubism in regard 
+                    to women in Filipino culture. Magsaysay-Ho's work appeals to Modernism by utilizing 
+                    more abstract designs and styles rather than realistic approaches. She was the only 
+                    female member of the "Thirteen Moderns," a standing group of Filipino modernist 
+                    artists, and in 1958 was chosen by a panel of experts as one of the six major 
+                    painters of the country's history. The most famous work of Magsaysay-Ho are subject 
+                    to the beauty of Filipino women dealing with everyday issues. Collections of her 
+                    artwork can be found in museums around the Philippines.</p>
+            </div>
+            <div>
+                <video controls>
+                    <source src="videos/Anita.mp4">
+                </video>
+            </div>
+        </div>
+    </body>
+</html>
