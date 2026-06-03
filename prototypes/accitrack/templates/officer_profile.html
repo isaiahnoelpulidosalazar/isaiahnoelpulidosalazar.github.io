@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Profile — AcciTrack{% endblock %}
+{% block head %}{% include '_dashboard_styles.html' %}{% endblock %}
+
+{% block body %}
+<div class="app-layout">
+  {% include '_sidebar.html' %}
+  <div class="main-content">
+    <div class="topbar">
+      <div class="topbar-left">
+        <div class="topbar-greeting">My Profile</div>
+        <div class="topbar-date">Manage your account information</div>
+      </div>
+    </div>
+    <div class="page-body" style="max-width:600px;">
+      <div class="card-box">
+        <div class="card-box-header"><div class="card-box-title">Account Information</div></div>
+        <div style="padding:24px;">
+          <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px;padding-bottom:24px;border-bottom:1px solid var(--navy-border);">
+            <div style="width:56px;height:56px;background:linear-gradient(135deg,var(--accent),#1565c0);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:#fff;">
+              {{ user.first_name[0] }}{{ user.last_name[0] }}
+            </div>
+            <div>
+              <div style="font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;">{{ user.first_name }} {{ user.middle_name or '' }} {{ user.last_name }}</div>
+              <div style="font-size:12px;color:var(--text-muted);">{{ user.badge_number }} · {{ 'Administrator' if user.role == 'admin' else 'Officer' }}</div>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+            <div class="form-group" style="margin:0">
+              <label>First Name</label>
+              <input type="text" name="first_name" class="form-control pf" value="{{ user.first_name }}"/>
+            </div>
+            <div class="form-group" style="margin:0">
+              <label>Last Name</label>
+              <input type="text" name="last_name" class="form-control pf" value="{{ user.last_name }}"/>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Middle Name</label>
+            <input type="text" name="middle_name" class="form-control pf" value="{{ user.middle_name or '' }}"/>
+          </div>
+          <div class="form-group">
+            <label>Badge Number</label>
+            <input type="text" class="form-control" value="{{ user.badge_number }}" disabled style="opacity:0.5;"/>
+          </div>
+          <div class="form-group">
+            <label>Contact Number</label>
+            <input type="text" name="contact" class="form-control pf" value="{{ user.contact or '' }}" placeholder="09XXXXXXXXX"/>
+          </div>
+          <div class="form-group">
+            <label>New Password</label>
+            <input type="password" name="new_password" class="form-control pf" placeholder="Leave blank to keep current password"/>
+          </div>
+          <button class="btn btn-primary" onclick="saveProfile()" style="width:100%;">Save Changes</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function saveProfile() {
+  const fd = new FormData();
+  document.querySelectorAll('.pf').forEach(f => { if (f.name) fd.append(f.name, f.value); });
+  fetch('/officer/profile', { method: 'POST', body: fd })
+    .then(r => r.json()).then(d => { showToast(d.success ? d.message : d.message, d.success ? 'success' : 'error'); });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,260 @@
+{% extends "base.html" %}
+{% block title %}Home — AcciTrack{% endblock %}
+{% block head %}{% include '_dashboard_styles.html' %}{% endblock %}
+
+{% block body %}
+<div class="app-layout">
+  {% include '_sidebar.html' %}
+
+  <div class="main-content">
+    <div class="topbar">
+      <div class="topbar-left">
+        <div class="topbar-greeting">{{ greeting }}, Officer {{ user.first_name }}</div>
+        <div class="topbar-date">{{ today_str }}</div>
+      </div>
+      <div class="topbar-right">
+        <div class="dropdown-wrapper">
+          <button class="dropdown-btn" onclick="toggleDropdown('mainDrop')">
+            <div style="width:28px;height:28px;background:linear-gradient(135deg,var(--accent),#1565c0);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;">
+              {{ user.first_name[0] }}{{ user.last_name[0] }}
+            </div>
+            {{ user.first_name }} {{ user.last_name }}
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="dropdown-menu" id="mainDrop">
+            <a href="#" onclick="openModal('profileModal'); closeDropdown('mainDrop')">
+              <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              Edit Profile
+            </a>
+            <div class="divider"></div>
+            <a href="/logout" class="logout">
+              <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              Sign Out
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-body">
+      <!-- Stat Cards -->
+      <div class="stat-cards">
+        <div class="stat-card blue">
+          <div class="stat-card-label">Recent Incidents Today</div>
+          <div class="stat-card-value">{{ stats.recent_incidents }}</div>
+          <div class="stat-card-diff {% if stats.incidents_diff > 0 %}diff-up{% elif stats.incidents_diff < 0 %}diff-down{% else %}diff-zero{% endif %}">
+            {% if stats.incidents_diff > 0 %}▲ +{{ stats.incidents_diff }} from yesterday
+            {% elif stats.incidents_diff < 0 %}▼ {{ stats.incidents_diff }} from yesterday
+            {% else %}— Same as yesterday{% endif %}
+          </div>
+        </div>
+        <div class="stat-card green">
+          <div class="stat-card-label">Incidents Resolved Today</div>
+          <div class="stat-card-value">{{ stats.resolved_today }}</div>
+          <div class="stat-card-diff diff-zero">Cases approved &amp; active</div>
+        </div>
+        <div class="stat-card gold">
+          <div class="stat-card-label">Personnel Online</div>
+          <div class="stat-card-value">{{ stats.online_personnel }}</div>
+          <div class="stat-card-diff diff-zero">Officers currently active</div>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="quick-actions" style="margin-bottom:24px;">
+        <button class="quick-btn primary" onclick="openModal('newReportModal')">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          New Report
+        </button>
+        <a href="/officer/notifications" class="quick-btn">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          View Notifications
+        </a>
+      </div>
+
+      <!-- Home Grid -->
+      <div class="home-grid">
+        <div class="card-box">
+          <div class="card-box-header">
+            <div class="card-box-title">Active Cases</div>
+            <a href="/officer/reports" style="font-size:12px;color:var(--accent)">View All →</a>
+          </div>
+          <div class="card-box-body">
+            {% if active_cases %}
+              {% for r in active_cases %}
+              <div class="report-row">
+                <div class="report-dot" style="background:var(--success)"></div>
+                <div class="report-info">
+                  <div class="report-type">{{ r.accident_type }}</div>
+                  <div class="report-meta">📍 {{ r.location }} &nbsp;·&nbsp; {{ r.submitted_at[:10] }}</div>
+                </div>
+                <span class="badge-status badge-approved"><span class="dot dot-approved"></span>Active</span>
+              </div>
+              {% endfor %}
+            {% else %}
+              <div class="empty-state"><div class="icon">📋</div><p>No active cases yet.</p></div>
+            {% endif %}
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:16px;">
+          <div class="card-box">
+            <div class="card-box-header"><div class="card-box-title">Your Stats</div></div>
+            <div style="padding:16px 20px;display:flex;flex-direction:column;gap:12px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;">
+                <span style="color:var(--text-secondary)">Reports Submitted</span>
+                <span style="font-weight:700;color:var(--text-primary)">{{ stats.recent_incidents }}</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;">
+                <span style="color:var(--text-secondary)">Pending Review</span>
+                <span style="font-weight:700;color:var(--warning)">{{ stats.pending_count }}</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;">
+                <span style="color:var(--text-secondary)">Resolved Today</span>
+                <span style="font-weight:700;color:var(--success)">{{ stats.resolved_today }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card-box">
+            <div class="card-box-header"><div class="card-box-title">Quick Links</div></div>
+            <div style="padding:12px;">
+              <a href="/officer/reports" style="display:flex;align-items:center;gap:10px;padding:10px 10px;border-radius:8px;font-size:13px;color:var(--text-secondary);transition:all 0.15s;" onmouseover="this.style.background='var(--navy-light)';this.style.color='var(--text-primary)'" onmouseout="this.style.background='';this.style.color='var(--text-secondary)'">
+                <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                My Reports
+              </a>
+              <a href="/officer/notifications" style="display:flex;align-items:center;gap:10px;padding:10px 10px;border-radius:8px;font-size:13px;color:var(--text-secondary);transition:all 0.15s;" onmouseover="this.style.background='var(--navy-light)';this.style.color='var(--text-primary)'" onmouseout="this.style.background='';this.style.color='var(--text-secondary)'">
+                <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                Notifications
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- New Report Modal -->
+<div class="modal-overlay" id="newReportModal">
+  <div class="modal-box">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <div>
+        <h3 style="font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;">New Accident Report</h3>
+        <p style="font-size:12px;color:var(--text-muted);margin-top:3px;">Submit a new incident report for review</p>
+      </div>
+      <button onclick="closeModal('newReportModal')" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;">✕</button>
+    </div>
+    <div class="form-group">
+      <label>Location</label>
+      <input type="text" id="rLocation" class="form-control" placeholder="e.g. EDSA corner Ortigas Ave, Pasig City"/>
+    </div>
+    <div class="form-group">
+      <label>Type of Accident</label>
+      <select id="rType" class="form-control">
+        <option value="">Select accident type...</option>
+        {% for t in [] %}{% endfor %}
+        <option>Minor Traffic Accident - Property Damage only</option>
+        <option>Reckless Driving - Dangerous Operation</option>
+        <option>DUI/DWI - Impaired Driver</option>
+        <option>Hit and Run - Fleeing Suspect</option>
+        <option>Multi-vehicle Pileup - 3+ Vehicles</option>
+        <option>Reckless Imprudence Resulting in Homicide - Fatal Negligence</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Evidence (Optional — Photo or Video)</label>
+      <input type="file" id="rEvidence" class="form-control" accept="image/*,video/*"/>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px;">
+      <button class="btn btn-ghost" onclick="closeModal('newReportModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitReport()">Submit Report</button>
+    </div>
+  </div>
+</div>
+
+<!-- Profile Modal -->
+<div class="modal-overlay" id="profileModal">
+  <div class="modal-box">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <h3 style="font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;">Edit Profile</h3>
+      <button onclick="closeModal('profileModal')" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;">✕</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="form-group">
+        <label>First Name</label>
+        <input type="text" name="first_name" class="form-control profile-field" value="{{ user.first_name }}"/>
+      </div>
+      <div class="form-group">
+        <label>Last Name</label>
+        <input type="text" name="last_name" class="form-control profile-field" value="{{ user.last_name }}"/>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Middle Name</label>
+      <input type="text" name="middle_name" class="form-control profile-field" value="{{ user.middle_name or '' }}"/>
+    </div>
+    <div class="form-group">
+      <label>Badge Number</label>
+      <input type="text" class="form-control" value="{{ user.badge_number }}" disabled style="opacity:0.5;"/>
+    </div>
+    <div class="form-group">
+      <label>Contact Number</label>
+      <input type="text" name="contact" class="form-control profile-field" value="{{ user.contact or '' }}" placeholder="e.g. 09171234567"/>
+    </div>
+    <div class="form-group">
+      <label>New Password (leave blank to keep current)</label>
+      <input type="password" name="new_password" class="form-control profile-field" placeholder="New password..."/>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px;">
+      <button class="btn btn-ghost" onclick="closeModal('profileModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveProfile()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleDropdown(id) {
+  document.getElementById(id).classList.toggle('open');
+}
+function closeDropdown(id) {
+  document.getElementById(id).classList.remove('open');
+}
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.dropdown-wrapper')) {
+    document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('open'));
+  }
+});
+
+function submitReport() {
+  const location = document.getElementById('rLocation').value.trim();
+  const type = document.getElementById('rType').value;
+  if (!location || !type) { showToast('Please fill in all required fields.', 'error'); return; }
+
+  const fd = new FormData();
+  fd.append('location', location);
+  fd.append('accident_type', type);
+  const ev = document.getElementById('rEvidence').files[0];
+  if (ev) fd.append('evidence', ev);
+
+  fetch('/officer/reports', { method: 'POST', body: fd })
+    .then(r => r.json()).then(d => {
+      if (d.success) { showToast(d.message); closeModal('newReportModal'); setTimeout(() => location.reload(), 1500); }
+      else showToast(d.message, 'error');
+    });
+}
+
+function saveProfile() {
+  const fd = new FormData();
+  document.querySelectorAll('.profile-field').forEach(f => { if (f.name) fd.append(f.name, f.value); });
+  fetch('/officer/profile', { method: 'POST', body: fd })
+    .then(r => r.json()).then(d => {
+      if (d.success) { showToast(d.message); closeModal('profileModal'); }
+      else showToast(d.message, 'error');
+    });
+}
+</script>
+{% endblock %}

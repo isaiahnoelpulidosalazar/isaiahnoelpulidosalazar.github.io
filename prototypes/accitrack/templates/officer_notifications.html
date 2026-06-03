@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}Notifications — AcciTrack{% endblock %}
+{% block head %}{% include '_dashboard_styles.html' %}{% endblock %}
+
+{% block body %}
+<div class="app-layout">
+  {% include '_sidebar.html' %}
+  <div class="main-content">
+    <div class="topbar">
+      <div class="topbar-left">
+        <div class="topbar-greeting">Notifications</div>
+        <div class="topbar-date">Track the progress of your submitted reports</div>
+      </div>
+    </div>
+
+    <div class="page-body">
+      {% if reports %}
+        {% for r in reports %}
+        <div class="card-box" style="margin-bottom:12px;">
+          <div style="padding:18px 20px;">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;">
+              <div style="flex:1;">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+                  <span class="badge-status badge-{{ r.status }}">
+                    <span class="dot dot-{{ r.status }}"></span>
+                    {% if r.status == 'pending' %}Pending Review
+                    {% elif r.status == 'approved' %}Approved — Active Case
+                    {% elif r.status == 'declined' %}Declined — Case Dropped
+                    {% elif r.status == 'closed' %}Closed{% endif %}
+                  </span>
+                  <span style="font-size:11px;color:var(--text-muted);">Report #{{ r.id }}</span>
+                </div>
+                <div style="font-family:'Rajdhani',sans-serif;font-size:17px;font-weight:700;color:var(--text-primary);margin-bottom:4px;">{{ r.accident_type }}</div>
+                <div style="font-size:12px;color:var(--text-muted);">
+                  📍 {{ r.location }} &nbsp;·&nbsp; Submitted {{ r.submitted_at[:16] }}
+                  {% if r.reviewed_at %}&nbsp;·&nbsp; Reviewed {{ r.reviewed_at[:16] }}{% endif %}
+                </div>
+                {% if r.notes %}
+                <div style="margin-top:10px;padding:10px 14px;background:rgba(30,58,95,0.5);border-radius:8px;border-left:3px solid var(--accent);font-size:13px;color:var(--text-secondary);">
+                  <strong style="color:var(--text-primary);display:block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Admin Notes</strong>
+                  {{ r.notes }}
+                </div>
+                {% endif %}
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+                {% if r.evidence_filename %}
+                  {% if r.evidence_type == 'image' %}
+                    <a href="/uploads/{{ r.evidence_filename }}" target="_blank">
+                      <img src="/uploads/{{ r.evidence_filename }}" style="width:60px;height:60px;object-fit:cover;border-radius:8px;border:1px solid var(--navy-border);" alt="Evidence"/>
+                    </a>
+                  {% else %}
+                    <a href="/uploads/{{ r.evidence_filename }}" target="_blank" class="btn btn-ghost" style="font-size:11px;padding:6px 12px;">▶ Evidence Video</a>
+                  {% endif %}
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Progress bar -->
+            <div style="margin-top:14px;">
+              <div style="display:flex;gap:0;position:relative;">
+                <div style="flex:1;text-align:center;position:relative;">
+                  <div style="width:20px;height:20px;border-radius:50%;background:{% if r.status in ['pending','approved','declined','closed'] %}var(--accent){% else %}var(--navy-border){% endif %};margin:0 auto 4px;border:2px solid var(--navy);display:flex;align-items:center;justify-content:center;">
+                    <svg width="10" height="10" fill="none" stroke="white" stroke-width="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                  <div style="font-size:10px;color:var(--text-muted);font-weight:600;">SUBMITTED</div>
+                </div>
+                <div style="flex:1;height:2px;background:{% if r.status in ['approved','declined','closed'] %}var(--accent){% else %}var(--navy-border){% endif %};margin-top:9px;align-self:flex-start;"></div>
+                <div style="flex:1;text-align:center;">
+                  <div style="width:20px;height:20px;border-radius:50%;background:{% if r.status in ['approved','declined','closed'] %}{% if r.status == 'declined' %}var(--danger){% else %}var(--accent){% endif %}{% else %}var(--navy-border){% endif %};margin:0 auto 4px;border:2px solid var(--navy);display:flex;align-items:center;justify-content:center;">
+                    {% if r.status in ['approved','closed'] %}<svg width="10" height="10" fill="none" stroke="white" stroke-width="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                    {% elif r.status == 'declined' %}<svg width="10" height="10" fill="none" stroke="white" stroke-width="3" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    {% endif %}
+                  </div>
+                  <div style="font-size:10px;color:var(--text-muted);font-weight:600;">REVIEWED</div>
+                </div>
+                <div style="flex:1;height:2px;background:{% if r.status in ['approved','closed'] %}var(--success){% else %}var(--navy-border){% endif %};margin-top:9px;align-self:flex-start;"></div>
+                <div style="flex:1;text-align:center;">
+                  <div style="width:20px;height:20px;border-radius:50%;background:{% if r.status == 'approved' %}var(--success){% elif r.status == 'closed' %}var(--text-muted){% else %}var(--navy-border){% endif %};margin:0 auto 4px;border:2px solid var(--navy);display:flex;align-items:center;justify-content:center;">
+                    {% if r.status in ['approved','closed'] %}<svg width="10" height="10" fill="none" stroke="white" stroke-width="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>{% endif %}
+                  </div>
+                  <div style="font-size:10px;color:var(--text-muted);font-weight:600;">{{ 'CLOSED' if r.status == 'closed' else 'ACTIVE' }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="card-box"><div class="empty-state"><div class="icon">🔔</div><p>No reports to show. Submit a report to see its progress here.</p></div></div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

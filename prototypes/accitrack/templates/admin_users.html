@@ -1,0 +1,236 @@
+{% extends "base.html" %}
+{% block title %}User Management — AcciTrack{% endblock %}
+{% block head %}{% include '_dashboard_styles.html' %}{% endblock %}
+
+{% block body %}
+<div class="app-layout">
+  {% include '_sidebar.html' %}
+  <div class="main-content">
+    <div class="topbar">
+      <div class="topbar-left">
+        <div class="topbar-greeting">User Management</div>
+        <div class="topbar-date">Create and manage officer and admin accounts</div>
+      </div>
+      <div class="topbar-right">
+        <button class="btn btn-primary" onclick="openModal('createUserModal')">
+          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          New Account
+        </button>
+      </div>
+    </div>
+
+    <div class="page-body">
+      <div class="card-box">
+        <div class="card-box-header">
+          <div class="card-box-title">All Accounts</div>
+          <span style="font-size:12px;color:var(--text-muted);">{{ users|length }} total</span>
+        </div>
+        <div style="overflow-x:auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>Officer</th>
+              <th>Badge Number</th>
+              <th>Contact</th>
+              <th>Role</th>
+              <th>Status</th>
+              <th>Created</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for u in users %}
+            <tr>
+              <td>
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <div style="width:32px;height:32px;background:{% if u.role == 'admin' %}linear-gradient(135deg,var(--gold),#f57f17){% else %}linear-gradient(135deg,var(--accent),#1565c0){% endif %};border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:{% if u.role == 'admin' %}#000{% else %}#fff{% endif %};flex-shrink:0;">
+                    {{ u.first_name[0] }}{{ u.last_name[0] }}
+                  </div>
+                  <div>
+                    <div style="font-size:13px;font-weight:600;">{{ u.first_name }} {{ u.middle_name or '' }} {{ u.last_name }}</div>
+                    <div style="font-size:11px;color:var(--text-muted);">@{{ u.username }}</div>
+                  </div>
+                </div>
+              </td>
+              <td style="font-size:13px;font-family:'Rajdhani',sans-serif;font-weight:600;">{{ u.badge_number }}</td>
+              <td style="font-size:13px;color:var(--text-secondary);">{{ u.contact or '—' }}</td>
+              <td>
+                <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;{% if u.role == 'admin' %}background:rgba(255,193,7,0.12);color:var(--gold);border:1px solid rgba(255,193,7,0.25);{% else %}background:rgba(41,121,255,0.1);color:var(--accent-light);border:1px solid rgba(41,121,255,0.2);{% endif %}">
+                  {{ 'Admin' if u.role == 'admin' else 'Officer' }}
+                </span>
+              </td>
+              <td>
+                <span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;{% if u.is_online %}color:var(--success);{% else %}color:var(--text-muted);{% endif %}">
+                  <span style="width:7px;height:7px;border-radius:50%;background:{% if u.is_online %}var(--success){% else %}var(--navy-border){% endif %};"></span>
+                  {{ 'Online' if u.is_online else 'Offline' }}
+                </span>
+              </td>
+              <td style="font-size:12px;color:var(--text-muted);">{{ u.created_at[:10] }}</td>
+              <td>
+                <div style="display:flex;gap:6px;">
+                  <button class="btn btn-ghost" style="padding:5px 12px;font-size:11px;" onclick="openEditModal({{ u.id }}, '{{ u.first_name }}', '{{ u.last_name }}', '{{ u.middle_name or '' }}', '{{ u.contact or '' }}')">Edit</button>
+                  {% if u.id != user.id %}
+                  <button class="btn btn-danger" style="padding:5px 12px;font-size:11px;" onclick="deleteUser({{ u.id }}, '{{ u.first_name }} {{ u.last_name }}')">Delete</button>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Create User Modal -->
+<div class="modal-overlay" id="createUserModal">
+  <div class="modal-box">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <div>
+        <h3 style="font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;">Create New Account</h3>
+        <p style="font-size:12px;color:var(--text-muted);margin-top:3px;">Add a new officer or admin to the system</p>
+      </div>
+      <button onclick="closeModal('createUserModal')" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;">✕</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="form-group" style="margin:0 0 12px;">
+        <label>First Name *</label>
+        <input type="text" id="cu_first" class="form-control" placeholder="First name"/>
+      </div>
+      <div class="form-group" style="margin:0 0 12px;">
+        <label>Last Name *</label>
+        <input type="text" id="cu_last" class="form-control" placeholder="Last name"/>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Middle Name</label>
+      <input type="text" id="cu_middle" class="form-control" placeholder="Middle name (optional)"/>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="form-group" style="margin:0 0 12px;">
+        <label>Username *</label>
+        <input type="text" id="cu_user" class="form-control" placeholder="Login username"/>
+      </div>
+      <div class="form-group" style="margin:0 0 12px;">
+        <label>Badge Number *</label>
+        <input type="text" id="cu_badge" class="form-control" placeholder="PNP-XXXXX"/>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Contact</label>
+      <input type="text" id="cu_contact" class="form-control" placeholder="09XXXXXXXXX"/>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="form-group" style="margin:0 0 12px;">
+        <label>Password *</label>
+        <input type="password" id="cu_pass" class="form-control" placeholder="Set password"/>
+      </div>
+      <div class="form-group" style="margin:0 0 12px;">
+        <label>Role *</label>
+        <select id="cu_role" class="form-control">
+          <option value="officer">Officer</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px;">
+      <button class="btn btn-ghost" onclick="closeModal('createUserModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="createUser()">Create Account</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit User Modal -->
+<div class="modal-overlay" id="editUserModal">
+  <div class="modal-box">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <h3 style="font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;">Edit Account</h3>
+      <button onclick="closeModal('editUserModal')" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;">✕</button>
+    </div>
+    <input type="hidden" id="eu_id"/>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="form-group" style="margin:0 0 12px;">
+        <label>First Name</label>
+        <input type="text" id="eu_first" class="form-control"/>
+      </div>
+      <div class="form-group" style="margin:0 0 12px;">
+        <label>Last Name</label>
+        <input type="text" id="eu_last" class="form-control"/>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Middle Name</label>
+      <input type="text" id="eu_middle" class="form-control"/>
+    </div>
+    <div class="form-group">
+      <label>Contact</label>
+      <input type="text" id="eu_contact" class="form-control"/>
+    </div>
+    <div class="form-group">
+      <label>New Password (leave blank to keep current)</label>
+      <input type="password" id="eu_pass" class="form-control" placeholder="New password..."/>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px;">
+      <button class="btn btn-ghost" onclick="closeModal('editUserModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="updateUser()">Save Changes</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function createUser() {
+  const fd = new FormData();
+  fd.append('first_name', document.getElementById('cu_first').value);
+  fd.append('last_name', document.getElementById('cu_last').value);
+  fd.append('middle_name', document.getElementById('cu_middle').value);
+  fd.append('username', document.getElementById('cu_user').value);
+  fd.append('badge_number', document.getElementById('cu_badge').value);
+  fd.append('contact', document.getElementById('cu_contact').value);
+  fd.append('password', document.getElementById('cu_pass').value);
+  fd.append('role', document.getElementById('cu_role').value);
+  fetch('/admin/users/create', { method: 'POST', body: fd })
+    .then(r => r.json()).then(d => {
+      if (d.success) { showToast(d.message); closeModal('createUserModal'); setTimeout(() => window.location.reload(), 1200); }
+      else showToast(d.message, 'error');
+    });
+}
+
+function openEditModal(id, first, last, middle, contact) {
+  document.getElementById('eu_id').value = id;
+  document.getElementById('eu_first').value = first;
+  document.getElementById('eu_last').value = last;
+  document.getElementById('eu_middle').value = middle;
+  document.getElementById('eu_contact').value = contact;
+  document.getElementById('eu_pass').value = '';
+  openModal('editUserModal');
+}
+
+function updateUser() {
+  const id = document.getElementById('eu_id').value;
+  const fd = new FormData();
+  fd.append('first_name', document.getElementById('eu_first').value);
+  fd.append('last_name', document.getElementById('eu_last').value);
+  fd.append('middle_name', document.getElementById('eu_middle').value);
+  fd.append('contact', document.getElementById('eu_contact').value);
+  fd.append('new_password', document.getElementById('eu_pass').value);
+  fetch(`/admin/users/${id}/update`, { method: 'POST', body: fd })
+    .then(r => r.json()).then(d => {
+      if (d.success) { showToast(d.message); closeModal('editUserModal'); setTimeout(() => window.location.reload(), 1200); }
+      else showToast(d.message, 'error');
+    });
+}
+
+function deleteUser(id, name) {
+  if (!confirm(`Delete account for ${name}? This cannot be undone.`)) return;
+  fetch(`/admin/users/${id}/delete`, { method: 'POST' })
+    .then(r => r.json()).then(d => {
+      if (d.success) { showToast(d.message); setTimeout(() => window.location.reload(), 1200); }
+      else showToast(d.message, 'error');
+    });
+}
+</script>
+{% endblock %}

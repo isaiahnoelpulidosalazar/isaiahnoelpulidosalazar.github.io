@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Admin Notifications — AcciTrack{% endblock %}
+{% block head %}{% include '_dashboard_styles.html' %}{% endblock %}
+
+{% block body %}
+<div class="app-layout">
+  {% include '_sidebar.html' %}
+  <div class="main-content">
+    <div class="topbar">
+      <div class="topbar-left">
+        <div class="topbar-greeting">Notifications</div>
+        <div class="topbar-date">All report activity across the system</div>
+      </div>
+    </div>
+
+    <div class="page-body">
+      {% if reports %}
+        {% for r in reports %}
+        <div class="card-box" style="margin-bottom:12px;">
+          <div style="padding:18px 20px;">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;">
+              <div style="flex:1;">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap;">
+                  <span class="badge-status badge-{{ r.status }}">
+                    <span class="dot dot-{{ r.status }}"></span>
+                    {% if r.status == 'pending' %}Pending Review
+                    {% elif r.status == 'approved' %}Approved — Active
+                    {% elif r.status == 'declined' %}Declined
+                    {% elif r.status == 'closed' %}Closed{% endif %}
+                  </span>
+                  <span style="font-size:11px;color:var(--text-muted);">Report #{{ r.id }}</span>
+                  <span style="font-size:11px;font-weight:600;color:var(--accent-light);">{{ r.first_name }} {{ r.last_name }} ({{ r.badge_number }})</span>
+                </div>
+                <div style="font-family:'Rajdhani',sans-serif;font-size:17px;font-weight:700;color:var(--text-primary);margin-bottom:4px;">{{ r.accident_type }}</div>
+                <div style="font-size:12px;color:var(--text-muted);">
+                  📍 {{ r.location }} &nbsp;·&nbsp; {{ r.submitted_at[:16] }}
+                  {% if r.reviewed_at %}&nbsp;·&nbsp; Reviewed {{ r.reviewed_at[:16] }}{% endif %}
+                </div>
+                {% if r.notes %}
+                <div style="margin-top:10px;padding:10px 14px;background:rgba(30,58,95,0.5);border-radius:8px;border-left:3px solid var(--accent);font-size:13px;color:var(--text-secondary);">
+                  <strong style="color:var(--text-primary);display:block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Review Notes</strong>
+                  {{ r.notes }}
+                </div>
+                {% endif %}
+              </div>
+              <div>
+                {% if r.status == 'pending' %}
+                  <div style="display:flex;gap:6px;">
+                    <button class="btn btn-success" style="padding:5px 14px;font-size:12px;" onclick="quickAction({{ r.id }}, 'approve')">Approve</button>
+                    <button class="btn btn-danger" style="padding:5px 14px;font-size:12px;" onclick="quickAction({{ r.id }}, 'decline')">Decline</button>
+                  </div>
+                {% elif r.status == 'approved' %}
+                  <button class="btn btn-ghost" style="padding:5px 14px;font-size:12px;" onclick="quickAction({{ r.id }}, 'close')">Close Case</button>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="card-box"><div class="empty-state"><div class="icon">🔔</div><p>No notifications at this time.</p></div></div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function quickAction(id, action) {
+  const fd = new FormData();
+  fd.append('action', action);
+  fd.append('notes', '');
+  fetch(`/admin/report/${id}/action`, { method: 'POST', body: fd })
+    .then(r => r.json()).then(d => {
+      if (d.success) { showToast(d.message); setTimeout(() => window.location.reload(), 1200); }
+      else showToast(d.message, 'error');
+    });
+}
+</script>
+{% endblock %}

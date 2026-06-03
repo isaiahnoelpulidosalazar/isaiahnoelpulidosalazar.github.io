@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block title %}AcciTrack — Login{% endblock %}
+
+{% block head %}
+<style>
+  body { background: var(--navy); display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+  .login-bg {
+    position: fixed; inset: 0; z-index: 0;
+    background:
+      radial-gradient(ellipse 80% 60% at 20% 80%, rgba(41,121,255,0.07) 0%, transparent 70%),
+      radial-gradient(ellipse 60% 50% at 80% 20%, rgba(41,121,255,0.05) 0%, transparent 60%);
+  }
+  .grid-overlay {
+    position: fixed; inset: 0; z-index: 0;
+    background-image: linear-gradient(rgba(30,58,95,0.3) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(30,58,95,0.3) 1px, transparent 1px);
+    background-size: 40px 40px;
+    mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 30%, transparent 100%);
+  }
+  .login-wrap { position: relative; z-index: 1; width: 100%; max-width: 420px; padding: 20px; }
+  .brand { text-align: center; margin-bottom: 32px; }
+  .brand-icon {
+    width: 64px; height: 64px; background: rgba(41,121,255,0.1); border: 1px solid var(--navy-border);
+    border-radius: 16px; display: flex; align-items: center; justify-content: center; margin: 0 auto 14px;
+    box-shadow: 0 0 40px rgba(41,121,255,0.15);
+  }
+  .brand-name { font-family: 'Rajdhani', sans-serif; font-size: 32px; font-weight: 700; color: var(--text-primary); letter-spacing: 1px; }
+  .brand-tagline { font-size: 12px; color: var(--text-muted); margin-top: 4px; letter-spacing: 0.5px; text-transform: uppercase; }
+  .login-card {
+    background: var(--navy-mid); border: 1px solid var(--navy-border); border-radius: 18px; padding: 32px;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+  }
+  .login-header { margin-bottom: 24px; }
+  .login-title { font-family: 'Rajdhani', sans-serif; font-size: 22px; font-weight: 700; color: var(--text-primary); }
+  .login-subtitle { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+  .error-box {
+    background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 8px;
+    padding: 11px 14px; font-size: 13px; color: var(--danger); margin-bottom: 18px; display: flex; align-items: center; gap: 8px;
+  }
+  .login-btn {
+    width: 100%; padding: 13px; background: var(--accent); color: #fff; border: none; border-radius: 10px;
+    font-size: 14px; font-weight: 700; font-family: 'Rajdhani', sans-serif; letter-spacing: 1px;
+    cursor: pointer; margin-top: 8px; transition: all 0.2s;
+  }
+  .login-btn:hover { background: var(--accent-light); box-shadow: 0 8px 24px rgba(41,121,255,0.4); transform: translateY(-1px); }
+  .login-footer { text-align: center; margin-top: 20px; font-size: 11px; color: var(--text-muted); }
+  .badge-row { display: flex; align-items: center; gap: 8px; }
+  .badge-prefix {
+    background: var(--navy); border: 1px solid var(--navy-border); border-radius: 8px;
+    padding: 10px 12px; font-size: 12px; color: var(--text-muted); white-space: nowrap;
+  }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="login-bg"></div>
+<div class="grid-overlay"></div>
+
+<div class="login-wrap">
+  <div class="brand">
+    <div class="brand-icon">
+      <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+        <polygon points="16,3 29,27 3,27" fill="none" stroke="#2979ff" stroke-width="2.5" stroke-linejoin="round"/>
+        <line x1="16" y1="11" x2="16" y2="20" stroke="#2979ff" stroke-width="2.5" stroke-linecap="round"/>
+        <circle cx="16" cy="23.5" r="1.8" fill="#2979ff"/>
+      </svg>
+    </div>
+    <div class="brand-name">AcciTrack</div>
+    <div class="brand-tagline">Accident Tracking System</div>
+  </div>
+
+  <div class="login-card">
+    <div class="login-header">
+      <div class="login-title">Officer Sign In</div>
+      <div class="login-subtitle">Enter your credentials to access the portal</div>
+    </div>
+
+    {% if error %}
+    <div class="error-box">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+      {{ error }}
+    </div>
+    {% endif %}
+
+    <form method="POST">
+      <div class="form-group">
+        <label>Username</label>
+        <input type="text" name="username" class="form-control" placeholder="Enter your username" required autocomplete="username"/>
+      </div>
+      <div class="form-group">
+        <label>Badge Number</label>
+        <input type="text" name="badge_number" class="form-control" placeholder="e.g. PNP-12345" required autocomplete="off"/>
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" name="password" class="form-control" placeholder="Enter your password" required autocomplete="current-password"/>
+      </div>
+      <button type="submit" class="login-btn">SIGN IN TO PORTAL</button>
+    </form>
+  </div>
+
+  <div class="login-footer">
+    AcciTrack &copy; {{ 2024 }} &mdash; Philippine National Police &mdash; For authorized personnel only
+  </div>
+</div>
+{% endblock %}

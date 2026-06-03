@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+{% block title %}Admin Reports — AcciTrack{% endblock %}
+{% block head %}{% include '_dashboard_styles.html' %}
+<style>
+  .filter-bar { display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap; }
+  .filter-chip {
+    padding:5px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:none;
+    background:var(--navy-mid);color:var(--text-secondary);border:1px solid var(--navy-border);transition:all 0.15s;
+  }
+  .filter-chip.active { background:var(--accent);color:#fff;border-color:var(--accent); }
+  .filter-chip:hover:not(.active) { background:var(--navy-light);color:var(--text-primary); }
+  .action-btns { display:flex;gap:6px; }
+  .type-badge { display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;background:rgba(41,121,255,0.1);color:var(--accent-light);border:1px solid rgba(41,121,255,0.2); }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="app-layout">
+  {% include '_sidebar.html' %}
+  <div class="main-content">
+    <div class="topbar">
+      <div class="topbar-left">
+        <div class="topbar-greeting">All Reports</div>
+        <div class="topbar-date">Review and manage incident reports from all officers</div>
+      </div>
+    </div>
+    <div class="page-body">
+      <div class="filter-bar">
+        <button class="filter-chip active" data-filter="all" onclick="filterReports(this,'all')">All ({{ reports|length }})</button>
+        <button class="filter-chip" data-filter="pending" onclick="filterReports(this,'pending')">Pending</button>
+        <button class="filter-chip" data-filter="approved" onclick="filterReports(this,'approved')">Approved</button>
+        <button class="filter-chip" data-filter="declined" onclick="filterReports(this,'declined')">Declined</button>
+        <button class="filter-chip" data-filter="closed" onclick="filterReports(this,'closed')">Closed</button>
+      </div>
+
+      <div class="card-box">
+        {% if reports %}
+        <div style="overflow-x:auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Officer</th>
+              <th>Submitted</th>
+              <th>Accident Type</th>
+              <th>Location</th>
+              <th>Evidence</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="reportsTableBody">
+            {% for r in reports %}
+            <tr class="report-row-tr" data-status="{{ r.status }}">
+              <td style="color:var(--text-muted);font-size:12px;">{{ r.id }}</td>
+              <td>
+                <div style="font-size:13px;font-weight:600;">{{ r.first_name }} {{ r.last_name }}</div>
+                <div style="font-size:11px;color:var(--text-muted);">{{ r.badge_number }}</div>
+              </td>
+              <td style="font-size:12px;color:var(--text-muted);">{{ r.submitted_at[:16] }}</td>
+              <td>
+                <span class="type-badge">{{ r.accident_type.split(' - ')[0] }}</span>
+                <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">{{ r.accident_type.split(' - ')[1] if ' - ' in r.accident_type else '' }}</div>
+              </td>
+              <td style="font-size:13px;max-width:180px;">{{ r.location }}</td>
+              <td>
+                {% if r.evidence_filename %}
+                  {% if r.evidence_type == 'image' %}
+                    <a href="/uploads/{{ r.evidence_filename }}" target="_blank">
+                      <img src="/uploads/{{ r.evidence_filename }}" style="width:36px;height:36px;object-fit:cover;border-radius:6px;border:1px solid var(--navy-border);" alt="Evidence"/>
+                    </a>
+                  {% else %}
+                    <a href="/uploads/{{ r.evidence_filename }}" target="_blank" class="btn btn-ghost" style="padding:4px 10px;font-size:11px;">▶ Video</a>
+                  {% endif %}
+                {% else %}
+                  <span style="color:var(--text-muted);font-size:12px;">None</span>
+                {% endif %}
+              </td>
+              <td>
+                <span class="badge-status badge-{{ r.status }}">
+                  <span class="dot dot-{{ r.status }}"></span>{{ r.status|capitalize }}
+                </span>
+              </td>
+              <td>
+                <div class="action-btns">
+                  {% if r.status == 'pending' %}
+                    <button class="btn btn-success" style="padding:5px 12px;font-size:11px;" onclick="reviewReport({{ r.id }}, 'approve')">Approve</button>
+                    <button class="btn btn-danger" style="padding:5px 12px;font-size:11px;" onclick="reviewReport({{ r.id }}, 'decline')">Decline</button>
+                  {% elif r.status == 'approved' %}
+                    <button class="btn btn-ghost" style="padding:5px 12px;font-size:11px;" onclick="reviewReport({{ r.id }}, 'close')">Close Case</button>
+                  {% else %}
+                    <span style="font-size:11px;color:var(--text-muted);">No action</span>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        </div>
+        {% else %}
+          <div class="empty-state"><div class="icon">📋</div><p>No reports found.</p></div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Review Modal -->
+<div class="modal-overlay" id="reviewModal">
+  <div class="modal-box">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <h3 style="font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;" id="reviewModalTitle">Review Report</h3>
+      <button onclick="closeModal('reviewModal')" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;">✕</button>
+    </div>
+    <p id="reviewModalDesc" style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;"></p>
+    <input type="hidden" id="reviewReportId"/>
+    <input type="hidden" id="reviewAction"/>
+    <div class="form-group">
+      <label>Notes (Optional)</label>
+      <textarea id="reviewNotes" class="form-control" rows="3" placeholder="Add a note for the officer..."></textarea>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;">
+      <button class="btn btn-ghost" onclick="closeModal('reviewModal')">Cancel</button>
+      <button class="btn btn-primary" id="reviewConfirmBtn" onclick="confirmReview()">Confirm</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function filterReports(btn, status) {
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.report-row-tr').forEach(row => {
+    if (status === 'all' || row.dataset.status === status) {
+      row.style.display = '';
+    } else {
+      row.style.display = 'none';
+    }
+  });
+}
+
+function reviewReport(id, action) {
+  document.getElementById('reviewReportId').value = id;
+  document.getElementById('reviewAction').value = action;
+  document.getElementById('reviewNotes').value = '';
+  const titles = { approve: 'Approve Report', decline: 'Decline Report', close: 'Close Case' };
+  const descs = {
+    approve: 'This report will be approved and become an active case.',
+    decline: 'This report will be declined and the case will be dropped.',
+    close: 'This active case will be closed.'
+  };
+  document.getElementById('reviewModalTitle').textContent = titles[action];
+  document.getElementById('reviewModalDesc').textContent = descs[action];
+  const btnColors = { approve: 'var(--success)', decline: 'var(--danger)', close: 'var(--text-muted)' };
+  const confirmBtn = document.getElementById('reviewConfirmBtn');
+  confirmBtn.style.background = btnColors[action];
+  confirmBtn.textContent = titles[action];
+  openModal('reviewModal');
+}
+
+function confirmReview() {
+  const id = document.getElementById('reviewReportId').value;
+  const action = document.getElementById('reviewAction').value;
+  const notes = document.getElementById('reviewNotes').value;
+  const fd = new FormData();
+  fd.append('action', action);
+  fd.append('notes', notes);
+  fetch(`/admin/report/${id}/action`, { method: 'POST', body: fd })
+    .then(r => r.json()).then(d => {
+      if (d.success) { showToast(d.message); closeModal('reviewModal'); setTimeout(() => window.location.reload(), 1200); }
+      else showToast(d.message, 'error');
+    });
+}
+</script>
+{% endblock %}
