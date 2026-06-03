@@ -324,6 +324,91 @@
     return this;
   };
 
+  function ECSidebar(title) {
+    var self = this;
+    this.element = document.createElement("div");
+    this.element.className = BASE_CLS + " display-none position-fixed top-0 left-0 height-100vh width-260px background-var(--ec-bg,_#fff) color-var(--ec-text,_#212529) borderRight-1px_solid_var(--ec-border,_#dee2e6) zIndex-900 transform-translateX(-100%) transition-transform_0.25s_ease overflowY-auto padding-20px_16px boxSizing-border-box";
+
+    this._header = document.createElement("div");
+    this._header.className = "display-flex alignItems-center justifyContent-space-between marginBottom-20px";
+
+    this._titleEl = document.createElement("h3");
+    this._titleEl.className = "fontSize-16px fontWeight-600 margin-0 color-var(--ec-text,_#212529)";
+    this._titleEl.textContent = title || "Sidebar";
+
+    this._closeBtn = document.createElement("button");
+    this._closeBtn.className = "background-none border-none fontSize-20px cursor-pointer color-var(--ec-text-muted,_#6c757d)";
+    this._closeBtn.textContent = "\u00D7";
+    this._closeBtn.addEventListener("click", function () { self.close(); });
+
+    this._header.appendChild(this._titleEl);
+    this._header.appendChild(this._closeBtn);
+
+    this._body = document.createElement("div");
+    this.element.appendChild(this._header);
+    this.element.appendChild(this._body);
+
+    applyBaseMixin(this);
+  }
+
+  ECSidebar.prototype.open = function () {
+    var el = this.element;
+    el.classList.remove("display-none");
+    el.classList.add("display-block");
+    void el.offsetHeight;
+    el.classList.remove("transform-translateX(-100%)");
+    el.classList.add("transform-translateX(0)");
+    return this;
+  };
+
+  ECSidebar.prototype.close = function () {
+    var el = this.element;
+    el.classList.remove("transform-translateX(0)");
+    el.classList.add("transform-translateX(-100%)");
+    el.addEventListener("transitionend", function handler(e) {
+      if (e.target !== el) {
+        return;
+      }
+      el.classList.remove("display-block");
+      el.classList.add("display-none");
+    },
+    {
+      once: true
+    });
+    return this;
+  };
+
+  ECSidebar.prototype.setContent = function (content) {
+    if (typeof content === "string") {
+      this._body.innerHTML = content;
+    } else {
+      this._body.innerHTML = "";
+      this._body.appendChild(content);
+    }
+    return this;
+  };
+  
+  ECSidebar.prototype.addContent = function (content) {
+    if (typeof content === "string") {
+      var s = document.createElement("span");
+      s.innerHTML = content;
+      this._body.appendChild(s);
+    } else {
+      this._body.appendChild(content);
+    }
+    return this;
+  };
+  
+  ECSidebar.prototype.setTitle = function (title) {
+    this._titleEl.textContent = title;
+    return this;
+  };
+  
+  ECSidebar.prototype.setWidth = function (width) {
+    this.element.style.width = width;
+    return this;
+  };
+
   function ECTopbar(title) {
     this.element = document.createElement("div");
     this.element.className = BASE_CLS + " position-fixed top-0 left-0 right-0 height-56px display-flex alignItems-center padding-0_20px zIndex-800 borderBottom-1px_solid_var(--ec-border,_#dee2e6) background-var(--ec-bg,_#fff)";
@@ -833,6 +918,73 @@
   ECList.prototype.clear = function () {
     this.element.innerHTML = "";
     this._items = [];
+    return this;
+  };
+
+  function ECBreadcrumbs(items, separator) {
+    this.element = document.createElement("ol");
+    this.element.className = BASE_CLS + " display-flex alignItems-center flexWrap-wrap gap-4px fontSize-14px padding-0 margin-0 listStyle-none";
+    this._sep = separator || "/";
+    this._items = [];
+
+    applyBaseMixin(this);
+
+    if (items && Array.isArray(items)) {
+      var self = this;
+      items.forEach(function (item) {
+        self.addCrumb(item.label, item.href);
+      });
+    }
+  }
+
+  ECBreadcrumbs.prototype.addCrumb = function (label, href) {
+    this._items.push({
+      label: label,
+      href: href || null
+    });
+    this._rebuild();
+    return this;
+  };
+
+  ECBreadcrumbs.prototype._rebuild = function () {
+    var self = this;
+    this.element.innerHTML = "";
+    this._items.forEach(function (crumb, i) {
+      var isLast = i === self._items.length - 1;
+      var li = document.createElement("li");
+      li.className = "display-flex alignItems-center gap-4px";
+
+      if (isLast) {
+        li.classList.add("color-var(--ec-text,_#212529)", "fontWeight-500");
+      } else {
+        li.classList.add("color-var(--ec-text-muted,_#6c757d)");
+      }
+
+      if (!isLast && crumb.href) {
+        var a = document.createElement("a");
+        a.className = "color-var(--ec-accent,_#1a73e8) textDecoration-none transition-opacity_0.15s hover:opacity-0.75";
+        a.href = crumb.href;
+        a.textContent = crumb.label;
+        li.appendChild(a);
+      } else {
+        li.appendChild(document.createTextNode(crumb.label));
+      }
+
+      self.element.appendChild(li);
+
+      if (!isLast) {
+        var sep = document.createElement("li");
+        sep.className = "color-var(--ec-text-muted,_#6c757d) fontSize-12px userSelect-none";
+        sep.setAttribute("aria-hidden", "true");
+        sep.textContent = self._sep;
+        self.element.appendChild(sep);
+      }
+    });
+  };
+
+  ECBreadcrumbs.prototype.setSeparator = function (sep) {
+    this._sep = sep;
+    this._rebuild();
     return this;
   };
 
@@ -1770,6 +1922,96 @@
     return this;
   };
 
+  function ECRating(options) {
+    options = options || {};
+    var self = this;
+    this._max      = options.max      || 5;
+    this._value    = options.value    || 0;
+    this._readonly = options.readonly || false;
+    this._showLabel = options.showLabel !== false;
+
+    this.element = document.createElement("div");
+    this.element.className = BASE_CLS + " display-inline-flex gap-4px alignItems-center";
+
+    this._stars = [];
+
+    for (var i = 1; i <= this._max; i++) {
+      (function (starVal) {
+        var star = document.createElement("span");
+        star.className = "fontSize-24px color-#dee2e6 transition-color_0.12s,_transform_0.1s lineHeight-1 userSelect-none " + (self._readonly ? "cursor-default" : "cursor-pointer");
+        star.textContent = "★";
+        star.dataset.val = starVal;
+
+        if (!self._readonly) {
+          star.addEventListener("mouseenter", function () { self._highlightTo(starVal, true); });
+          star.addEventListener("mouseleave", function () { self._highlightTo(self._value, false); });
+          star.addEventListener("click", function () {
+            self._value = self._value === starVal ? 0 : starVal;
+            self._highlightTo(self._value, false);
+            if (self._labelEl) {
+              self._labelEl.textContent = self._labelText();
+            }
+            if (self._changeHandler) {
+              self._changeHandler(self._value);
+            }
+          });
+        }
+
+        self.element.appendChild(star);
+        self._stars.push(star);
+      })(i);
+    }
+
+    if (this._showLabel) {
+      this._labelEl = document.createElement("span");
+      this._labelEl.className = "fontSize-13px color-var(--ec-text-muted,_#6c757d) marginLeft-6px";
+      this._labelEl.textContent = this._labelText();
+      this.element.appendChild(this._labelEl);
+    }
+
+    this._highlightTo(this._value, false);
+    applyBaseMixin(this);
+  }
+
+  ECRating.prototype._labelText = function () {
+    return this._value ? this._value + " / " + this._max : "Not rated";
+  };
+  
+  ECRating.prototype._highlightTo = function (val, isHover) {
+    this._stars.forEach(function (star) {
+      var sv = Number(star.dataset.val);
+      if (sv <= val) {
+        star.classList.replace("color-#dee2e6", isHover ? "color-#fbbf24" : "color-#f59e0b");
+        if (isHover) {
+          star.classList.add("transform-scale(1.15)");
+        } else {
+          star.classList.remove("transform-scale(1.15)");
+        }
+      } else {
+        star.classList.remove("color-#fbbf24", "color-#f59e0b", "transform-scale(1.15)");
+        star.classList.add("color-#dee2e6");
+      }
+    });
+  };
+
+  ECRating.prototype.getValue = function () {
+    return this._value;
+  };
+
+  ECRating.prototype.setValue = function (val) {
+    this._value = Math.min(this._max, Math.max(0, val));
+    this._highlightTo(this._value, false);
+    if (this._labelEl) {
+      this._labelEl.textContent = this._labelText();
+    }
+    return this;
+  };
+
+  ECRating.prototype.onChange = function (h) {
+    this._changeHandler = h;
+    return this;
+  };
+
   function ECBasicCard(content) {
     this.element = document.createElement("div");
     
@@ -2073,6 +2315,37 @@
     return this;
   };
 
+  function ECGrid(options) {
+    options = options || {};
+    this.element = document.createElement("div");
+    this.element.className = BASE_CLS + " display-grid width-100%";
+    
+    var cols = options.columns || "auto-fit";
+    var colTemplate = typeof cols === "number" ? `repeat(${cols},_1fr)` : `repeat(auto-fit,_minmax(250px,_1fr))`;
+    
+    this.element.classList.add("gridTemplateColumns-" + colTemplate);
+    if (options.gap) {
+      var safeGap = options.gap.replace(/\s+/g, "_");
+      this.element.classList.add("gap-" + safeGap);
+    } else {
+      this.element.classList.add("gap-16px");
+    }
+
+    applyBaseMixin(this);
+  }
+
+  ECGrid.prototype.addItem = function (elementOrHtml) {
+    var item = document.createElement("div");
+    item.className = "width-100%";
+    if (typeof elementOrHtml === "string") {
+      item.innerHTML = elementOrHtml;
+    } else {
+      item.appendChild(elementOrHtml.element || elementOrHtml);
+    }
+    this.element.appendChild(item);
+    return this;
+  };
+
   function ECBanner(text, options) {
     options = options || {};
     var self = this;
@@ -2177,6 +2450,58 @@
     clearInterval(this._interval);
   };
 
+  function ECCarousel(items) {
+    this.element = document.createElement("div");
+    this.element.className = BASE_CLS + " position-relative width-100% overflow-hidden";
+
+    this._track = document.createElement("div");
+    this._track.className = "display-flex overflowX-auto scrollSnapType-x_mandatory scrollBehavior-smooth gap-16px paddingBottom-8px width-100%";
+    this._track.style.scrollbarWidth = "none";
+
+    var self = this;
+    if (items && Array.isArray(items)) {
+      items.forEach(function (item) {
+        self.addItem(item);
+      });
+    }
+
+    this._btnPrev = this._createBtn("‹", -1);
+    this._btnNext = this._createBtn("›", 1);
+    
+    this._btnPrev.classList.add("left-8px");
+    this._btnNext.classList.add("right-8px");
+
+    this.element.appendChild(this._track);
+    this.element.appendChild(this._btnPrev);
+    this.element.appendChild(this._btnNext);
+
+    applyBaseMixin(this);
+  }
+
+  ECCarousel.prototype._createBtn = function (text, direction) {
+    var btn = document.createElement("button");
+    btn.className = "position-absolute top-50% transform-translateY(-50%) width-36px height-36px borderRadius-50% background-var(--ec-bg,_#fff) border-1px_solid_var(--ec-border,_#dee2e6) boxShadow-0_2px_8px_rgba(0,0,0,0.1) display-flex alignItems-center justifyContent-center fontSize-20px color-var(--ec-text,_#212529) cursor-pointer zIndex-10 hover:background-var(--ec-surface,_#f8f9fa) transition-background_0.2s_ease";
+    btn.textContent = text;
+    var self = this;
+    btn.addEventListener("click", function () {
+      var scrollAmount = self._track.clientWidth * 0.8;
+      self._track.scrollBy({ left: scrollAmount * direction, behavior: "smooth" });
+    });
+    return btn;
+  };
+
+  ECCarousel.prototype.addItem = function (elementOrHtml) {
+    var wrap = document.createElement("div");
+    wrap.className = "scrollSnapAlign-start flexShrink-0 width-80% maxWidth-400px";
+    if (typeof elementOrHtml === "string") {
+      wrap.innerHTML = elementOrHtml;
+    } else {
+      wrap.appendChild(elementOrHtml.element || elementOrHtml);
+    }
+    this._track.appendChild(wrap);
+    return this;
+  };
+
   function ECLightbox() {
     var self = this;
     this.element = document.createElement("div");
@@ -2226,6 +2551,68 @@
       img.src = "";
     }, { once: true });
   };
+
+  function ECAvatar(options) {
+    options = options || {};
+    this.element = document.createElement("div");
+    var size = options.size || "40px";
+    
+    this.element.className = BASE_CLS + ` width-${size} height-${size} borderRadius-50% display-flex alignItems-center justifyContent-center background-var(--ec-surface,_#f8f9fa) color-var(--ec-text,_#212529) fontWeight-600 fontSize-14px border-1px_solid_var(--ec-border,_#dee2e6) overflow-hidden flexShrink-0 position-relative`;
+
+    var initials = options.initials || "?";
+
+    if (options.src) {
+      var img = document.createElement("img");
+      img.className = "width-100% height-100% objectFit-cover";
+      img.src = options.src;
+      img.alt = options.alt || initials;
+      var self = this;
+      img.onerror = function() {
+        img.style.display = "none";
+        self.element.textContent = initials;
+      };
+      this.element.appendChild(img);
+    } else {
+      this.element.textContent = initials;
+    }
+
+    applyBaseMixin(this);
+  }
+
+  function ECIndicator(targetEl, options) {
+    options = options || {};
+    this.element = document.createElement("div");
+    this.element.className = BASE_CLS + " position-relative display-inline-block";
+
+    if (targetEl && targetEl.element) {
+      targetEl = targetEl.element;
+    }
+    if (targetEl instanceof HTMLElement) {
+      this.element.appendChild(targetEl);
+    }
+
+    this._dot = document.createElement("span");
+    this._dot.className = "position-absolute top-0 right-0 width-12px height-12px borderRadius-50% border-2px_solid_var(--ec-bg,_#fff) zIndex-10 transform-translate(30%,_-30%)";
+    
+    var color = "#1a73e8";
+    if (options.type === "online" || options.type === "success") {
+      color = "#2e7d32";
+    }
+    if (options.type === "warning") {
+      color = "#e65100";
+    }
+    if (options.type === "error" || options.type === "notification") {
+      color = "#c62828";
+    }
+    if (options.color) {
+      color = options.color;
+    }
+
+    this._dot.style.backgroundColor = color;
+    this.element.appendChild(this._dot);
+
+    applyBaseMixin(this);
+  }
 
   function ECTreeView(data) {
     this.element = document.createElement("ul");
@@ -2302,6 +2689,7 @@
   window.ECButton = ECButton;
   window.ECModal = ECModal;
   window.ECToast = ECToast;
+  window.ECSidebar = ECSidebar;
   window.ECTopbar = ECTopbar;
   window.ECRadio = ECRadio;
   window.ECToggle = ECToggle;
@@ -2311,6 +2699,7 @@
   window.ECBadge = ECBadge;
   window.ECAccordion = ECAccordion;
   window.ECList = ECList;
+  window.ECBreadcrumbs = ECBreadcrumbs;
   window.ECStepper = ECStepper;
   window.ECDivider = ECDivider;
   window.ECProgressBar = ECProgressBar;
@@ -2321,12 +2710,17 @@
   window.ECSlider = ECSlider;
   window.ECDatePicker = ECDatePicker;
   window.ECFileUpload = ECFileUpload;
+  window.ECRating = ECRating;
   window.ECMediaCard = ECMediaCard;
   window.ECBasicCard = ECBasicCard;
   window.ECHero = ECHero;
   window.ECTreeView = ECTreeView;
+  window.ECIndicator = ECIndicator;
+  window.ECAvatar = ECAvatar;
   window.ECLightbox = ECLightbox;
+  window.ECCarousel = ECCarousel;
   window.ECBanner = ECBanner;
   window.ECCountdown = ECCountdown;
+  window.ECGrid = ECGrid;
   window.ECDrawer = ECDrawer;
 })();
