@@ -1,0 +1,587 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="packages\SourceGear.sqlite3.3.50.4.2\build\net471\SourceGear.sqlite3.props" Condition="Exists('packages\SourceGear.sqlite3.3.50.4.2\build\net471\SourceGear.sqlite3.props')" />
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">x64</Platform>
+    <ProjectGuid>{4F0C7271-C3D4-495A-81EA-9C6FE9CB6C46}</ProjectGuid>
+    <OutputType>WinExe</OutputType>
+    <RootNamespace>AUTOLANDIA_Sales_and_Revenue_Report_Generation_System</RootNamespace>
+    <AssemblyName>AUTOLANDIA-Sales-and-Revenue-Report-Generation-System</AssemblyName>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <Deterministic>true</Deterministic>
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
+    <PublishUrl>publish\</PublishUrl>
+    <Install>true</Install>
+    <InstallFrom>Disk</InstallFrom>
+    <UpdateEnabled>false</UpdateEnabled>
+    <UpdateMode>Foreground</UpdateMode>
+    <UpdateInterval>7</UpdateInterval>
+    <UpdateIntervalUnits>Days</UpdateIntervalUnits>
+    <UpdatePeriodically>false</UpdatePeriodically>
+    <UpdateRequired>false</UpdateRequired>
+    <MapFileExtensions>true</MapFileExtensions>
+    <ApplicationRevision>0</ApplicationRevision>
+    <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
+    <IsWebBootstrapper>false</IsWebBootstrapper>
+    <UseApplicationTrust>false</UseApplicationTrust>
+    <BootstrapperEnabled>true</BootstrapperEnabled>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x64' ">
+    <PlatformTarget>x64</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x64' ">
+    <PlatformTarget>x64</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup />
+  <PropertyGroup>
+    <StartupObject>
+    </StartupObject>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="CSSimpleFunctions, Version=0.1.37.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>packages\CSSimpleFunctions.0.1.37\lib\net45\CSSimpleFunctions.dll</HintPath>
+    </Reference>
+    <Reference Include="HtmlRenderer, Version=1.5.0.5, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>packages\HtmlRenderer.Core.1.5.0.5\lib\net45\HtmlRenderer.dll</HintPath>
+    </Reference>
+    <Reference Include="HtmlRenderer.PdfSharp, Version=1.5.0.6, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>packages\HtmlRenderer.PdfSharp.1.5.0.6\lib\net45\HtmlRenderer.PdfSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="MaterialSkin, Version=2.3.1.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>packages\MaterialSkin.2.2.3.1\lib\net461\MaterialSkin.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Data.Sqlite, Version=9.0.10.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>packages\Microsoft.Data.Sqlite.Core.9.0.10\lib\netstandard2.0\Microsoft.Data.Sqlite.dll</HintPath>
+    </Reference>
+    <Reference Include="PdfSharp, Version=1.32.3057.0, Culture=neutral, PublicKeyToken=f94615aa0424f9eb, processorArchitecture=MSIL">
+      <HintPath>packages\PDFsharp.1.32.3057.0\lib\net20\PdfSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="PdfSharp.Charting, Version=1.32.3057.0, Culture=neutral, PublicKeyToken=f94615aa0424f9eb, processorArchitecture=MSIL">
+      <HintPath>packages\PDFsharp.1.32.3057.0\lib\net20\PdfSharp.Charting.dll</HintPath>
+    </Reference>
+    <Reference Include="SQLitePCLRaw.batteries_v2, Version=3.0.2.2801, Culture=neutral, PublicKeyToken=8226ea5df37bcae9, processorArchitecture=MSIL">
+      <HintPath>packages\SQLitePCLRaw.config.e_sqlite3.3.0.2\lib\net471\SQLitePCLRaw.batteries_v2.dll</HintPath>
+    </Reference>
+    <Reference Include="SQLitePCLRaw.core, Version=3.0.2.2801, Culture=neutral, PublicKeyToken=1488e028ca7ab535, processorArchitecture=MSIL">
+      <HintPath>packages\SQLitePCLRaw.core.3.0.2\lib\netstandard2.0\SQLitePCLRaw.core.dll</HintPath>
+    </Reference>
+    <Reference Include="SQLitePCLRaw.provider.dynamic_cdecl, Version=3.0.2.2801, Culture=neutral, PublicKeyToken=b68184102cba0b3b, processorArchitecture=MSIL">
+      <HintPath>packages\SQLitePCLRaw.provider.dynamic_cdecl.3.0.2\lib\netstandard2.0\SQLitePCLRaw.provider.dynamic_cdecl.dll</HintPath>
+    </Reference>
+    <Reference Include="SQLitePCLRaw.provider.e_sqlite3, Version=3.0.2.2801, Culture=neutral, PublicKeyToken=9c301db686d0bd12, processorArchitecture=MSIL">
+      <HintPath>packages\SQLitePCLRaw.provider.e_sqlite3.3.0.2\lib\net471\SQLitePCLRaw.provider.e_sqlite3.dll</HintPath>
+    </Reference>
+    <Reference Include="System">
+      <HintPath>..\..\..\..\..\..\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.7.2\System.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Buffers, Version=4.0.5.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>packages\System.Buffers.4.6.1\lib\net462\System.Buffers.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Core" />
+    <Reference Include="System.Design" />
+    <Reference Include="System.Memory, Version=4.0.5.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>packages\System.Memory.4.6.3\lib\net462\System.Memory.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Numerics" />
+    <Reference Include="System.Numerics.Vectors, Version=4.1.6.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>packages\System.Numerics.Vectors.4.6.1\lib\net462\System.Numerics.Vectors.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Runtime.CompilerServices.Unsafe, Version=6.0.3.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>packages\System.Runtime.CompilerServices.Unsafe.6.1.2\lib\net462\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Windows.Forms.DataVisualization" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Deployment" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="AccountItem.cs" />
+    <Compile Include="ActivityRecordForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ActivityRecordForm.Designer.cs">
+      <DependentUpon>ActivityRecordForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="AddCustomerVehicleDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="AddCustomerVehicleDialog.Designer.cs">
+      <DependentUpon>AddCustomerVehicleDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="AdminItem.cs" />
+    <Compile Include="BillingForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="BillingForm.Designer.cs">
+      <DependentUpon>BillingForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="BillingItem.cs" />
+    <Compile Include="ChangePasswordDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ChangePasswordDialog.Designer.cs">
+      <DependentUpon>ChangePasswordDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="ConstantVehicleModelList.cs" />
+    <Compile Include="DatePickerDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="DatePickerDialog.Designer.cs">
+      <DependentUpon>DatePickerDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="BillDetailDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="BillDetailDialog.Designer.cs">
+      <DependentUpon>BillDetailDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="EditPackageDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="EditPackageDialog.Designer.cs">
+      <DependentUpon>EditPackageDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="EditServiceDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="EditServiceDialog.Designer.cs">
+      <DependentUpon>EditServiceDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="EditUserDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="EditUserDialog.Designer.cs">
+      <DependentUpon>EditUserDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="NewUserDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="NewUserDialog.Designer.cs">
+      <DependentUpon>NewUserDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="ReceiptDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ReceiptDialog.Designer.cs">
+      <DependentUpon>ReceiptDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="TransactionDetailDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="TransactionDetailDialog.Designer.cs">
+      <DependentUpon>TransactionDetailDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="EmployeeScheduleDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="EmployeeScheduleDialog.Designer.cs">
+      <DependentUpon>EmployeeScheduleDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="LinkCustomerVehicleDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="LinkCustomerVehicleDialog.Designer.cs">
+      <DependentUpon>LinkCustomerVehicleDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="CustomerItem.cs" />
+    <Compile Include="EditCustomerDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="EditCustomerDialog.Designer.cs">
+      <DependentUpon>EditCustomerDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="EditVehicleDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="EditVehicleDialog.Designer.cs">
+      <DependentUpon>EditVehicleDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="EditEmployeeDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="EditEmployeeDialog.Designer.cs">
+      <DependentUpon>EditEmployeeDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="LoginForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="LoginForm.Designer.cs">
+      <DependentUpon>LoginForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="NewTransactionDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="NewTransactionDialog.Designer.cs">
+      <DependentUpon>NewTransactionDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="PaymentDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="PaymentDialog.Designer.cs">
+      <DependentUpon>PaymentDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="PickPerfumeCountDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="PickPerfumeCountDialog.Designer.cs">
+      <DependentUpon>PickPerfumeCountDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="PreviewCustomerDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="PreviewCustomerDialog.Designer.cs">
+      <DependentUpon>PreviewCustomerDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="PreviewEmployeeDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="PreviewEmployeeDialog.Designer.cs">
+      <DependentUpon>PreviewEmployeeDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="EmployeeItem.cs" />
+    <Compile Include="EmployeeTimeItem.cs" />
+    <Compile Include="GlobalValues.cs" />
+    <Compile Include="HomeForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="HomeForm.Designer.cs">
+      <DependentUpon>HomeForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="MainForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="MainForm.Designer.cs">
+      <DependentUpon>MainForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="NewCustomerDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="NewCustomerDialog.Designer.cs">
+      <DependentUpon>NewCustomerDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="NewEmployeeDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="NewEmployeeDialog.Designer.cs">
+      <DependentUpon>NewEmployeeDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="TransactionItem.cs" />
+    <Compile Include="PackageItem.cs" />
+    <Compile Include="PeopleForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="PeopleForm.Designer.cs">
+      <DependentUpon>PeopleForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="PreviewVehicleDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="PreviewVehicleDialog.Designer.cs">
+      <DependentUpon>PreviewVehicleDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Program.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="ReportsForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ReportsForm.Designer.cs">
+      <DependentUpon>ReportsForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="ResultDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ResultDialog.Designer.cs">
+      <DependentUpon>ResultDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="SelectCustomerDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="SelectCustomerDialog.Designer.cs">
+      <DependentUpon>SelectCustomerDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="SelectEmployeeDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="SelectEmployeeDialog.Designer.cs">
+      <DependentUpon>SelectEmployeeDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="SelectExportItemDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="SelectExportItemDialog.Designer.cs">
+      <DependentUpon>SelectExportItemDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="SelectServicesDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="SelectServicesDialog.Designer.cs">
+      <DependentUpon>SelectServicesDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="SelectVehicleBrandDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="SelectVehicleBrandDialog.Designer.cs">
+      <DependentUpon>SelectVehicleBrandDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="SelectVehicleDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="SelectVehicleDialog.Designer.cs">
+      <DependentUpon>SelectVehicleDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="SelectVehicleModelDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="SelectVehicleModelDialog.Designer.cs">
+      <DependentUpon>SelectVehicleModelDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="ServiceItem.cs" />
+    <Compile Include="ServicesAndPackagesForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ServicesAndPackagesForm.Designer.cs">
+      <DependentUpon>ServicesAndPackagesForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="SettingsDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="SettingsDialog.Designer.cs">
+      <DependentUpon>SettingsDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Startup.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Startup.Designer.cs">
+      <DependentUpon>Startup.cs</DependentUpon>
+    </Compile>
+    <Compile Include="SummaryDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="SummaryDialog.Designer.cs">
+      <DependentUpon>SummaryDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="TransactionsForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="TransactionsForm.Designer.cs">
+      <DependentUpon>TransactionsForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UserItem.cs" />
+    <Compile Include="VehicleItem.cs" />
+    <Compile Include="VehicleModelItem.cs" />
+    <EmbeddedResource Include="ActivityRecordForm.resx">
+      <DependentUpon>ActivityRecordForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="AddCustomerVehicleDialog.resx">
+      <DependentUpon>AddCustomerVehicleDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="BillingForm.resx">
+      <DependentUpon>BillingForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="ChangePasswordDialog.resx">
+      <DependentUpon>ChangePasswordDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="DatePickerDialog.resx">
+      <DependentUpon>DatePickerDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="BillDetailDialog.resx">
+      <DependentUpon>BillDetailDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="EditPackageDialog.resx">
+      <DependentUpon>EditPackageDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="EditServiceDialog.resx">
+      <DependentUpon>EditServiceDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="EditUserDialog.resx">
+      <DependentUpon>EditUserDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="NewUserDialog.resx">
+      <DependentUpon>NewUserDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="ReceiptDialog.resx">
+      <DependentUpon>ReceiptDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="TransactionDetailDialog.resx">
+      <DependentUpon>TransactionDetailDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="EmployeeScheduleDialog.resx">
+      <DependentUpon>EmployeeScheduleDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="LinkCustomerVehicleDialog.resx">
+      <DependentUpon>LinkCustomerVehicleDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="EditCustomerDialog.resx">
+      <DependentUpon>EditCustomerDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="EditVehicleDialog.resx">
+      <DependentUpon>EditVehicleDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="EditEmployeeDialog.resx">
+      <DependentUpon>EditEmployeeDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="LoginForm.resx">
+      <DependentUpon>LoginForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="NewTransactionDialog.resx">
+      <DependentUpon>NewTransactionDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="PaymentDialog.resx">
+      <DependentUpon>PaymentDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="PickPerfumeCountDialog.resx">
+      <DependentUpon>PickPerfumeCountDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="PreviewCustomerDialog.resx">
+      <DependentUpon>PreviewCustomerDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="PreviewEmployeeDialog.resx">
+      <DependentUpon>PreviewEmployeeDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="HomeForm.resx">
+      <DependentUpon>HomeForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="MainForm.resx">
+      <DependentUpon>MainForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="NewCustomerDialog.resx">
+      <DependentUpon>NewCustomerDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="NewEmployeeDialog.resx">
+      <DependentUpon>NewEmployeeDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="PeopleForm.resx">
+      <DependentUpon>PeopleForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="PreviewVehicleDialog.resx">
+      <DependentUpon>PreviewVehicleDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+      <DesignTime>True</DesignTime>
+    </Compile>
+    <EmbeddedResource Include="ReportsForm.resx">
+      <DependentUpon>ReportsForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="ResultDialog.resx">
+      <DependentUpon>ResultDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="SelectCustomerDialog.resx">
+      <DependentUpon>SelectCustomerDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="SelectEmployeeDialog.resx">
+      <DependentUpon>SelectEmployeeDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="SelectExportItemDialog.resx">
+      <DependentUpon>SelectExportItemDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="SelectServicesDialog.resx">
+      <DependentUpon>SelectServicesDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="SelectVehicleBrandDialog.resx">
+      <DependentUpon>SelectVehicleBrandDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="SelectVehicleDialog.resx">
+      <DependentUpon>SelectVehicleDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="SelectVehicleModelDialog.resx">
+      <DependentUpon>SelectVehicleModelDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="ServicesAndPackagesForm.resx">
+      <DependentUpon>ServicesAndPackagesForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="SettingsDialog.resx">
+      <DependentUpon>SettingsDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Startup.resx">
+      <DependentUpon>Startup.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="SummaryDialog.resx">
+      <DependentUpon>SummaryDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="TransactionsForm.resx">
+      <DependentUpon>TransactionsForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <None Include="LICENSE" />
+    <None Include="packages.config" />
+    <None Include="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+    <Compile Include="Properties\Settings.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\autolandia_logo.jpg" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="export_to_pdf.py" />
+  </ItemGroup>
+  <ItemGroup>
+    <BootstrapperPackage Include=".NETFramework,Version=v4.7.2">
+      <Visible>False</Visible>
+      <ProductName>Microsoft .NET Framework 4.7.2 %28x86 and x64%29</ProductName>
+      <Install>true</Install>
+    </BootstrapperPackage>
+    <BootstrapperPackage Include="Microsoft.Net.Framework.3.5.SP1">
+      <Visible>False</Visible>
+      <ProductName>.NET Framework 3.5 SP1</ProductName>
+      <Install>false</Install>
+    </BootstrapperPackage>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="autolandia.py" />
+    <EmbeddedResource Include="easy_sql.py" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="e_sqlite3.dll" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="mock_data.py" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('packages\SourceGear.sqlite3.3.50.4.2\build\net471\SourceGear.sqlite3.props')" Text="$([System.String]::Format('$(ErrorText)', 'packages\SourceGear.sqlite3.3.50.4.2\build\net471\SourceGear.sqlite3.props'))" />
+    <Error Condition="!Exists('packages\SourceGear.sqlite3.3.50.4.2\build\net471\SourceGear.sqlite3.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\SourceGear.sqlite3.3.50.4.2\build\net471\SourceGear.sqlite3.targets'))" />
+  </Target>
+  <Import Project="packages\SourceGear.sqlite3.3.50.4.2\build\net471\SourceGear.sqlite3.targets" Condition="Exists('packages\SourceGear.sqlite3.3.50.4.2\build\net471\SourceGear.sqlite3.targets')" />
+</Project>
