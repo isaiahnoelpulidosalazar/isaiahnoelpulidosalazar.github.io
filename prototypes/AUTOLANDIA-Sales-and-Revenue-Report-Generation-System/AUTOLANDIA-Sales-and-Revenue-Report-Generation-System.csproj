@@ -52,8 +52,7 @@
   </PropertyGroup>
   <PropertyGroup />
   <PropertyGroup>
-    <StartupObject>
-    </StartupObject>
+    <StartupObject>AUTOLANDIA_Sales_and_Revenue_Report_Generation_System.Program</StartupObject>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="CSSimpleFunctions, Version=0.1.37.0, Culture=neutral, processorArchitecture=MSIL">

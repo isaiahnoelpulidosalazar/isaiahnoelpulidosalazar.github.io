@@ -5,3 +5,4 @@ prototypes/*/.venv
 prototypes/*/.vs
 prototypes/*/bin
 prototypes/*/obj
+prototypes/*/packages
