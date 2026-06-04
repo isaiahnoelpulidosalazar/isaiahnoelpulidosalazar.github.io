@@ -301,6 +301,33 @@ void k_main() {
     init_allocator();
     init_ahci();
     
+    bool force_installer = false;
+    
+    kputs("Press 'i' to enter Installer Mode (Booting in 2s)... ");
+    long long start_wait = get_time_ms();
+    int last_seconds_left = 2;
+    printf("%d ", last_seconds_left);
+    
+    while (1) {
+        long long elapsed = get_time_ms() - start_wait;
+        if (elapsed >= 2000) break;
+        
+        int seconds_left = 2 - (int)(elapsed / 1000);
+        if (seconds_left < last_seconds_left && seconds_left > 0) {
+            printf("%d ", seconds_left);
+            last_seconds_left = seconds_left;
+        }
+        
+        if (inb(0x64) & 1) {
+            uint8_t scancode = inb(0x60);
+            if (scancode == 0x17) {
+                force_installer = true;
+                break;
+            }
+        }
+    }
+    kputs("\n\n");
+    
     HBA_Port* installed_port = NULL;
     uint32_t sector_buffer[128];
     
@@ -315,13 +342,20 @@ void k_main() {
         }
     }
     
-    if (installed_port) {
-        is_installed_mode = true;
-        active_ports[1] = installed_port;
-    } else {
+    if (force_installer) { [1]
         is_installed_mode = false;
         if (active_port_count > 0) {
             active_ports[1] = active_ports[0];
+        }
+    } else {
+        if (installed_port) {
+            is_installed_mode = true;
+            active_ports[1] = installed_port;
+        } else {
+            is_installed_mode = false;
+            if (active_port_count > 0) {
+                active_ports[1] = active_ports[0];
+            }
         }
     }
     
