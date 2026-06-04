@@ -342,7 +342,7 @@ void k_main() {
         }
     }
     
-    if (force_installer) { [1]
+    if (force_installer) {
         is_installed_mode = false;
         if (active_port_count > 0) {
             active_ports[1] = active_ports[0];
