@@ -2,3 +2,6 @@ node_modules/
 .env
 prototypes/*/.idea
 prototypes/*/.venv
+prototypes/*/.vs
+prototypes/*/bin
+prototypes/*/obj
