@@ -360,12 +360,12 @@
   }
 
   function scanDOM() {
-    // if (!IS_FONT_SET) {
-    //   var fontRule = "* { font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif; }";
-    //   generatedRules["global-font"] = fontRule;
-    //   getStyleTag().textContent += "\n" + fontRule;
-    //   IS_FONT_SET = true;
-    // }
+    if (!IS_FONT_SET) {
+      var fontRule = "* { font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif; }";
+      generatedRules["global-font"] = fontRule;
+      getStyleTag().textContent += "\n" + fontRule;
+      IS_FONT_SET = true;
+    }
     if (!IS_BORDER_BOX_SET) {
       var globalRule = "* { box-sizing: border-box; }";
       generatedRules["global-border-box"] = globalRule;
