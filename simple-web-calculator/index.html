@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-3KKEWWQ81M"></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-3KKEWWQ81M');
+        </script>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=7">
+        <meta http-equiv="X-UA-Compatible" content="ie=edge">
+        <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="theme-color" content="#F4F4F4">
+        <link rel="apple-touch-icon" sizes="57x57" href="../apple-icon-57x57.png">
+        <link rel="apple-touch-icon" sizes="60x60" href="../apple-icon-60x60.png">
+        <link rel="apple-touch-icon" sizes="72x72" href="../apple-icon-72x72.png">
+        <link rel="apple-touch-icon" sizes="76x76" href="../apple-icon-76x76.png">
+        <link rel="apple-touch-icon" sizes="114x114" href="../apple-icon-114x114.png">
+        <link rel="apple-touch-icon" sizes="120x120" href="../apple-icon-120x120.png">
+        <link rel="apple-touch-icon" sizes="144x144" href="../apple-icon-144x144.png">
+        <link rel="apple-touch-icon" sizes="152x152" href="../apple-icon-152x152.png">
+        <link rel="apple-touch-icon" sizes="180x180" href="../apple-icon-180x180.png">
+        <link rel="icon" type="image/png" sizes="192x192"  href="../android-icon-192x192.png">
+        <link rel="icon" type="image/png" sizes="32x32" href="../favicon-32x32.png">
+        <link rel="icon" type="image/png" sizes="96x96" href="../favicon-96x96.png">
+        <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
+        <link rel="manifest" href="../manifest.json">
+        <meta name="msapplication-TileColor" content="#F4F4F4">
+        <meta name="msapplication-TileImage" content="../ms-icon-144x144.png">
+        <meta name="description" content="A simple web-based calculator.">
+        <meta name="keywords" content="isaiah noel salazar, isaiahnoelpulidosalazar, isaiahnoelpulidosalazar.github.io, isaiah noel pulido salazar">
+        <meta name="author" content="Isaiah Noel Pulido Salazar">
+    <title>Calculator</title>
+    <style>
+      html {
+        font-family: Arial, Helvetica, sans-serif;
+      }
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      div {
+        align-items: center;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+      p {
+        border: solid black 1px;
+        cursor: text;
+        display: flex;
+        margin: 8px 0;
+        padding: 16px;
+        width: 200px;
+      }
+      table {
+        margin: -2px;
+      }
+      td {
+        background-color: #EEEEEE;
+        cursor: pointer;
+        height: 64px;
+        text-align: center;
+        width: 64px;
+      }
+      td:hover {
+        background-color: #555555;
+        color: white;
+      }
+    </style>
+  </head>
+  <body>
+    <div>
+      <p id="display">0</p>
+      <table>
+        <tr>
+          <td onclick="query(7)">7</td>
+          <td onclick="query(8)">8</td>
+          <td onclick="query(9)">9</td>
+          <td onclick="query('+')">+</td>
+        </tr>
+        <tr>
+          <td onclick="query(4)">4</td>
+          <td onclick="query(5)">5</td>
+          <td onclick="query(6)">6</td>
+          <td onclick="query('-')">-</td>
+        </tr>
+        <tr>
+          <td onclick="query(1)">1</td>
+          <td onclick="query(2)">2</td>
+          <td onclick="query(3)">3</td>
+          <td onclick="query('*')">×</td>
+        </tr>
+        <tr>
+          <td onclick="query('c')">Clear</td>
+          <td onclick="query(0)">0</td>
+          <td onclick="query('=')">=</td>
+          <td onclick="query('/')">÷</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+  <script>
+    var display = document.getElementById("display");
+    var result = 0;
+    var operation = "";
+    var previousValue = 0;
+    function query(value){
+      if (value == "c"){
+        display.innerHTML = "0";
+      }
+      if (value == "+" || value == "-" || value == "*" || value == "/"){
+        operation = value;
+        previousValue = display.innerHTML;
+        display.innerHTML = "0";
+      }
+      if (value != "+" && value != "-" && value != "*" && value != "/" && value != "c" && value != "="){
+        if (display.innerHTML == "0"){
+          display.innerHTML = value;
+        } else {
+          display.innerHTML += value;
+        }
+      }
+      if (value == "="){
+        if (operation == "+"){
+          display.innerHTML = Number(previousValue) + Number(display.innerHTML);
+        }
+        if (operation == "-"){
+          display.innerHTML = Number(previousValue) - Number(display.innerHTML);
+        }
+        if (operation == "*"){
+          display.innerHTML = Number(previousValue) * Number(display.innerHTML);
+        }
+        if (operation == "/"){
+          display.innerHTML = Number(previousValue) / Number(display.innerHTML);
+        }
+      }
+    }
+  </script>
+</html>

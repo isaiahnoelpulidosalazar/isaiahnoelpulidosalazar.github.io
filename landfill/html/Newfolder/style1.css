@@ -1,0 +1,24 @@
+body {
+	background-color: powderblue;
+	font-family: Arial;
+}
+
+h1 {
+	color: green;
+}
+
+#tbl {
+	font-size: 20px;
+	width: 100%;
+}
+
+#tbl, th, td {
+	border-style: solid;
+	border-width: 2px;
+	border-color: red;
+	text-align: center;
+}
+
+#td1, #td2, #td3, #td4, #td5, #td6, #td7, #td8 {
+	font-weight: bold;
+}

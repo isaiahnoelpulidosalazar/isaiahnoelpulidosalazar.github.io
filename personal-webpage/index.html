@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-3KKEWWQ81M"></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-3KKEWWQ81M');
+        </script>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=7">
+        <meta http-equiv="X-UA-Compatible" content="ie=edge">
+        <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="theme-color" content="#F4F4F4">
+        <link rel="apple-touch-icon" sizes="57x57" href="../apple-icon-57x57.png">
+        <link rel="apple-touch-icon" sizes="60x60" href="../apple-icon-60x60.png">
+        <link rel="apple-touch-icon" sizes="72x72" href="../apple-icon-72x72.png">
+        <link rel="apple-touch-icon" sizes="76x76" href="../apple-icon-76x76.png">
+        <link rel="apple-touch-icon" sizes="114x114" href="../apple-icon-114x114.png">
+        <link rel="apple-touch-icon" sizes="120x120" href="../apple-icon-120x120.png">
+        <link rel="apple-touch-icon" sizes="144x144" href="../apple-icon-144x144.png">
+        <link rel="apple-touch-icon" sizes="152x152" href="../apple-icon-152x152.png">
+        <link rel="apple-touch-icon" sizes="180x180" href="../apple-icon-180x180.png">
+        <link rel="icon" type="image/png" sizes="192x192"  href="../android-icon-192x192.png">
+        <link rel="icon" type="image/png" sizes="32x32" href="../favicon-32x32.png">
+        <link rel="icon" type="image/png" sizes="96x96" href="../favicon-96x96.png">
+        <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
+        <link rel="manifest" href="../manifest.json">
+        <meta name="msapplication-TileColor" content="#F4F4F4">
+        <meta name="msapplication-TileImage" content="../ms-icon-144x144.png">
+        <meta name="description" content="An assignment webpage of a sample portfolio website.">
+        <meta name="keywords" content="isaiah noel salazar, isaiahnoelpulidosalazar, isaiahnoelpulidosalazar.github.io, isaiah noel pulido salazar">
+        <meta name="author" content="Isaiah Noel Pulido Salazar">
+    <title>Personal Webpage</title>
+    <style>
+      html {
+        height: 100%;
+      }
+      body {
+        display: flex;
+        flex-direction: column;
+        font-family: Monospace, Monospace;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+      }
+      #header {
+        display: flex;
+        flex-direction: column;
+      }
+      #header > h1 {
+        background-color: #4088c7;
+        color: white;
+        margin: 0;
+        padding: 24px;
+        text-align: center;
+      }
+      #header > nav {
+        background-color: black;
+        display: flex;
+        justify-content: center;
+      }
+      .tab {
+        align-items: center;
+        box-sizing: border-box;
+        color: white;
+        cursor: pointer;
+        display: flex;
+        font-weight: bold;
+        height: 56px;
+        justify-content: center;
+        padding: 0 16px;
+        text-align: center;
+        transition: 0.15s ease-in;
+      }
+      .unselected:hover {
+        border-bottom: inset white 4px;
+      }
+      .selected {
+        border-bottom: inset #4088c7 4px;
+        color: #4088c7;
+      }
+      #content {
+        height: 100%;
+      }
+      #content > embed {
+        height: 100%;
+        width: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="header">
+      <h1>Personal Webpage</h1>
+      <nav>
+        <a class="tab selected" onclick="tabselect(0)">About Me</a>
+        <a class="tab unselected" onclick="tabselect(1)">Other Works</a>
+        <a class="tab unselected" onclick="tabselect(2)">Contact</a>
+      </nav>
+    </div>
+    <div id="content">
+      <embed id="embed" type="text/html" src="pages/about_me.html">
+    </div>
+  </body>
+  <script>
+    var a = document.getElementsByTagName("a");
+    var pages = ["pages/about_me.html", "pages/other_works.html", "pages/contact.html"];
+    function tabselect(index){
+      for (var b = 0; b < a.length; b++){
+        if (b != index){
+          if (a[b].classList.contains("selected")){
+            a[b].classList = "tab unselected";
+          }
+        } else {
+          a[b].classList = "tab selected";
+          document.getElementById("embed").src = pages[b];
+        }
+      }
+    }
+  </script>
+</html>

@@ -1,0 +1,48 @@
+body
+{
+	text-align: center;
+}
+
+.img1, .img2
+{
+	visibility: hidden;
+}
+
+.img1
+{
+	margin-bottom: 160px;
+	z-index: 3;
+	position: relative;
+}
+
+.img2
+{
+	margin-top: -50px;
+	margin-left: -300px;
+	z-index: 2;
+	position: relative;
+}
+
+span
+{
+	float: left;
+	width: 0.7em;
+	font-size: 400%;
+	font-family: algerian, courier;
+	line-height: 80%;
+}
+
+div
+{
+	display: block;
+	width: auto;
+	height: 65px;
+	text-align: justify;
+	margin-top: 1em;
+	margin-right: 5em;
+	margin-bottom: 3em;
+	margin-left: 4em;
+	padding: 0.5%;
+	border: 3px double black;
+	overflow: scroll;
+}

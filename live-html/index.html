@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-3KKEWWQ81M"></script>
         <script>
@@ -13,6 +13,7 @@
         <meta http-equiv="X-UA-Compatible" content="ie=edge">
         <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="theme-color" content="#F4F4F4">
         <link rel="apple-touch-icon" sizes="57x57" href="../apple-icon-57x57.png">
         <link rel="apple-touch-icon" sizes="60x60" href="../apple-icon-60x60.png">
         <link rel="apple-touch-icon" sizes="72x72" href="../apple-icon-72x72.png">
@@ -29,17 +30,76 @@
         <link rel="manifest" href="../manifest.json">
         <meta name="msapplication-TileColor" content="#F4F4F4">
         <meta name="msapplication-TileImage" content="../ms-icon-144x144.png">
-        <meta name="description" content="Just a black background.">
-        <meta name="keywords" content="Isaiah Noel Salazar, isaiahnoelpulidosalazar, isaiahnoelpulidosalazar.github.io">
+        <meta name="description" content="Edit HTML code with live preview.">
+        <meta name="keywords" content="isaiah noel salazar, isaiahnoelpulidosalazar, isaiahnoelpulidosalazar.github.io, isaiah noel pulido salazar">
         <meta name="author" content="Isaiah Noel Pulido Salazar">
-    <meta name="theme-color" content="#000000">
-    <title>Black</title>
+    <title>Live HTML</title>
     <style>
       html {
-        background-color: black;
+        height: 100%;
+      }
+      body {
+        box-sizing: border-box;
+        display: flex;
+        gap: 16px;
+        height: 100%;
+        margin: 0;
+        padding: 16px;
+      }
+      #htmlcode {
+        border: solid black 3px;
+        box-sizing: border-box;
+        font-family: Monospace, Monospace;
+        font-size: 14px;
+        height: 100%;
+        line-height: normal;
+        outline: none;
+        resize: none;
+        width: 50%;
+      }
+      #htmlpreview {
+        border: solid black 1px;
+        height: 100%;
+        width: 50%;
+      }
+      @media (max-width: 1024px) {
+        body {
+          flex-direction: column-reverse;
+        }
+        #htmlcode {
+          height: 50%;
+          width: 100%;
+        }
+        #htmlpreview {
+          height: 50%;
+          width: 100%;
+        }
       }
     </style>
   </head>
   <body>
+    <textarea id="htmlcode" onkeydown="ondown(event)" onkeyup="onkey(event)"></textarea>
+    <iframe id="htmlpreview"></iframe>
   </body>
+  <script>
+    let tabpressed = false;
+    function ondown(event){
+      if (event.keyCode == 9){
+        event.preventDefault();
+        tabpressed = true;
+      }
+    }
+    function onkey(event){
+      if (tabpressed){
+        let sel = document.getElementById("htmlcode").selectionStart;
+        let sel0 = document.getElementById("htmlcode").value.substring(0, sel);
+        let sel1 = document.getElementById("htmlcode").value.substring(sel);
+        document.getElementById("htmlcode").value = sel0 + "  " + sel1;
+        document.getElementById("htmlcode").selectionEnd = sel + 2;
+        tabpressed = false;
+      } else {
+        document.getElementById("htmlpreview").srcdoc = document.getElementById("htmlcode").value;
+      }
+    }
+  </script>
 </html>

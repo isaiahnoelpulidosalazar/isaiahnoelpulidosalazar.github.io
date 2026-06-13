@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-3KKEWWQ81M"></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-3KKEWWQ81M');
+        </script>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=7">
+        <meta http-equiv="X-UA-Compatible" content="ie=edge">
+        <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="theme-color" content="#F4F4F4">
+        <link rel="apple-touch-icon" sizes="57x57" href="../apple-icon-57x57.png">
+        <link rel="apple-touch-icon" sizes="60x60" href="../apple-icon-60x60.png">
+        <link rel="apple-touch-icon" sizes="72x72" href="../apple-icon-72x72.png">
+        <link rel="apple-touch-icon" sizes="76x76" href="../apple-icon-76x76.png">
+        <link rel="apple-touch-icon" sizes="114x114" href="../apple-icon-114x114.png">
+        <link rel="apple-touch-icon" sizes="120x120" href="../apple-icon-120x120.png">
+        <link rel="apple-touch-icon" sizes="144x144" href="../apple-icon-144x144.png">
+        <link rel="apple-touch-icon" sizes="152x152" href="../apple-icon-152x152.png">
+        <link rel="apple-touch-icon" sizes="180x180" href="../apple-icon-180x180.png">
+        <link rel="icon" type="image/png" sizes="192x192"  href="../android-icon-192x192.png">
+        <link rel="icon" type="image/png" sizes="32x32" href="../favicon-32x32.png">
+        <link rel="icon" type="image/png" sizes="96x96" href="../favicon-96x96.png">
+        <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
+        <link rel="manifest" href="../manifest.json">
+        <meta name="msapplication-TileColor" content="#F4F4F4">
+        <meta name="msapplication-TileImage" content="../ms-icon-144x144.png">
+        <meta name="description" content="A website for calculating your expenses and savings.">
+        <meta name="keywords" content="isaiah noel salazar, isaiahnoelpulidosalazar, isaiahnoelpulidosalazar.github.io, isaiah noel pulido salazar">
+        <meta name="author" content="Isaiah Noel Pulido Salazar">
+        <title>Expenses and Savings</title>
+        <style>
+            * {
+                box-sizing: border-box;
+                font-family: 'Courier New', Courier, monospace;
+            }
+            body {
+                margin: 0;
+                padding: 0 8px;
+            }
+            #add-panel, #compute-panel {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                background-color: #00000088;
+                display: none;
+                align-items: center;
+                justify-content: center;
+            }
+            #compute-panel > div > p {
+                margin: 0;
+            }
+            button {
+                background-color: black;
+                color: white;
+                padding: 16px;
+                border: none;
+                border-radius: 8px;
+                cursor: pointer;
+                font-size: 16px;
+            }
+            button:hover {
+                background-color: #000000CC;
+            }
+            h1 {
+                margin: 0;
+            }
+            button {
+                margin: 8px 0;
+            }
+            table, th, td {
+                border: solid black 1px;
+            }
+            th, td {
+                padding: 8px;
+                text-align: center;
+            }
+            .price {
+                text-align: end;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="add-panel">
+            <div style="background-color: white; padding: 0 8px; border-radius: 12px; display: flex; flex-direction: column; gap: 8px;">
+                <h1 style="margin: 16px 0 0 0;">Add item</h1>
+                <input type="text" id="item-name" placeholder="Name">
+                <input type="number" id="item-price" placeholder="Price">
+                <input type="text" id="item-reason" placeholder="Reason">
+                <div style="display: flex; gap: 8px; justify-content: flex-start;">
+                    <label for="radio-expense">Expense</label>
+                    <input type="radio" name="radio-expense" id="radio-expense">
+                    <label for="radio-saving">Saving</label>
+                    <input type="radio" name="radio-saving" id="radio-saving">
+                </div>
+                <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                    <button onclick="cancelAddPanel()">Cancel</button>
+                    <button onclick="confirmAddPanel()">Confirm</button>
+                </div>
+            </div>
+        </div>
+        <div id="compute-panel">
+            <div style="background-color: white; padding: 0 8px; border-radius: 12px; display: flex; flex-direction: column; gap: 8px;">
+                <h1 style="margin: 16px 0 0 0;">Total</h1>
+                <p id="total-expenses">Total expenses:</p>
+                <p id="total-savings">Total savings:</p>
+                <p id="total-money">Total money:</p>
+                <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                    <button onclick="closeComputePanel()">Close</button>
+                </div>
+            </div>
+        </div>
+        <button onclick="add()">Add</button>
+        <button onclick="compute()">Compute All</button>
+        <button onclick="clearAll()">Clear All</button>
+        <table id="main-table">
+            <tr>
+                <th>Date</th>
+                <th>Item</th>
+                <th>Price</th>
+                <th>Reason</th>
+            </tr>
+        </table>
+    </body>
+    <script>
+        let script = document.createElement("script");
+        script.src = "index.js?t=" + new Date().getTime();
+        document.body.appendChild(script);
+    </script>
+</html>

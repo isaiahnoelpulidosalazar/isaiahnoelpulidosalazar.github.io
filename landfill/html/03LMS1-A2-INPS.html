@@ -1,0 +1,40 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+	<title>Contact Me</title>
+	<style>
+	textarea{
+	resize:none;
+	}
+	</style>
+	</head>
+	
+	<body>
+	
+	<h1><span>Contact Me</span></h1>
+		<p><b>Name:</b></p>
+		<form>
+			<input name="name" type="text"/>
+			<br>
+			<br>
+			<input type="radio" id="male" name="gender" value="male">
+			<label for="male">Male</label>
+			<input type="radio" id="female" name="gender" value="female">
+			<label for="female">Female</label>
+			<input type="radio" id="other" name="gender" value="other">
+			<label for="other">Other</label>
+		</form>
+			<br>
+		<p><b>E-mail Address:</b></p>
+		<form>
+			<input name="email" type="email"/>
+		</form>
+			<br>
+		<p><b>Message:</b></p>
+		<form>
+			<textarea rows="10" cols="50" name="message"></textarea>
+			<input type="submit" value="Send" class="submit"/>
+		</form>
+		
+	</body>
+</html>

@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title></title>
+    <style>
+      body {
+        align-items: center;
+        display: flex;
+        flex-direction: column;
+        font-family: Monospace, Monospace;
+        justify-content: center;
+        margin: 0;
+      }
+      body > img {
+        border-radius: 8px;
+        height: 250px;
+        margin-top: 32px;
+        width: 250px;
+      }
+      h1, h2, h4, p {
+        margin: 0;
+      }
+      h1 {
+        margin: 0 16px;
+        padding: 16px 0;
+        text-align: center;
+      }
+      #main {
+        display: grid;
+        gap: 16px;
+        grid-template-columns: 60% 40%;
+      }
+      #about, #extracurriculars, #classes {
+        margin: 16px;
+      }
+      #about {
+        align-items: center;
+        background-color: #DDDDDD;
+        border-radius: 4px;
+        display: flex;
+        height: 100%;
+        justify-content: center;
+        text-align: center;
+        width: 100%;
+      }
+      #about > p {
+        padding: 16px;
+      }
+      #about > p > a {
+        text-decoration: none;
+      }
+      #extracurriculars {
+        align-items: center;
+        background-color: #DDDDDD;
+        border-radius: 4px;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        justify-content: center;
+        text-align: center;
+      }
+      #extracurriculars > h2 {
+        margin-bottom: 16px;
+      }
+      #extracurriculars > p {
+        background-color: #BBBBBB;
+        border-radius: 4px;
+        box-sizing: border-box;
+        padding: 8px;
+        width: 80%;
+      }
+      #extracurriculars > p:nth-child(2) {
+        margin: 0 0 8px 0;
+      }
+      #classes {
+        background-color: #DDDDDD;
+        border-radius: 4px;
+        grid-column: span 2 / span 2;
+        padding: 16px;
+      }
+      #classes > h2 {
+        text-align: center;
+      }
+      .classesrow {
+        border-bottom: solid #BBBBBB 1px;
+        display: grid;
+        grid-template-columns: 60% 40%;
+      }
+      .classesrow > h4 {
+        margin: auto 0;
+        padding: 16px;
+      }
+      .classesrow > p {
+        margin: auto 0;
+        padding: 16px;
+        word-wrap: break-word;
+      }
+      .classesrow > h4:nth-child(2) {
+        text-align: center;
+      }
+      .classesrow > p:nth-child(2) {
+        text-align: center;
+      }
+      .classesrowheader {
+        border-bottom: solid #BBBBBB 3px;
+      }
+      @media (max-width: 600px){
+        #main {
+          grid-template-columns: 100%;
+        }
+        #about {
+          width: auto;
+        }
+        #classes {
+          grid-column: 1;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <img src="profile_pic.jpg">
+    <h1>Isaiah Noel P. Salazar</h1>
+    <div id="main">
+      <div id="about">
+        <p>Hello. I am a 3rd year BSIT student at <a href="https://www.facebook.com/santarosa.sti.edu">STI College Santa Rosa</a>.</p>
+      </div>
+      <div id="extracurriculars">
+        <h2>Extracurriculars</h2>
+        <p>Badminton</p>
+        <p>Chess</p>
+      </div>
+      <div id="classes">
+        <h2>Classes</h2>
+        <div class="classesrow classesrowheader">
+          <h4>Course Number</h4>
+          <h4>Course Title</h4>
+        </div>
+        <div class="classesrow">
+          <p>23146</p>
+          <p>Web Systems and Technologies</p>
+        </div>
+        <div class="classesrow">
+          <p>23150</p>
+          <p>Mobile Systems and Technologies</p>
+        </div>
+        <div class="classesrow">
+          <p>23154</p>
+          <p>Information Assurance &amp; Security (Cybersecurity Fundamentals)</p>
+        </div>
+        <div class="classesrow">
+          <p>23152</p>
+          <p>Management Information Systems</p>
+        </div>
+        <div class="classesrow">
+          <p>23142</p>
+          <p>Great Books</p>
+        </div>
+        <div class="classesrow">
+          <p>23144</p>
+          <p>Programming Languages</p>
+        </div>
+        <div class="classesrow">
+          <p>23148</p>
+          <p>IT Capstone Project 1</p>
+        </div>
+      </div>
+    </div>
+  </body>
+  <script>
+  </script>
+</html>

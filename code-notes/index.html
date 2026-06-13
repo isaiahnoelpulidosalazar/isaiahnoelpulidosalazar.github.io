@@ -1,0 +1,1295 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-3KKEWWQ81M"></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-3KKEWWQ81M');
+        </script>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=7">
+        <meta http-equiv="X-UA-Compatible" content="ie=edge">
+        <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="apple-touch-icon" sizes="57x57" href="icon/apple-icon-57x57.png">
+        <link rel="apple-touch-icon" sizes="60x60" href="icon/apple-icon-60x60.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="icon/apple-icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="76x76" href="icon/apple-icon-76x76.png">
+    <link rel="apple-touch-icon" sizes="114x114" href="icon/apple-icon-114x114.png">
+    <link rel="apple-touch-icon" sizes="120x120" href="icon/apple-icon-120x120.png">
+    <link rel="apple-touch-icon" sizes="144x144" href="icon/apple-icon-144x144.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="icon/apple-icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="icon/apple-icon-180x180.png">
+    <link rel="icon" type="image/png" sizes="192x192"  href="icon/android-icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="icon/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="96x96" href="icon/favicon-96x96.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="icon/favicon-16x16.png">
+    <link rel="manifest" href="icon/manifest.json">
+    <meta name="msapplication-TileColor" content="#ffffff">
+    <meta name="msapplication-TileImage" content="icon/ms-icon-144x144.png">
+    <meta name="theme-color" content="#ffffff">
+    <meta name="description" content="Notes for beginner coders.">
+        <meta name="keywords" content="isaiah noel salazar, isaiahnoelpulidosalazar, isaiahnoelpulidosalazar.github.io, isaiah noel pulido salazar">
+        <meta name="author" content="Isaiah Noel Pulido Salazar">
+    <title>Code Notes</title>
+    <style>
+      :root {
+        --gray: #DDDDDD;
+      }
+      @font-face {
+          font-family: Nunito;
+          src: url(Nunito.ttf);
+      }
+      * {
+        font-family: Nunito;
+        margin: 0;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        display: flex;
+        flex-direction: column;
+      }
+      h1 {
+        text-align: center;
+      }
+      h2 {
+        font-size: 20px;
+        padding: 8px;
+      }
+      p {
+        padding: 0 8px;
+      }
+      summary:hover, li:hover {
+        background-color: var(--gray);
+      }
+      #backtotop {
+        align-items: center;
+        background-color: var(--gray);
+        border-radius: 8px;
+        bottom: 0;
+        box-shadow: 8px 8px 16px #BBBBBB, -8px -8px 16px white;
+        display: flex;
+        height: 50px;
+        justify-content: center;
+        margin: 24px;
+        position: fixed;
+        right: 0;
+        width: 50px;
+      }
+      #backtotop > img {
+        height: 32px;
+        width: 32px;
+      }
+      #table_of_contents {
+        border-bottom: solid var(--gray) 1px;
+        padding: 0 8px 8px 8px;
+      }
+      .subdetails {
+        padding-left: 16px;
+      }
+      .lastitem {
+        margin-left: 16px;
+      }
+      .code_snippet {
+        background-color: var(--gray);
+        border-radius: 8px;
+        margin: 8px;
+        padding: 8px;
+      }
+      .code_snippet > p {
+        font-family: Monospace, Monospace;
+      }
+      .code_snippet > p > span {
+        font-family: Monospace, Monospace;
+      }
+      .code_snippet > p > .shouldbeblue {
+        color: #0033B3;
+      }
+      .code_snippet > p > .shouldbecsblue {
+        color: #0000FF;
+      }
+      .code_snippet > p > .shouldbeotherblue {
+        color: #174ad4;
+      }
+      .code_snippet > p > .shouldbecsotherblue {
+        color: #3391af;
+      }
+      .code_snippet > p > .shouldbegreen {
+        color: #067D17;
+      }
+      .code_snippet > p > .shouldbecsgreen {
+        color: #0a8000;
+      }
+      .code_snippet > p > .shouldbeviolet {
+        color: #871094;
+      }
+      .code_snippet > p > .shouldbecsviolet {
+        color: #8f08c4;
+      }
+      .code_snippet > p > .shouldbegray {
+        color: #777777;
+      }
+      .code_snippet > p > .shouldbegrayanditalic {
+        color: #777777;
+        font-style: italic;
+      }
+      .code_snippet > p > .shouldbeyellow {
+        color: #9d870d;
+      }
+      .code_snippet > p > .shouldbecsyellow {
+        color: #845338;
+      }
+      .code_snippet > p > .shouldbecsvariable {
+        color: #1f377f;
+      }
+      .code_snippet > p > .shouldbecsred {
+        color: #ac1515;
+      }
+      .code_snippet > p > .shouldbebluegreen {
+        color: #00627a;
+      }
+      .code_snippet > p > .shouldbevioletanditalic {
+        color: #871094;
+        font-style: italic;
+      }
+      .code_snippet > p > .shouldbeitalic {
+        font-style: italic;
+      }
+      .imgcontainer, .vidcontainer {
+        align-items: center;
+        background-color: var(--gray);
+        border-radius: 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        justify-content: center;
+        margin: 8px;
+        padding: 16px 0;
+      }
+      .imgcontainer > img {
+        width: 540px;
+      }
+      .vidcontainer > video {
+        width: 540px;
+      }
+      #main_page {
+        text-align: justify;
+      }
+      @media (max-width: 600px){
+        .imgcontainer > img {
+          width: 95%;
+        }
+        .vidcontainer > video {
+          width: 95%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <a id="backtotop" href="#table_of_contents">
+      <img src="arrow_up.png" alt="arrow_up">
+    </a>
+    <div id="table_of_contents">
+      <h1>Table of Contents</h1>
+      <details>
+        <summary><a href="#Java">Java</a></summary>
+        <p>
+          <details class="subdetails">
+            <summary><a href="#Java-Variables">Variables</a></summary>
+            <p><li class="lastitem"><a href="#Java-Variables-String">String</a></li></p>
+            <p><li class="lastitem"><a href="#Java-Variables-Integer">Integer</a></li></p>
+            <p><li class="lastitem"><a href="#Java-Variables-Double">Double</a></li></p>
+            <p><li class="lastitem"><a href="#Java-Variables-Character">Character</a></li></p>
+            <p><li class="lastitem"><a href="#Java-Variables-Boolean">Boolean</a></li></p>
+          </details>
+        </p>
+        <p>
+          <details class="subdetails">
+            <summary><a href="#Java-Operators">Operators</a></summary>
+            <p>
+              <details class="subdetails">
+                <summary><a href="#Java-Operators-Math">Math Operators</a></summary>
+                <p><li class="lastitem"><a href="#Java-Operators-Math-Addition">Addition</a></li></p>
+                <p><li class="lastitem"><a href="#Java-Operators-Math-Subtraction">Subtraction</a></li></p>
+                <p><li class="lastitem"><a href="#Java-Operators-Math-Multiplication">Multiplication</a></li></p>
+                <p><li class="lastitem"><a href="#Java-Operators-Math-Division">Division</a></li></p>
+                <p><li class="lastitem"><a href="#Java-Operators-Math-Modulo">Modulo</a></li></p>
+                <p><li class="lastitem"><a href="#Java-Operators-Math-Increment">Increment</a></li></p>
+                <p><li class="lastitem"><a href="#Java-Operators-Math-Decrement">Decrement</a></li></p>
+              </details>
+            </p>
+            <p>
+              <details class="subdetails">
+                <summary><a href="#Java-Operators-Assignment">Assignment Operators</a></summary>
+                <p><li class="lastitem"><a href="#Java-Operators-Assignment-Assignment">Assignment</a></li></p>
+                <p><li class="lastitem"><a href="#Java-Operators-Assignment-Addition">Addition and Assignment</a></li></p>
+                <p><li class="lastitem"><a href="#Java-Operators-Assignment-Subtraction">Subtraction and Assignment</a></li></p>
+                <p><li class="lastitem"><a href="#Java-Operators-Assignment-Multiplication">Multiplication and Assignment</a></li></p>
+                <p><li class="lastitem"><a href="#Java-Operators-Assignment-Division">Division and Assignment</a></li></p>
+              </details>
+            </p>
+            <p>
+              <details class="subdetails">
+                <summary><a href="#Java-Operators-Conditional">Conditional Operators</a></summary>
+                <p><li class="lastitem"><a href="#Java-Operators-Conditional-IsEqualTo">Equal to</a></li></p>
+                <p><li class="lastitem"><a href="#Java-Operators-Conditional-IsNotEqualTo">Not equal to</a></li></p>
+                <p><li class="lastitem"><a href="#Java-Operators-Conditional-IsLessThan">Less than</a></li></p>
+                <p><li class="lastitem"><a href="#Java-Operators-Conditional-IsGreaterThan">Greater than</a></li></p>
+                <p><li class="lastitem"><a href="#Java-Operators-Conditional-IsLessThanOrEqualTo">Less than or equal to</a></li></p>
+                <p><li class="lastitem"><a href="#Java-Operators-Conditional-IsGreaterThanOrEqualTo">Greater than or equal to</a></li></p>
+              </details>
+            </p>
+            <p>
+              <details class="subdetails">
+                <summary><a href="#Java-Operators-Logical">Logical Operators</a></summary>
+                <p><li class="lastitem"><a href="#Java-Operators-Logical-And">And</a></li></p>
+                <p><li class="lastitem"><a href="#Java-Operators-Logical-Or">Or</a></li></p>
+                <p><li class="lastitem"><a href="#Java-Operators-Logical-Not">Not</a></li></p>
+              </details>
+            </p>
+          </details>
+        </p>
+        <p>
+          <details class="subdetails">
+            <summary><a href="#Java-Basics">Basics</a></summary>
+            <p><li class="lastitem"><a href="#Java-Basics-WhatYouNeedToKnow">What you need to know</a></li></p>
+            <p><li class="lastitem"><a href="#Java-Basics-Comments">Comments</a></li></p>
+            <p><li class="lastitem"><a href="#Java-Basics-Output">Output</a></li></p>
+            <p><li class="lastitem"><a href="#Java-Basics-Input">Input</a></li></p>
+            <p><li class="lastitem"><a href="#Java-Basics-Conditional">Conditional Statements</a></li></p>
+            <p>
+              <details class="subdetails">
+                <summary><a href="#Java-Basics-Looping">Looping Statements</a></summary>
+                <p><li class="lastitem"><a href="#Java-Basics-Looping-While">While</a></li></p>
+                <p><li class="lastitem"><a href="#Java-Basics-Looping-For">For</a></li></p>
+                <p><li class="lastitem"><a href="#Java-Basics-Looping-DoWhile">Do...While</a></li></p>
+              </details>
+            </p>
+          </details>
+        </p>
+      </details>
+      <details>
+        <summary><a href="#CSharp">C#</a></summary>
+        <p>
+          <details class="subdetails">
+            <summary><a href="#CSharp-Variables">Variables</a></summary>
+            <p><li class="lastitem"><a href="#CSharp-Variables-String">String</a></li></p>
+            <p><li class="lastitem"><a href="#CSharp-Variables-Integer">Integer</a></li></p>
+            <p><li class="lastitem"><a href="#CSharp-Variables-Double">Double</a></li></p>
+            <p><li class="lastitem"><a href="#CSharp-Variables-Character">Character</a></li></p>
+            <p><li class="lastitem"><a href="#CSharp-Variables-Bool">Bool</a></li></p>
+          </details>
+        </p>
+        <p>
+          <details class="subdetails">
+            <summary><a href="#CSharp-Operators">Operators</a></summary>
+            <p>
+              <details class="subdetails">
+                <summary><a href="#CSharp-Operators-Math">Math Operators</a></summary>
+                <p><li class="lastitem"><a href="#CSharp-Operators-Math-Addition">Addition</a></li></p>
+                <p><li class="lastitem"><a href="#CSharp-Operators-Math-Subtraction">Subtraction</a></li></p>
+                <p><li class="lastitem"><a href="#CSharp-Operators-Math-Multiplication">Multiplication</a></li></p>
+                <p><li class="lastitem"><a href="#CSharp-Operators-Math-Division">Division</a></li></p>
+                <p><li class="lastitem"><a href="#CSharp-Operators-Math-Modulo">Modulo</a></li></p>
+                <p><li class="lastitem"><a href="#CSharp-Operators-Math-Increment">Increment</a></li></p>
+                <p><li class="lastitem"><a href="#CSharp-Operators-Math-Decrement">Decrement</a></li></p>
+              </details>
+            </p>
+            <p>
+              <details class="subdetails">
+                <summary><a href="#CSharp-Operators-Assignment">Assignment Operators</a></summary>
+                <p><li class="lastitem"><a href="#CSharp-Operators-Assignment-Assignment">Assignment</a></li></p>
+                <p><li class="lastitem"><a href="#CSharp-Operators-Assignment-Addition">Addition and Assignment</a></li></p>
+                <p><li class="lastitem"><a href="#CSharp-Operators-Assignment-Subtraction">Subtraction and Assignment</a></li></p>
+                <p><li class="lastitem"><a href="#CSharp-Operators-Assignment-Multiplication">Multiplication and Assignment</a></li></p>
+                <p><li class="lastitem"><a href="#CSharp-Operators-Assignment-Division">Division and Assignment</a></li></p>
+              </details>
+            </p>
+            <p>
+              <details class="subdetails">
+                <summary><a href="#CSharp-Operators-Conditional">Conditional Operators</a></summary>
+                <p><li class="lastitem"><a href="#CSharp-Operators-Conditional-IsEqualTo">Equal to</a></li></p>
+                <p><li class="lastitem"><a href="#CSharp-Operators-Conditional-IsNotEqualTo">Not equal to</a></li></p>
+                <p><li class="lastitem"><a href="#CSharp-Operators-Conditional-IsLessThan">Less than</a></li></p>
+                <p><li class="lastitem"><a href="#CSharp-Operators-Conditional-IsGreaterThan">Greater than</a></li></p>
+                <p><li class="lastitem"><a href="#CSharp-Operators-Conditional-IsLessThanOrEqualTo">Less than or equal to</a></li></p>
+                <p><li class="lastitem"><a href="#CSharp-Operators-Conditional-IsGreaterThanOrEqualTo">Greater than or equal to</a></li></p>
+              </details>
+            </p>
+            <p>
+              <details class="subdetails">
+                <summary><a href="#CSharp-Operators-Logical">Logical Operators</a></summary>
+                <p><li class="lastitem"><a href="#CSharp-Operators-Logical-And">And</a></li></p>
+                <p><li class="lastitem"><a href="#CSharp-Operators-Logical-Or">Or</a></li></p>
+                <p><li class="lastitem"><a href="#CSharp-Operators-Logical-Not">Not</a></li></p>
+              </details>
+            </p>
+          </details>
+        </p>
+        <p>
+          <details class="subdetails">
+            <summary><a href="#CSharp-Basics">Basics</a></summary>
+            <p><li class="lastitem"><a href="#CSharp-Basics-WhatYouNeedToKnow">What you need to know</a></li></p>
+            <p><li class="lastitem"><a href="#CSharp-Basics-Comments">Comments</a></li></p>
+            <p><li class="lastitem"><a href="#CSharp-Basics-Output">Output</a></li></p>
+            <p><li class="lastitem"><a href="#CSharp-Basics-Input">Input</a></li></p>
+            <p><li class="lastitem"><a href="#CSharp-Basics-Conditional">Conditional Statements</a></li></p>
+            <p>
+              <details class="subdetails">
+                <summary><a href="#CSharp-Basics-Looping">Looping Statements</a></summary>
+                <p><li class="lastitem"><a href="#CSharp-Basics-Looping-While">While</a></li></p>
+                <p><li class="lastitem"><a href="#CSharp-Basics-Looping-For">For</a></li></p>
+                <p><li class="lastitem"><a href="#CSharp-Basics-Looping-DoWhile">Do...While</a></li></p>
+              </details>
+            </p>
+          </details>
+        </p>
+      </details>
+      <details>
+        <summary><a href="#Android">Android</a></summary>
+        <p>
+          <details class="subdetails">
+            <summary><a href="#Android-Java">Java</a></summary>
+            <p>
+              <details class="subdetails">
+                <summary><a href="#Android-Java-Basics">Basics</a></summary>
+                <p><li class="lastitem"><a href="#Android-Java-Basics-WhatYouNeedToKnow">What you need to know</a></li></p>
+                <p><li class="lastitem"><a href="#Android-Java-Basics-Activity">Activity</a></li></p>
+                <p><li class="lastitem"><a href="#Android-Java-Basics-Intent">Intent</a></li></p>
+              </details>
+            </p>
+            <p>
+              <details class="subdetails">
+                <summary><a href="#Android-Java-UI">User Interface</a></summary>
+                <p><li class="lastitem"><a href="#Android-Java-UI-Button">Button</a></li></p>
+                <p><li class="lastitem"><a href="#Android-Java-UI-TextView">TextView</a></li></p>
+                <p><li class="lastitem"><a href="#Android-Java-UI-EditText">EditText</a></li></p>
+              </details>
+            </p>
+            <p>
+              <details class="subdetails">
+                <summary><a href="#Android-Java-Intermediate">Intermediate</a></summary>
+                <p><li class="lastitem"><a href="#Android-Java-Intermediate-GetText">Getting text from a widget</a></li></p>
+                <p><li class="lastitem"><a href="#Android-Java-Intermediate-EditTextSetError">Alerting a user through an EditText</a></li></p>
+                <p><li class="lastitem"><a href="#Android-Java-Intermediate-Toast">Toast</a></li></p>
+                <p><li class="lastitem"><a href="#Android-Java-Intermediate-AlertDialog">AlertDialog</a></li></p>
+              </details>
+            </p>
+            <p>
+              <details class="subdetails">
+                <summary><a href="#Android-Java-Advanced">Advanced</a></summary>
+                <p><li class="lastitem"><a href="#Android-Java-Advanced-HideKeyboard">Hiding a keyboard</a></li></p>
+                <p><li class="lastitem"><a href="#Android-Java-Advanced-OnKeyListener">OnKeyListener</a></li></p>
+                <p><li class="lastitem"><a href="#Android-Java-Advanced-Notification">Notification</a></li></p>
+              </details>
+            </p>
+          </details>
+        </p>
+      </details>
+    </div>
+    <div id="main_page">
+      <h1 id="Java">Java</h1>
+      <h2 id="Java-Variables">Variables</h2>
+      <p>These store data for processing.</p>
+      <p>A variable is given a <strong>data type</strong> and a <strong>name</strong> (or <strong>identifier</strong>).</p>
+      <p>A <strong>data type</strong> tells the system what kind of data it should store and a <strong>name</strong> or an <strong>identifier</strong> is set by a programmer to uniquely reference a specific data.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p>String name = <span class="shouldbegreen">"Bob"</span>;</p>
+        <p><span class="shouldbeblue">int</span> age = <span class="shouldbeblue">18</span>;</p>
+        <p><span class="shouldbeblue">double</span> grade = <span class="shouldbeblue">85.25</span>;</p>
+        <p><span class="shouldbeblue">char</span> gradeLetter = <span class="shouldbegreen">'B'</span>;</p>
+        <p><span class="shouldbeblue">boolean</span> isOnline = <span class="shouldbeblue">false</span>;</p>
+      </div>
+      <h2 id="Java-Variables-String">String</h2>
+      <p><strong>Strings</strong> store a sequence of characters and are enclosed in double quotes.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p>String name = <span class="shouldbegreen">"Bob"</span>;</p>
+      </div>
+      <h2 id="Java-Variables-Integer">Integer</h2>
+      <p><strong>Integers</strong> store whole numbers.</p>
+      <p>The max value you can store in an integer is <strong>2147483647</strong>.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbeblue">int</span> age = <span class="shouldbeblue">18</span>;</p>
+      </div>
+      <h2 id="Java-Variables-Double">Double</h2>
+      <p><strong>Doubles</strong> store floating-point numbers (or numbers with decimal values).</p>
+      <p>The max value you can store in a double is approximately <strong>1.7976931348623157 x 10<sup>308</sup></strong>.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbeblue">double</span> grade = <span class="shouldbeblue">85.25</span>;</p>
+      </div>
+      <h2 id="Java-Variables-Character">Character</h2>
+      <p><strong>Characters</strong> store single alphanumeric characters and are enclosed in single quotes.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbeblue">char</span> gradeLetter = <span class="shouldbegreen">'B'</span>;</p>
+      </div>
+      <h2 id="Java-Variables-Boolean">Boolean</h2>
+      <p><strong>Booleans</strong> only store two (2) possible values: <strong>true</strong> or <strong>false</strong>.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbeblue">boolean</span> isOnline = <span class="shouldbeblue">false</span>;</p>
+      </div>
+      <h2 id="Java-Operators">Operators</h2>
+      <p>Every programming language provides a set of operators to use in manipulating variables.</p>
+      <h2 id="Java-Operators-Math">Math Operators</h2>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbeblue">int</span> a = <span class="shouldbeblue">6</span>;</p>
+        <p><span class="shouldbeblue">int</span> b = <span class="shouldbeblue">5</span>;</p>
+        <p><span class="shouldbeblue">int</span> sum = a + b;</p>
+        <p><span class="shouldbeblue">int</span> difference = a - b;</p>
+        <p><span class="shouldbeblue">int</span> product = a * b;</p>
+        <p><span class="shouldbeblue">int</span> quotient = a / b;</p>
+        <p><span class="shouldbeblue">int</span> remainder = a % b;</p>
+      </div>
+      <h2 id="Java-Operators-Math-Addition">Addition</h2>
+      <p>The <strong>plus sign (+)</strong> is used to add two numbers.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbeblue">int</span> a = <span class="shouldbeblue">6</span>;</p>
+        <p><span class="shouldbeblue">int</span> b = <span class="shouldbeblue">5</span>;</p>
+        <p><span class="shouldbeblue">int</span> sum = a + b;</p>
+      </div>
+      <h2 id="Java-Operators-Math-Subtraction">Subtraction</h2>
+      <p>The <strong>dash sign (-)</strong> is used to subtract two numbers.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbeblue">int</span> a = <span class="shouldbeblue">6</span>;</p>
+        <p><span class="shouldbeblue">int</span> b = <span class="shouldbeblue">5</span>;</p>
+        <p><span class="shouldbeblue">int</span> difference = a - b;</p>
+      </div>
+      <h2 id="Java-Operators-Math-Multiplication">Multiplication</h2>
+      <p>The <strong>asterisk sign (*)</strong> is used to multiply two numbers.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbeblue">int</span> a = <span class="shouldbeblue">6</span>;</p>
+        <p><span class="shouldbeblue">int</span> b = <span class="shouldbeblue">5</span>;</p>
+        <p><span class="shouldbeblue">int</span> product = a * b;</p>
+      </div>
+      <h2 id="Java-Operators-Math-Division">Division</h2>
+      <p>The <strong>forward slash sign (/)</strong> is used to divide two numbers.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbeblue">int</span> a = <span class="shouldbeblue">6</span>;</p>
+        <p><span class="shouldbeblue">int</span> b = <span class="shouldbeblue">5</span>;</p>
+        <p><span class="shouldbeblue">int</span> quotient = a / b;</p>
+      </div>
+      <h2 id="Java-Operators-Math-Modulo">Modulo</h2>
+      <p>The <strong>percent sign (%)</strong> is used to divide two numbers and returns the remainder.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbeblue">int</span> a = <span class="shouldbeblue">6</span>;</p>
+        <p><span class="shouldbeblue">int</span> b = <span class="shouldbeblue">5</span>;</p>
+        <p><span class="shouldbeblue">int</span> remainder = a % b;</p>
+      </div>
+      <h2 id="Java-Operators-Math-Increment">Increment</h2>
+      <p>The <strong>double plus sign (++)</strong> is used to increase the value of a number by <strong>one (1)</strong>.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbeblue">int</span> a = <span class="shouldbeblue">6</span>;</p>
+        <p>a++;</p>
+      </div>
+      <h2 id="Java-Operators-Math-Decrement">Decrement</h2>
+      <p>The <strong>double dash sign (--)</strong> is used to decrease the value of a number by <strong>one (1)</strong>.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbeblue">int</span> a = <span class="shouldbeblue">6</span>;</p>
+        <p>a--;</p>
+      </div>
+      <h2 id="Java-Operators-Assignment">Assignment Operators</h2>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbeblue">int</span> a = <span class="shouldbeblue">6</span>;</p>
+        <p>a += <span class="shouldbeblue">5</span>;</p>
+        <p>a -= <span class="shouldbeblue">5</span>;</p>
+        <p>a *= <span class="shouldbeblue">5</span>;</p>
+        <p>a /= <span class="shouldbeblue">5</span>;</p>
+      </div>
+      <h2 id="Java-Operators-Assignment-Assignment">Assignment</h2>
+      <p>The <strong>equal sign (=)</strong> is used to assign a value to a variable.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbeblue">int</span> a = <span class="shouldbeblue">6</span>;</p>
+      </div>
+      <h2 id="Java-Operators-Assignment-Addition">Addition and Assignment</h2>
+      <p>The <strong>plus and equal sign (+=)</strong> is used to add a value to a variable with the same data type and assign it to itself.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbeblue">int</span> a = <span class="shouldbeblue">6</span>;</p>
+        <p>a += <span class="shouldbeblue">5</span>;</p>
+      </div>
+      <h2 id="Java-Operators-Assignment-Subtraction">Subtraction and Assignment</h2>
+      <p>The <strong>dash and equal sign (-=)</strong> is used to subtract a value to a variable with the same data type and assign it to itself.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbeblue">int</span> a = <span class="shouldbeblue">6</span>;</p>
+        <p>a -= <span class="shouldbeblue">5</span>;</p>
+      </div>
+      <h2 id="Java-Operators-Assignment-Multiplication">Multiplication and Assignment</h2>
+      <p>The <strong>asterisk and equal sign (*=)</strong> is used to multiply a value to a variable with the same data type and assign it to itself.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbeblue">int</span> a = <span class="shouldbeblue">6</span>;</p>
+        <p>a *= <span class="shouldbeblue">5</span>;</p>
+      </div>
+      <h2 id="Java-Operators-Assignment-Division">Division and Assignment</h2>
+      <p>The <strong>forward slash and equal sign (/=)</strong> is used to divide a value to a variable with the same data type and assign it to itself.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbeblue">int</span> a = <span class="shouldbeblue">6</span>;</p>
+        <p>a /= <span class="shouldbeblue">5</span>;</p>
+      </div>
+      <h2 id="Java-Operators-Conditional">Conditional Operators</h2>
+      <p>These operators always returns a <strong>boolean</strong> value.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbeblue">boolean</span> a = <span class="shouldbeblue">6</span> == <span class="shouldbeblue">5</span>;</p>
+        <p><span class="shouldbeblue">boolean</span> b = <span class="shouldbeblue">6</span> != <span class="shouldbeblue">5</span>;</p>
+        <p><span class="shouldbeblue">boolean</span> c = <span class="shouldbeblue">6</span> &lt; <span class="shouldbeblue">5</span>;</p>
+        <p><span class="shouldbeblue">boolean</span> d = <span class="shouldbeblue">6</span> &gt; <span class="shouldbeblue">5</span>;</p>
+        <p><span class="shouldbeblue">boolean</span> e = <span class="shouldbeblue">6</span> &lt;= <span class="shouldbeblue">5</span>;</p>
+        <p><span class="shouldbeblue">boolean</span> f = <span class="shouldbeblue">6</span> &gt;= <span class="shouldbeblue">5</span>;</p>
+      </div>
+      <h2 id="Java-Operators-Conditional-IsEqualTo">Equal to</h2>
+      <p>The <strong>double equal sign (==)</strong> is used to compare two values together and check if the left variable is equal to the right variable.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbeblue">boolean</span> a = <span class="shouldbeblue">6</span> == <span class="shouldbeblue">5</span>;</p>
+      </div>
+      <h2 id="Java-Operators-Conditional-IsNotEqualTo">Not equal to</h2>
+      <p>The <strong>exclamation point and equal sign (!=)</strong> is used to compare two values together and check if the left variable is not equal to the right variable.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbeblue">boolean</span> a = <span class="shouldbeblue">6</span> != <span class="shouldbeblue">5</span>;</p>
+      </div>
+      <h2 id="Java-Operators-Conditional-IsLessThan">Less than</h2>
+      <p>The <strong>left bracket symbol (<)</strong> is used to compare two values together and check if the left variable is less than the right variable.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbeblue">boolean</span> a = <span class="shouldbeblue">6</span> &lt; <span class="shouldbeblue">5</span>;</p>
+      </div>
+      <h2 id="Java-Operators-Conditional-IsGreaterThan">Greater than</h2>
+      <p>The <strong>right bracket symbol (>)</strong> is used to compare two values together and check if the left variable is greater than the right variable.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbeblue">boolean</span> a = <span class="shouldbeblue">6</span> &gt; <span class="shouldbeblue">5</span>;</p>
+      </div>
+      <h2 id="Java-Operators-Conditional-IsLessThanOrEqualTo">Less than or equal to</h2>
+      <p>The <strong>left bracket symbol and equal sign (<=)</strong> is used to compare two values together and check if the left variable is less than or equal to the right variable.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbeblue">boolean</span> a = <span class="shouldbeblue">6</span> &lt;= <span class="shouldbeblue">5</span>;</p>
+      </div>
+      <h2 id="Java-Operators-Conditional-IsGreaterThanOrEqualTo">Greater than or equal to</h2>
+      <p>The <strong>right bracket symbol and equal sign (>=)</strong> is used to compare two values together and check if the left variable is greater than or equal to the right variable.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbeblue">boolean</span> a = <span class="shouldbeblue">6</span> &gt;= <span class="shouldbeblue">5</span>;</p>
+      </div>
+      <h2 id="Java-Operators-Logical">Logical Operators</h2>
+      <p>These operators always returns a <strong>boolean</strong> value.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbeblue">boolean</span> a = <span class="shouldbeblue">true</span> && <span class="shouldbeblue">false</span>;</p>
+        <p><span class="shouldbeblue">boolean</span> b = <span class="shouldbeblue">true</span> || <span class="shouldbeblue">false</span>;</p>
+        <p><span class="shouldbeblue">boolean</span> c = !<span class="shouldbeblue">true</span>;</p>
+      </div>
+      <h2 id="Java-Operators-Logical-And">And</h2>
+      <p>The <strong>double ampersand symbol (&&)</strong> is used to combine multiple conditions.</p>
+      <p>If <strong>both</strong> values are <strong>true</strong>, then the result is <strong>true</strong>.</p>
+      <p>If <strong>one</strong> value is <strong>false</strong>, then the result is <strong>false</strong>.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbeblue">boolean</span> a = <span class="shouldbeblue">true</span> && <span class="shouldbeblue">false</span>;</p>
+      </div>
+      <h2 id="Java-Operators-Logical-Or">Or</h2>
+      <p>The <strong>double pipe symbol (||)</strong> is used to combine multiple conditions.</p>
+      <p>If <strong>one</strong> value is <strong>true</strong>, then the result is <strong>true</strong>.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbeblue">boolean</span> a = <span class="shouldbeblue">true</span> || <span class="shouldbeblue">false</span>;</p>
+      </div>
+      <h2 id="Java-Operators-Logical-Not">Not</h2>
+      <p>The <strong>exclamation point (!)</strong> is used to reverse a condition.</p>
+      <p>If a condition is <strong>true</strong>, then the result is <strong>false</strong>.</p>
+      <p>If a condition is <strong>false</strong>, then the result is <strong>true</strong>.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbeblue">boolean</span> a = !<span class="shouldbeblue">true</span>;</p>
+      </div>
+      <h2 id="Java-Basics">Basics</h2>
+      <p>Learning a programming language usually starts with using the console.</p>
+      <h2 id="Java-Basics-WhatYouNeedToKnow">What you need to know</h2>
+      <p>Creating simple programs in Java starts with putting code inside its main loop function.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbeblue">class</span> ConsoleApp1 {</p>
+        <p>&nbsp;&nbsp;&nbsp;&nbsp;<span class="shouldbeblue">public static void</span> <span class="shouldbebluegreen">main</span>(String[] args){</p>
+        <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="shouldbegrayanditalic">// your code here</span></p>
+        <p>&nbsp;&nbsp;&nbsp;&nbsp;}</p>
+        <p>}</p>
+      </div>
+      <h2 id="Java-Basics-Comments">Comments</h2>
+      <p>Comments are specific texts in a programming language that is ignored in a program's execution.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbegrayanditalic">// single-line comment</span></p>
+        <br>
+        <p><span class="shouldbegrayanditalic">/*</span></p>
+        <p><span class="shouldbegrayanditalic">&nbsp;* multi-line comment</span></p>
+        <p><span class="shouldbegrayanditalic">&nbsp;*/</span></p>
+      </div>
+      <h2 id="Java-Basics-Output">Output</h2>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p>System.<span class="shouldbevioletanditalic">out</span>.println(<span class="shouldbegreen">"Sample text"</span>);</p>
+      </div>
+      <h2 id="Java-Basics-Input">Input</h2>
+      <p>Java uses the <strong>Scanner</strong> package to get input from the console.</p>
+      <p>The <strong>Scanner</strong> package is imported by calling <strong>import java.util.Scanner;</strong> at the top of your class.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbeblue">import</span> java.util.Scanner;</p>
+        <p><span class="shouldbeblue">class</span> ConsoleApp1 {</p>
+        <p>&nbsp;&nbsp;&nbsp;&nbsp;<span class="shouldbeblue">public static void</span> <span class="shouldbebluegreen">main</span>(String[] args){</p>
+        <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Scanner scanner = <span class="shouldbeblue">new</span> Scanner(System.<span class="shouldbevioletanditalic">in</span>);</p>
+        <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String a = scanner.nextLine();</p>
+        <p>&nbsp;&nbsp;&nbsp;&nbsp;}</p>
+        <p>}</p>
+      </div>
+      <h2 id="Java-Basics-Conditional">Conditional Statements</h2>
+      <p>Conditional statements make use of the keywords <strong>if</strong>, <strong>else</strong>, and <strong>else if</strong>.</p>
+      <p>The keyword <strong>if</strong> is always followed by a condition enclosed in parentheses.</p>
+      <p><strong>If</strong> the condition inside the parentheses is <strong>true</strong>, it will then execute the code it contains.</p>
+      <p><strong>Else</strong>, it will then execute the code inside the <strong>else</strong> block.</p>
+      <p>The <strong>else if</strong> keyword simply combines both the <strong>if</strong> and <strong>else</strong> statement.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbeblue">if</span> (<span class="shouldbeblue">6</span> == <span class="shouldbeblue">5</span>){</p>
+        <p>&nbsp;&nbsp;&nbsp;&nbsp;<span class="shouldbegrayanditalic">// your code here</span></p>
+        <p>} <span class="shouldbeblue">else if</span> (<span class="shouldbeblue">6</span> < <span class="shouldbeblue">5</span>){</p>
+        <p>&nbsp;&nbsp;&nbsp;&nbsp;<span class="shouldbegrayanditalic">// your code here</span></p>
+        <p>} <span class="shouldbeblue">else</span> {</p>
+        <p>&nbsp;&nbsp;&nbsp;&nbsp;<span class="shouldbegrayanditalic">// your code here</span></p>
+        <p>}</p>
+      </div>
+      <h2 id="Java-Basics-Looping">Looping Statements</h2>
+      <p>Looping statements make use of the keywords <strong>for</strong>, <strong>while</strong>, and <strong>do</strong>.</p>
+      <h2 id="Java-Basics-Looping-While">While</h2>
+      <p>The keyword <strong>while</strong> is always followed by a condition enclosed in parentheses.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbeblue">while</span> (<span class="shouldbeblue">6</span> != <span class="shouldbeblue">5</span>){</p>
+        <p>&nbsp;&nbsp;&nbsp;&nbsp;<span class="shouldbegrayanditalic">// your code here</span></p>
+        <p>}</p>
+      </div>
+      <h2 id="Java-Basics-Looping-For">For</h2>
+      <p>The keyword <strong>for</strong> is also followed by a statement enclosed in parentheses but requires three (3) statements inside the parentheses: <strong>initialization</strong>, <strong>condition</strong>, and <strong>update</strong>.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbeblue">for</span> (<span class="shouldbeblue">int</span> a = <span class="shouldbeblue">0</span>; a < <span class="shouldbeblue">6</span>; a++){</p>
+        <p>&nbsp;&nbsp;&nbsp;&nbsp;<span class="shouldbegrayanditalic">// your code here</span></p>
+        <p>}</p>
+      </div>
+      <h2 id="Java-Basics-Looping-DoWhile">Do...While</h2>
+      <p>The keyword <strong>do</strong> acts the same as a <strong>while</strong> statment and is always accompanied by the <strong>while</strong> statement.</p>
+      <p>The only difference being: <strong>do...while</strong> statements executes the code inside it first before checking the condition; and the <strong>while</strong> statements checks for the condition first before executing.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbeblue">do</span> {</p>
+        <p>&nbsp;&nbsp;&nbsp;&nbsp;<span class="shouldbegrayanditalic">// your code here</span></p>
+        <p>} <span class="shouldbeblue">while</span> (<span class="shouldbeblue">6</span> != <span class="shouldbeblue">5</span>);</p>
+      </div>
+      <h1 id="CSharp">C#</h1>
+      <h2 id="CSharp-Variables">Variables</h2>
+      <p>These store data for processing.</p>
+      <p>A variable is given a <strong>data type</strong> and a <strong>name</strong> (or <strong>identifier</strong>).</p>
+      <p>A <strong>data type</strong> tells the system what kind of data it should store and a <strong>name</strong> or an <strong>identifier</strong> is set by a programmer to uniquely reference a specific data.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbecsblue">string</span> <span class="shouldbecsvariable">name</span> = <span class="shouldbecsred">"Bob"</span>;</p>
+        <p><span class="shouldbecsblue">int</span> <span class="shouldbecsvariable">age</span> = 18;</p>
+        <p><span class="shouldbecsblue">double</span> <span class="shouldbecsvariable">grade</span> = 85.25;</p>
+        <p><span class="shouldbecsblue">char</span> <span class="shouldbecsvariable">gradeLetter</span> = <span class="shouldbecsred">'B'</span>;</p>
+        <p><span class="shouldbecsblue">bool</span> <span class="shouldbecsvariable">isOnline</span> = <span class="shouldbecsblue">false</span>;</p>
+      </div>
+      <h2 id="CSharp-Variables-String">String</h2>
+      <p><strong>Strings</strong> store a sequence of characters and are enclosed in double quotes.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbecsblue">string</span> <span class="shouldbecsvariable">name</span> = <span class="shouldbecsred">"Bob"</span>;</p>
+      </div>
+      <h2 id="CSharp-Variables-Integer">Integer</h2>
+      <p><strong>Integers</strong> store whole numbers.</p>
+      <p>The max value you can store in an integer is <strong>2147483647</strong>.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbecsblue">int</span> <span class="shouldbecsvariable">age</span> = 18;</p>
+      </div>
+      <h2 id="CSharp-Variables-Double">Double</h2>
+      <p><strong>Doubles</strong> store floating-point numbers (or numbers with decimal values).</p>
+      <p>The max value you can store in a double is approximately <strong>1.7976931348623157 x 10<sup>308</sup></strong>.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbecsblue">double</span> <span class="shouldbecsvariable">grade</span> = 85.25;</p>
+      </div>
+      <h2 id="CSharp-Variables-Character">Character</h2>
+      <p><strong>Characters</strong> store single alphanumeric characters and are enclosed in single quotes.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbecsblue">char</span> <span class="shouldbecsvariable">gradeLetter</span> = <span class="shouldbecsred">'B'</span>;</p>
+      </div>
+      <h2 id="CSharp-Variables-Bool">Bool</h2>
+      <p><strong>Bools</strong> only store two (2) possible values: <strong>true</strong> or <strong>false</strong>.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbecsblue">bool</span> <span class="shouldbecsvariable">isOnline</span> = <span class="shouldbecsblue">false</span>;</p>
+      </div>
+      <h2 id="CSharp-Operators">Operators</h2>
+      <p>Every programming language provides a set of operators to use in manipulating variables.</p>
+      <h2 id="CSharp-Operators-Math">Math Operators</h2>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbecsblue">int</span> <span class="shouldbecsvariable">a</span> = 6;</p>
+        <p><span class="shouldbecsblue">int</span> <span class="shouldbecsvariable">b</span> = 5;</p>
+        <p><span class="shouldbecsblue">int</span> <span class="shouldbecsvariable">sum</span> = <span class="shouldbecsvariable">a</span> + <span class="shouldbecsvariable">b</span>;</p>
+        <p><span class="shouldbecsblue">int</span> <span class="shouldbecsvariable">difference</span> = <span class="shouldbecsvariable">a</span> - <span class="shouldbecsvariable">b</span>;</p>
+        <p><span class="shouldbecsblue">int</span> <span class="shouldbecsvariable">product</span> = <span class="shouldbecsvariable">a</span> * <span class="shouldbecsvariable">b</span>;</p>
+        <p><span class="shouldbecsblue">int</span> <span class="shouldbecsvariable">quotient</span> = <span class="shouldbecsvariable">a</span> / <span class="shouldbecsvariable">b</span>;</p>
+        <p><span class="shouldbecsblue">int</span> <span class="shouldbecsvariable">remainder</span> = <span class="shouldbecsvariable">a</span> % <span class="shouldbecsvariable">b</span>;</p>
+      </div>
+      <h2 id="CSharp-Operators-Math-Addition">Addition</h2>
+      <p>The <strong>plus sign (+)</strong> is used to add two numbers.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbecsblue">int</span> <span class="shouldbecsvariable">a</span> = 6;</p>
+        <p><span class="shouldbecsblue">int</span> <span class="shouldbecsvariable">b</span> = 5;</p>
+        <p><span class="shouldbecsblue">int</span> <span class="shouldbecsvariable">sum</span> = <span class="shouldbecsvariable">a</span> + <span class="shouldbecsvariable">b</span>;</p>
+      </div>
+      <h2 id="CSharp-Operators-Math-Subtraction">Subtraction</h2>
+      <p>The <strong>dash sign (-)</strong> is used to subtract two numbers.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbecsblue">int</span> <span class="shouldbecsvariable">a</span> = 6;</p>
+        <p><span class="shouldbecsblue">int</span> <span class="shouldbecsvariable">b</span> = 5;</p>
+        <p><span class="shouldbecsblue">int</span> <span class="shouldbecsvariable">difference</span> = <span class="shouldbecsvariable">a</span> - <span class="shouldbecsvariable">b</span>;</p>
+      </div>
+      <h2 id="CSharp-Operators-Math-Multiplication">Multiplication</h2>
+      <p>The <strong>asterisk sign (*)</strong> is used to multiply two numbers.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbecsblue">int</span> <span class="shouldbecsvariable">a</span> = 6;</p>
+        <p><span class="shouldbecsblue">int</span> <span class="shouldbecsvariable">b</span> = 5;</p>
+        <p><span class="shouldbecsblue">int</span> <span class="shouldbecsvariable">product</span> = <span class="shouldbecsvariable">a</span> * <span class="shouldbecsvariable">b</span>;</p>
+      </div>
+      <h2 id="CSharp-Operators-Math-Division">Division</h2>
+      <p>The <strong>forward slash sign (/)</strong> is used to divide two numbers.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbecsblue">int</span> <span class="shouldbecsvariable">a</span> = 6;</p>
+        <p><span class="shouldbecsblue">int</span> <span class="shouldbecsvariable">b</span> = 5;</p>
+        <p><span class="shouldbecsblue">int</span> <span class="shouldbecsvariable">quotient</span> = <span class="shouldbecsvariable">a</span> / <span class="shouldbecsvariable">b</span>;</p>
+      </div>
+      <h2 id="CSharp-Operators-Math-Modulo">Modulo</h2>
+      <p>The <strong>percent sign (%)</strong> is used to divide two numbers and returns the remainder.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbecsblue">int</span> <span class="shouldbecsvariable">a</span> = 6;</p>
+        <p><span class="shouldbecsblue">int</span> <span class="shouldbecsvariable">b</span> = 5;</p>
+        <p><span class="shouldbecsblue">int</span> <span class="shouldbecsvariable">remainder</span> = <span class="shouldbecsvariable">a</span> % <span class="shouldbecsvariable">b</span>;</p>
+      </div>
+      <h2 id="CSharp-Operators-Math-Increment">Increment</h2>
+      <p>The <strong>double plus sign (++)</strong> is used to increase the value of a number by <strong>one (1)</strong>.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbecsblue">int</span> <span class="shouldbecsvariable">a</span> = 6;</p>
+        <p><span class="shouldbecsvariable">a</span>++;</p>
+      </div>
+      <h2 id="CSharp-Operators-Math-Decrement">Decrement</h2>
+      <p>The <strong>double dash sign (--)</strong> is used to decrease the value of a number by <strong>one (1)</strong>.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbecsblue">int</span> <span class="shouldbecsvariable">a</span> = 6;</p>
+        <p><span class="shouldbecsvariable">a</span>--;</p>
+      </div>
+      <h2 id="CSharp-Operators-Assignment">Assignment Operators</h2>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbecsblue">int</span> <span class="shouldbecsvariable">a</span> = 6;</p>
+        <p><span class="shouldbecsvariable">a</span> += 5;</p>
+        <p><span class="shouldbecsvariable">a</span> -= 5;</p>
+        <p><span class="shouldbecsvariable">a</span> *= 5;</p>
+        <p><span class="shouldbecsvariable">a</span> /= 5;</p>
+      </div>
+      <h2 id="CSharp-Operators-Assignment-Assignment">Assignment</h2>
+      <p>The <strong>equal sign (=)</strong> is used to assign a value to a variable.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbecsblue">int</span> <span class="shouldbecsvariable">a</span> = 6;</p>
+      </div>
+      <h2 id="CSharp-Operators-Assignment-Addition">Addition and Assignment</h2>
+      <p>The <strong>plus and equal sign (+=)</strong> is used to add a value to a variable with the same data type and assign it to itself.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbecsblue">int</span> <span class="shouldbecsvariable">a</span> = 6;</p>
+        <p><span class="shouldbecsvariable">a</span> += 5;</p>
+      </div>
+      <h2 id="CSharp-Operators-Assignment-Subtraction">Subtraction and Assignment</h2>
+      <p>The <strong>dash and equal sign (-=)</strong> is used to subtract a value to a variable with the same data type and assign it to itself.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbecsblue">int</span> <span class="shouldbecsvariable">a</span> = 6;</p>
+        <p><span class="shouldbecsvariable">a</span> -= 5;</p>
+      </div>
+      <h2 id="CSharp-Operators-Assignment-Multiplication">Multiplication and Assignment</h2>
+      <p>The <strong>asterisk and equal sign (*=)</strong> is used to multiply a value to a variable with the same data type and assign it to itself.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbecsblue">int</span> <span class="shouldbecsvariable">a</span> = 6;</p>
+        <p><span class="shouldbecsvariable">a</span> *= 5;</p>
+      </div>
+      <h2 id="CSharp-Operators-Assignment-Division">Division and Assignment</h2>
+      <p>The <strong>forward slash and equal sign (/=)</strong> is used to divide a value to a variable with the same data type and assign it to itself.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbecsblue">int</span> <span class="shouldbecsvariable">a</span> = 6;</p>
+        <p><span class="shouldbecsvariable">a</span> /= 5;</p>
+      </div>
+      <h2 id="CSharp-Operators-Conditional">Conditional Operators</h2>
+      <p>These operators always returns a <strong>bool</strong> value.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbecsblue">bool</span> <span class="shouldbecsvariable">a</span> = 6 == 5;</p>
+        <p><span class="shouldbecsblue">bool</span> <span class="shouldbecsvariable">b</span> = 6 != 5;</p>
+        <p><span class="shouldbecsblue">bool</span> <span class="shouldbecsvariable">c</span> = 6 &lt; 5;</p>
+        <p><span class="shouldbecsblue">bool</span> <span class="shouldbecsvariable">d</span> = 6 &gt; 5;</p>
+        <p><span class="shouldbecsblue">bool</span> <span class="shouldbecsvariable">e</span> = 6 &lt;= 5;</p>
+        <p><span class="shouldbecsblue">bool</span> <span class="shouldbecsvariable">f</span> = 6 &gt;= 5;</p>
+      </div>
+      <h2 id="CSharp-Operators-Conditional-IsEqualTo">Equal to</h2>
+      <p>The <strong>double equal sign (==)</strong> is used to compare two values together and check if the left variable is equal to the right variable.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbecsblue">bool</span> <span class="shouldbecsvariable">a</span> = 6 == 5;</p>
+      </div>
+      <h2 id="CSharp-Operators-Conditional-IsNotEqualTo">Not equal to</h2>
+      <p>The <strong>exclamation point and equal sign (!=)</strong> is used to compare two values together and check if the left variable is not equal to the right variable.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbecsblue">bool</span> <span class="shouldbecsvariable">a</span> = 6 != 5;</p>
+      </div>
+      <h2 id="CSharp-Operators-Conditional-IsLessThan">Less than</h2>
+      <p>The <strong>left bracket symbol (<)</strong> is used to compare two values together and check if the left variable is less than the right variable.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbecsblue">bool</span> <span class="shouldbecsvariable">a</span> = 6 &lt; 5;</p>
+      </div>
+      <h2 id="CSharp-Operators-Conditional-IsGreaterThan">Greater than</h2>
+      <p>The <strong>right bracket symbol (>)</strong> is used to compare two values together and check if the left variable is greater than the right variable.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbecsblue">bool</span> <span class="shouldbecsvariable">a</span> = 6 &gt; 5;</p>
+      </div>
+      <h2 id="CSharp-Operators-Conditional-IsLessThanOrEqualTo">Less than or equal to</h2>
+      <p>The <strong>left bracket symbol and equal sign (<=)</strong> is used to compare two values together and check if the left variable is less than or equal to the right variable.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbecsblue">bool</span> <span class="shouldbecsvariable">a</span> = 6 &lt;= 5;</p>
+      </div>
+      <h2 id="CSharp-Operators-Conditional-IsGreaterThanOrEqualTo">Greater than or equal to</h2>
+      <p>The <strong>right bracket symbol and equal sign (>=)</strong> is used to compare two values together and check if the left variable is greater than or equal to the right variable.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbecsblue">bool</span> <span class="shouldbecsvariable">a</span> = 6 &gt;= 5;</p>
+      </div>
+      <h2 id="CSharp-Operators-Logical">Logical Operators</h2>
+      <p>These operators always returns a <strong>bool</strong> value.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbecsblue">bool</span> <span class="shouldbecsvariable">a</span> = <span class="shouldbecsblue">true</span> && <span class="shouldbecsblue">false</span>;</p>
+        <p><span class="shouldbecsblue">bool</span> <span class="shouldbecsvariable">b</span> = <span class="shouldbecsblue">true</span> || <span class="shouldbecsblue">false</span>;</p>
+        <p><span class="shouldbecsblue">bool</span> <span class="shouldbecsvariable">c</span> = !<span class="shouldbecsblue">true</span>;</p>
+      </div>
+      <h2 id="CSharp-Operators-Logical-And">And</h2>
+      <p>The <strong>double ampersand symbol (&&)</strong> is used to combine multiple conditions.</p>
+      <p>If <strong>both</strong> values are <strong>true</strong>, then the result is <strong>true</strong>.</p>
+      <p>If <strong>one</strong> value is <strong>false</strong>, then the result is <strong>false</strong>.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbecsblue">bool</span> <span class="shouldbecsvariable">a</span> = <span class="shouldbecsblue">true</span> && <span class="shouldbecsblue">false</span>;</p>
+      </div>
+      <h2 id="CSharp-Operators-Logical-Or">Or</h2>
+      <p>The <strong>double pipe symbol (||)</strong> is used to combine multiple conditions.</p>
+      <p>If <strong>one</strong> value is <strong>true</strong>, then the result is <strong>true</strong>.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbecsblue">bool</span> <span class="shouldbecsvariable">a</span> = <span class="shouldbecsblue">true</span> || <span class="shouldbecsblue">false</span>;</p>
+      </div>
+      <h2 id="CSharp-Operators-Logical-Not">Not</h2>
+      <p>The <strong>exclamation point (!)</strong> is used to reverse a condition.</p>
+      <p>If a condition is <strong>true</strong>, then the result is <strong>false</strong>.</p>
+      <p>If a condition is <strong>false</strong>, then the result is <strong>true</strong>.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbecsblue">bool</span> <span class="shouldbecsvariable">a</span> = !<span class="shouldbecsblue">true</span>;</p>
+      </div>
+      <h2 id="CSharp-Basics">Basics</h2>
+      <p>Learning a programming language usually starts with using the console.</p>
+      <h2 id="CSharp-Basics-WhatYouNeedToKnow">What you need to know</h2>
+      <p>Creating simple programs in C# starts with putting code inside its main loop function.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbecsblue">using</span> System;</p>
+        <p><span class="shouldbecsblue">namespace</span> ConsoleApp1</p>
+        <p>{</p>
+        <p>&nbsp;&nbsp;&nbsp;&nbsp;<span class="shouldbecsblue">internal class</span> <span class="shouldbecsotherblue">Program</span></p>
+        <p>&nbsp;&nbsp;&nbsp;&nbsp;{</p>
+        <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="shouldbecsblue">static void</span> <span class="shouldbecsyellow">Main</span>(<span class="shouldbecsblue">string</span>[] <span class="shouldbecsvariable">args</span>)</p>
+        <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{</p>
+        <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="shouldbecsgreen">// your code here</span></p>
+        <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}</p>
+        <p>&nbsp;&nbsp;&nbsp;&nbsp;}</p>
+        <p>}</p>
+      </div>
+      <h2 id="CSharp-Basics-Comments">Comments</h2>
+      <p>Comments are specific texts in a programming language that is ignored in a program's execution.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbecsgreen">// single-line comment</span></p>
+        <br>
+        <p><span class="shouldbecsgreen">/*</span></p>
+        <p><span class="shouldbecsgreen">&nbsp;* multi-line comment</span></p>
+        <p><span class="shouldbecsgreen">&nbsp;*/</span></p>
+      </div>
+      <h2 id="CSharp-Basics-Output">Output</h2>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbecsotherblue">Console</span>.<span class="shouldbecsyellow">WriteLine</span>(<span class="shouldbecsred">"Sample text"</span>);</p>
+      </div>
+      <h2 id="CSharp-Basics-Input">Input</h2>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbecsblue">string</span> <span class="shouldbecsvariable">a</span> = <span class="shouldbecsotherblue">Console</span>.<span class="shouldbecsyellow">ReadLine</span>();</p>
+      </div>
+      <h2 id="CSharp-Basics-Conditional">Conditional Statements</h2>
+      <p>Conditional statements make use of the keywords <strong>if</strong>, <strong>else</strong>, and <strong>else if</strong>.</p>
+      <p>The keyword <strong>if</strong> is always followed by a condition enclosed in parentheses.</p>
+      <p><strong>If</strong> the condition inside the parentheses is <strong>true</strong>, it will then execute the code it contains.</p>
+      <p><strong>Else</strong>, it will then execute the code inside the <strong>else</strong> block.</p>
+      <p>The <strong>else if</strong> keyword simply combines both the <strong>if</strong> and <strong>else</strong> statement.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbecsviolet">if</span> (6 == 5)</p>
+        <p>{</p>
+        <p>&nbsp;&nbsp;&nbsp;&nbsp;<span class="shouldbecsgreen">// your code here</span></p>
+        <p>}</p>
+        <p><span class="shouldbecsviolet">else if</span> (6 < 5)</p>
+        <p>{</p>
+        <p>&nbsp;&nbsp;&nbsp;&nbsp;<span class="shouldbecsgreen">// your code here</span></p>
+        <p>}</p>
+        <p><span class="shouldbecsviolet">else</span></p>
+        <p>{</p>
+        <p>&nbsp;&nbsp;&nbsp;&nbsp;<span class="shouldbecsgreen">// your code here</span></p>
+        <p>}</p>
+      </div>
+      <h2 id="CSharp-Basics-Looping">Looping Statements</h2>
+      <p>Looping statements make use of the keywords <strong>for</strong>, <strong>while</strong>, and <strong>do</strong>.</p>
+      <h2 id="CSharp-Basics-Looping-While">While</h2>
+      <p>The keyword <strong>while</strong> is always followed by a condition enclosed in parentheses.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbecsviolet">while</span> (6 != 5)</p>
+        <p>{</p>
+        <p>&nbsp;&nbsp;&nbsp;&nbsp;<span class="shouldbecsgreen">// your code here</span></p>
+        <p>}</p>
+      </div>
+      <h2 id="CSharp-Basics-Looping-For">For</h2>
+      <p>The keyword <strong>for</strong> is also followed by a statement enclosed in parentheses but requires three (3) statements inside the parentheses: <strong>initialization</strong>, <strong>condition</strong>, and <strong>update</strong>.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbecsviolet">for</span> (<span class="shouldbecsblue">int</span> <span class="shouldbecsvariable">a</span> = 0; <span class="shouldbecsvariable">a</span> < 6; <span class="shouldbecsvariable">a</span>++)</p>
+        <p>{</p>
+        <p>&nbsp;&nbsp;&nbsp;&nbsp;<span class="shouldbecsgreen">// your code here</span></p>
+        <p>}</p>
+      </div>
+      <h2 id="CSharp-Basics-Looping-DoWhile">Do...While</h2>
+      <p>The keyword <strong>do</strong> acts the same as a <strong>while</strong> statment and is always accompanied by the <strong>while</strong> statement.</p>
+      <p>The only difference being: <strong>do...while</strong> statements executes the code inside it first before checking the condition; and the <strong>while</strong> statements checks for the condition first before executing.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p><span class="shouldbecsviolet">do</span></p>
+        <p>{</p>
+        <p>&nbsp;&nbsp;&nbsp;&nbsp;<span class="shouldbecsgreen">// your code here</span></p>
+        <p>}</p>
+        <p><span class="shouldbecsviolet">while</span> (6 != 5);</p>
+      </div>
+      <h1 id="Android">Android <span id="Android-Java">(Java)</span></h1>
+      <h2 id="Android-Java-Basics">Basics</h2>
+      <p>Programming in Android using Java starts with using the Android Studio IDE.</p>
+      <h2 id="Android-Java-Basics-WhatYouNeedToKnow">What you need to know</h2>
+      <p>To start creating applications for Android, we first need to create a new project.</p>
+      <p>There will be a button available at the top of the starting page of Android Studio named "New Project".</p>
+      <div class="imgcontainer">
+        <img src="otherimgs/android_studio_newprojectbutton.png" alt="Android Studio New Project Button">
+        <p>Android Studio New Project Button</p>
+      </div>
+      <p>Creating a new project in Android Studio may be confusing for some people because of the multiple options given to us at the start.</p>
+      <div class="imgcontainer">
+        <img src="otherimgs/android_studio_newprojectdialog.png" alt="Android Studio New Project Dialog">
+        <p>Android Studio New Project Dialog</p>
+      </div>
+      <p>To keep things simple, we can start with the "Empty Views Activity" option</p>
+      <div class="imgcontainer">
+        <img src="otherimgs/android_studio_emptyviews.png" alt="Android Studio Empty Views Option">
+        <p>Android Studio Empty Views Option</p>
+      </div>
+      <p>Do note that other versions of Android Studio may not include this option.</p>
+      <p>For that scenario, we can simply pick the "No Activity" option.</p>
+      <div class="imgcontainer">
+        <img src="otherimgs/android_studio_noactivity.png" alt="Android Studio No Activity Option">
+        <p>Android Studio No Activity Option</p>
+      </div>
+      <p>After clicking next, we can then edit a few details of the project such as:</p>
+      <p>- The name</p>
+      <div class="imgcontainer">
+        <img src="otherimgs/android_studio_name.png" alt="Android Studio Project Name">
+        <p>Android Studio Project Name</p>
+      </div>
+      <p>- The package name</p>
+      <div class="imgcontainer">
+        <img src="otherimgs/android_studio_packagename.png" alt="Android Studio Project Package Name">
+        <p>Android Studio Project Package Name</p>
+      </div>
+      <p>- The save location of the project</p>
+      <div class="imgcontainer">
+        <img src="otherimgs/android_studio_savelocation.png" alt="Android Studio Project Save Location">
+        <p>Android Studio Project Save Location</p>
+      </div>
+      <p>- The programming language the project will use</p>
+      <div class="imgcontainer">
+        <img src="otherimgs/android_studio_language.png" alt="Android Studio Project Programming Language">
+        <p>Android Studio Project Programming Language</p>
+      </div>
+      <p>- The minimum Android version the project (or the application) support</p>
+      <div class="imgcontainer">
+        <img src="otherimgs/android_studio_androidversion.png" alt="Android Studio Project Android Version">
+        <p>Android Studio Project Android Version</p>
+      </div>
+      <p>- And the build configuration language of the project.</p>
+      <div class="imgcontainer">
+        <img src="otherimgs/android_studio_buildconfiglanguage.png" alt="Android Studio Project Build Configuration Language">
+        <p>Android Studio Project Build Configuration Language</p>
+      </div>
+      <p>For now, we are going to be using these settings below:</p>
+      <div class="imgcontainer">
+        <img src="otherimgs/android_studio_mydefault.png" alt="Android Studio Project Settings">
+        <p>Android Studio Project Settings</p>
+      </div>
+      <p>Upon clicking the "Finish" button, you will see this window pop up.</p>
+      <div class="imgcontainer">
+        <img src="otherimgs/android_studio_idestart.png" alt="Android Studio IDE">
+        <p>Android Studio IDE</p>
+      </div>
+      <p>Do note that you will need to let the IDE finish the Gradle project sync indicated near the top,</p>
+      <div class="imgcontainer">
+        <img src="otherimgs/android_studio_gradlesynctop.png" alt="Android Studio Gradle Sync at the Top">
+        <p>Android Studio Gradle Sync at the Top</p>
+      </div>
+      <p>and at the bottom of the window.</p>
+      <div class="imgcontainer">
+        <img src="otherimgs/android_studio_gradlesyncbottom.png" alt="Android Studio Gradle Sync at the Bottom">
+        <p>Android Studio Gradle Sync at the Bottom</p>
+      </div>
+      <p>After the Gradle has finished syncing, this will be the final look of the IDE.</p>
+      <div class="imgcontainer">
+        <img src="otherimgs/android_studio_idefinal.png" alt="Android Studio IDE Final Look">
+        <p>Android Studio IDE Final Look</p>
+      </div>
+      <p>Do note that if you chose the "No Activity" option, you will not have the default "activity_main.xml" and "MainActivity.java" files at the start.</p>
+      <div class="imgcontainer">
+        <img src="otherimgs/android_studio_noactivityidefinal.png" alt="Android Studio No Activity IDE Final Look">
+        <p>Android Studio No Activity IDE Final Look</p>
+      </div>
+      <p>To add a new activity, right-click on the "app" folder on the left and choose the "New > Activity > Empty Views Activity" option.</p>
+      <div class="imgcontainer">
+        <img src="otherimgs/android_studio_noactivitynewactivity1.png" alt="Android Studio No Activity New Activity">
+        <p>Android Studio No Activity New Activity</p>
+      </div>
+      <p>You can choose to either change or ignore the settings on the pop-up window.</p>
+      <div class="imgcontainer">
+        <img src="otherimgs/android_studio_noactivitynewactivity2.png" alt="Android Studio No Activity New Activity Settings">
+        <p>Android Studio No Activity New Activity Settings</p>
+      </div>
+      <p>After clicking the "Finish" button, make sure to edit the "AndroidManifest.xml" located at the folders at the left at "app > manifests > AndroidManifest.xml" and modify the "&lt;activity&gt;" tag for the Activity you just created just like this example below.</p>
+      <div class="imgcontainer">
+        <img src="otherimgs/android_studio_noactivitynewactivity3.png" alt="Android Studio No Activity Manifest">
+        <p>Android Studio No Activity Manifest</p>
+      </div>
+      <p>This will serve as the default activity that will open as soon as your application starts.</p>
+      <h2 id="Android-Java-Basics-Activity">Activity</h2>
+      <p>Activities in Android represents a single screen in an application.</p>
+      <p>An example of this is the "MainActivity.java" that is generated at the start of a new project.</p>
+      <div class="imgcontainer">
+        <img src="otherimgs/android_studio_activity1.png" alt="Android Studio Activity">
+        <p>Android Studio Activity</p>
+      </div>
+      <p>Every activity is composed of two (2) things.</p>
+      <p>The corresponding Java and XML files.</p>
+      <div class="imgcontainer">
+        <img src="otherimgs/android_studio_activity2.png" alt="Android Studio Activity Composition">
+        <p>Android Studio Activity Composition</p>
+      </div>
+      <p>The Java file contains the back-end functions of the activity.</p>
+      <div class="imgcontainer">
+        <img src="otherimgs/android_studio_activity3.png" alt="Android Studio Activity Java">
+        <p>Android Studio Activity Java</p>
+      </div>
+      <p>The XML file contains the front-end functions of the activity.</p>
+      <div class="imgcontainer">
+        <img src="otherimgs/android_studio_activity4.png" alt="Android Studio Activity XML">
+        <p>Android Studio Activity XML</p>
+      </div>
+      <h2 id="Android-Java-Basics-Intent">Intent</h2>
+      <p>An Intent represents an action you want an activity to do.</p>
+      <p>Intents can be used to start activities.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p>Intent intent = new Intent(CurrentActivity.this, ActivityToStart.class);</p>
+        <p>startActivity(intent);</p>
+      </div>
+      <p>Intents can also be used to pass data to activities.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p>Intent intent = new Intent(CurrentActivity.this, ActivityToStart.class);</p>
+        <p>intent.putExtra("data_name", "data_value");</p>
+        <p>startActivity(intent);</p>
+      </div>
+      <p>The data sent to the other activity using "putExtra()" can be retrieved using the "getIntent()" method.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p>String data = getIntent().getStringExtra("data_name");</p>
+      </div>
+      <p>The method to be used in getting your data should match the type of the data you sent.</p>
+      <h2 id="Android-Java-UI">User Interface</h2>
+      <p>The XML file of an activity is where the user interface lives.</p>
+      <h2 id="Android-Java-UI-Button">Button</h2>
+      <p>A button represents a clickable element.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p>&lt;<span class="shouldbeblue">Button</span></p>
+        <p>&nbsp;&nbsp;&nbsp;&nbsp;<span class="shouldbeviolet">android</span><span class="shouldbeblue">:</span><span class="shouldbeotherblue">layout_width</span><span class="shouldbegreen">="wrap_content"</span></p>
+        <p>&nbsp;&nbsp;&nbsp;&nbsp;<span class="shouldbeviolet">android</span><span class="shouldbeblue">:</span><span class="shouldbeotherblue">layout_height</span><span class="shouldbegreen">="wrap_content"</span></p>
+        <p>&nbsp;&nbsp;&nbsp;&nbsp;<span class="shouldbeviolet">android</span><span class="shouldbeblue">:</span><span class="shouldbeotherblue">text</span><span class="shouldbegreen">="Sample text"</span>/&gt;</p>
+      </div>
+      <p>The code above will look like the example below.</p>
+      <div class="imgcontainer">
+        <img src="otherimgs/android_studio_ui1.png" alt="Android Studio Button">
+        <p>Android Studio Button</p>
+      </div>
+      <h2 id="Android-Java-UI-TextView">TextView</h2>
+      <p>A TextView element shows text.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p>&lt;<span class="shouldbeblue">TextView</span></p>
+        <p>&nbsp;&nbsp;&nbsp;&nbsp;<span class="shouldbeviolet">android</span><span class="shouldbeblue">:</span><span class="shouldbeotherblue">layout_width</span><span class="shouldbegreen">="wrap_content"</span></p>
+        <p>&nbsp;&nbsp;&nbsp;&nbsp;<span class="shouldbeviolet">android</span><span class="shouldbeblue">:</span><span class="shouldbeotherblue">layout_height</span><span class="shouldbegreen">="wrap_content"</span></p>
+        <p>&nbsp;&nbsp;&nbsp;&nbsp;<span class="shouldbeviolet">android</span><span class="shouldbeblue">:</span><span class="shouldbeotherblue">text</span><span class="shouldbegreen">="Sample text"</span>/&gt;</p>
+      </div>
+      <p>The code above will look like the example below.</p>
+      <div class="imgcontainer">
+        <img src="otherimgs/android_studio_ui2.png" alt="Android Studio TextView">
+        <p>Android Studio TextView</p>
+      </div>
+      <h2 id="Android-Java-UI-EditText">EditText</h2>
+      <p>An EditText element gives a user an area to type in.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p>&lt;<span class="shouldbeblue">EditText</span></p>
+        <p>&nbsp;&nbsp;&nbsp;&nbsp;<span class="shouldbeviolet">android</span><span class="shouldbeblue">:</span><span class="shouldbeotherblue">layout_width</span><span class="shouldbegreen">="wrap_content"</span></p>
+        <p>&nbsp;&nbsp;&nbsp;&nbsp;<span class="shouldbeviolet">android</span><span class="shouldbeblue">:</span><span class="shouldbeotherblue">layout_height</span><span class="shouldbegreen">="wrap_content"</span></p>
+        <p>&nbsp;&nbsp;&nbsp;&nbsp;<span class="shouldbeviolet">android</span><span class="shouldbeblue">:</span><span class="shouldbeotherblue">hint</span><span class="shouldbegreen">="Sample text"</span>/&gt;</p>
+      </div>
+      <p>A hint acts as a placeholder to give a user some context about an element.</p>
+      <p>The code above will look like the example below.</p>
+      <div class="imgcontainer">
+        <img src="otherimgs/android_studio_ui3.png" alt="Android Studio EditText">
+        <p>Android Studio EditText</p>
+      </div>
+      <h2 id="Android-Java-Intermediate">Intermediate</h2>
+      <p>This section will talk about a few functions available in Android.</p>
+      <h2 id="Android-Java-Intermediate-GetText">Getting text from a widget</h2>
+      <p>Getting any text or content from any widget, such as TextViews and EditTexts, is very simple.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p>EditText editText = findViewById(R.id.<span class="shouldbevioletanditalic">editTextId</span>);</p>
+        <p>String text = editText.getText().toString();</p>
+      </div>
+      <h2 id="Android-Java-Intermediate-EditTextSetError">Alerting a user through an EditText</h2>
+      <p>An EditText contains a "setError()" method to alert a user about an input.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p>EditText editText = findViewById(R.id.<span class="shouldbevioletanditalic">editTextId</span>);</p>
+        <p>editText.setOnKeyListener(<span class="shouldbegray">new View.OnKeyListener()</span> {</p>
+        <p>&nbsp;&nbsp;&nbsp;&nbsp;<span class="shouldbeyellow">@Override</span></p>
+        <p>&nbsp;&nbsp;&nbsp;&nbsp;<span class="shouldbeblue">public boolean</span> <span class="shouldbebluegreen">onKey</span>(View v, <span class="shouldbeblue">int</span> keyCode, KeyEvent event) {</p>
+        <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="shouldbeblue">if</span> (<span class="shouldbeviolet">editText</span>.getText().toString().contains(<span class="shouldbegreen">"1"</span>)){</p>
+        <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="shouldbeviolet">editText</span>.setError(<span class="shouldbegreen">"Input contains the number 1!"</span>);</p>
+        <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}</p>
+        <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="shouldbeblue">return false</span>;</p>
+        <p>&nbsp;&nbsp;&nbsp;&nbsp;}</p>
+        <p>}</p>
+      </div>
+      <p>See preview below:</p>
+      <div class="vidcontainer">
+        <video controls>
+          <source src="previews/edittextseterrorpreview.webm" type="video/webm">
+        </video>
+        <p>Android Studio EditText Set Error</p>
+      </div>
+      <h2 id="Android-Java-Intermediate-Toast">Toast</h2>
+      <p>A Toast gives a user a simple feedback about an action that is performed in the app.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p>Toast.<span class="shouldbeitalic">makeText</span>(<span class="shouldbeblue">this</span>, <span class="shouldbegreen">"Sample text"</span>, Toast.<span class="shouldbevioletanditalic">LENGTH_SHORT</span>).show();</p>
+      </div>
+      <p>See preview below:</p>
+      <div class="vidcontainer">
+        <video controls>
+          <source src="previews/toastpreview.webm" type="video/webm">
+        </video>
+        <p>Android Studio Toast</p>
+      </div>
+      <h2 id="Android-Java-Intermediate-AlertDialog">AlertDialog</h2>
+      <p>A dialog in general is a small window that asks the user to make a decision or enter additional information.</p>
+      <p>See sample code below:</p>
+      <div class="code_snippet">
+        <p>AlertDialog.Builder builder = <span class="shouldbeblue">new</span> AlertDialog.Builder(<span class="shouldbeblue">this</span>);</p>
+        <p>builder.setTitle(<span class="shouldbegreen">"Sample title"</span>);</p>
+        <p>builder.setMessage(<span class="shouldbegreen">"Sample text"</span>);</p>
+        <p>builder.setPositiveButton(<span class="shouldbegreen">"Done"</span>, (dialog, which) -> dialog.dismiss());</p>
+        <br>
+        <p>AlertDialog alertDialog = builder.create();</p>
+        <p>alertDialog.show();</p>
+      </div>
+      <p>See preview below:</p>
+      <div class="vidcontainer">
+        <video controls>
+          <source src="previews/alertdialogpreview.webm" type="video/webm">
+        </video>
+        <p>Android Studio AlertDialog</p>
+      </div>
+      <h2 id="Android-Java-Advanced">Advanced</h2>
+      <p>This section will talk about more advanced functions available in Android.</p>
+    </div>
+  </body>
+  <script>
+  </script>
+</html>

@@ -1,0 +1,28 @@
+h1
+{
+	visibility: hidden;
+	font-size: 40px;
+	font-family: Arial;
+	text-align: center;
+	color: green;
+}
+
+p
+{
+	display: block;
+	font-family: Arial;
+	font-style: italic;
+	width: 300px;
+	height: 60px;
+	text-align: justify;
+	margin: auto;
+	padding: 0.5%;
+	border: 3px double black;
+	overflow-x: hidden;
+	overflow-y: scroll;
+}
+
+body
+{
+	background-color: lightblue;
+}

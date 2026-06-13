@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-3KKEWWQ81M"></script>
         <script>
@@ -13,6 +13,7 @@
         <meta http-equiv="X-UA-Compatible" content="ie=edge">
         <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="theme-color" content="#F4F4F4">
         <link rel="apple-touch-icon" sizes="57x57" href="../apple-icon-57x57.png">
         <link rel="apple-touch-icon" sizes="60x60" href="../apple-icon-60x60.png">
         <link rel="apple-touch-icon" sizes="72x72" href="../apple-icon-72x72.png">
@@ -29,17 +30,57 @@
         <link rel="manifest" href="../manifest.json">
         <meta name="msapplication-TileColor" content="#F4F4F4">
         <meta name="msapplication-TileImage" content="../ms-icon-144x144.png">
-        <meta name="description" content="Just a black background.">
-        <meta name="keywords" content="Isaiah Noel Salazar, isaiahnoelpulidosalazar, isaiahnoelpulidosalazar.github.io">
+        <meta name="description" content="An assignment webpage for a multiplication table.">
+        <meta name="keywords" content="isaiah noel salazar, isaiahnoelpulidosalazar, isaiahnoelpulidosalazar.github.io, isaiah noel pulido salazar">
         <meta name="author" content="Isaiah Noel Pulido Salazar">
-    <meta name="theme-color" content="#000000">
-    <title>Black</title>
+    <title>Multiplication Table</title>
     <style>
-      html {
-        background-color: black;
+      body {
+        align-items: center;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        margin: 0;
+        padding: 0;
+        width: 100%;
+      }
+      table, th, td {
+        border: solid black 1px;
+      }
+      th, td {
+        padding: 8px;
+      }
+      td {
+        text-align: center;
       }
     </style>
   </head>
   <body>
+    <h1>Multiplication Table</h1>
+    <script>
+      let table = document.createElement("table");
+      for (let a = 0; a < 6; a++){
+        let tr = document.createElement("tr");
+        for (let b = 0; b < 6; b++){
+          let t = document.createElement("th");
+          if (b == 0){
+            t.innerHTML = a;
+          } else {
+            if (a == 0){
+              t.innerHTML = b;
+            } else {
+              t = document.createElement("td");
+              t.innerHTML = a * b;
+            }
+          }
+          if (a == 0 && b == 0){
+            t.innerHTML = "x";
+          }
+          tr.appendChild(t);
+          table.appendChild(tr);
+        }
+      }
+      document.getElementsByTagName("body")[0].appendChild(table);
+    </script>
   </body>
 </html>
