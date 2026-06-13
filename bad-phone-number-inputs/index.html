@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-3KKEWWQ81M"></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-3KKEWWQ81M');
+        </script>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=7">
+        <meta http-equiv="X-UA-Compatible" content="ie=edge">
+        <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="theme-color" content="#F4F4F4">
+        <link rel="apple-touch-icon" sizes="57x57" href="../apple-icon-57x57.png">
+        <link rel="apple-touch-icon" sizes="60x60" href="../apple-icon-60x60.png">
+        <link rel="apple-touch-icon" sizes="72x72" href="../apple-icon-72x72.png">
+        <link rel="apple-touch-icon" sizes="76x76" href="../apple-icon-76x76.png">
+        <link rel="apple-touch-icon" sizes="114x114" href="../apple-icon-114x114.png">
+        <link rel="apple-touch-icon" sizes="120x120" href="../apple-icon-120x120.png">
+        <link rel="apple-touch-icon" sizes="144x144" href="../apple-icon-144x144.png">
+        <link rel="apple-touch-icon" sizes="152x152" href="../apple-icon-152x152.png">
+        <link rel="apple-touch-icon" sizes="180x180" href="../apple-icon-180x180.png">
+        <link rel="icon" type="image/png" sizes="192x192"  href="../android-icon-192x192.png">
+        <link rel="icon" type="image/png" sizes="32x32" href="../favicon-32x32.png">
+        <link rel="icon" type="image/png" sizes="96x96" href="../favicon-96x96.png">
+        <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
+        <link rel="manifest" href="../manifest.json">
+        <meta name="msapplication-TileColor" content="#F4F4F4">
+        <meta name="msapplication-TileImage" content="../ms-icon-144x144.png">
+        <meta name="description" content="A webpage that demonstrates bad practices in phone number inputs.">
+        <meta name="keywords" content="calm, standby screen, relaxing background, ambient visuals, minimalist design, focus screen, peaceful animation, calming visuals, aesthetic background, relaxation, Isaiah Noel Salazar, isaiahnoelpulidosalazar">
+        <meta name="author" content="Isaiah Noel Pulido Salazar">
+    <title>Bad Phone Number Inputs</title>
+    <style>
+      #leftpnselect1, #midpnselect1, #rightpnselect1 {
+        text-align: center;
+      }
+      #leftslider, #midslider, #rightslider {
+        width: 100%;
+      }
+      #pnselect, #pnselect1 {
+        text-align: center;
+      }
+      #btn, #btn1 {
+        justify-content: center;
+        display: flex;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Sample 1:</h1>
+    <select id="leftpnselect"></select>
+    <select id="midpnselect"></select>
+    <select id="rightpnselect"></select>
+    <h1>Sample 2:</h1>
+    <p id="leftpnselect1">0000</p>
+    <input type=range min="0" max="999" value="0" id="leftslider">
+    <p id="midpnselect1">000</p>
+    <input type=range min="0" max="999" value="0" id="midslider">
+    <p id="rightpnselect1">0000</p>
+    <input type=range min="0" max="9999" value="0" id="rightslider">
+    <h1>Sample 3:</h1>
+    <p id="pnselect">00000000000</p>
+    <div id="btn">
+      <button onclick="add()">Add</button>
+    </div>
+    <h1>Sample 4:</h1>
+    <p id="pnselect1">00000000000</p>
+    <div id="btn1">
+      <button onclick="randomize()">Random</button>
+    </div>
+  </body>
+  <script>
+    for (let a = 0; a < 1000; a++){
+      let c = "";
+      for (let b = 0; b < 4 - a.toString().length; b++){
+        c += "0";
+      }
+      c += a;
+      let d = document.createElement("option");
+      d.text = c;
+      d.value = c;
+      document.getElementById("leftpnselect").appendChild(d);
+    }
+    for (let a = 0; a < 1000; a++){
+      let c = "";
+      for (let b = 0; b < 3 - a.toString().length; b++){
+        c += "0";
+      }
+      c += a;
+      let d = document.createElement("option");
+      d.text = c;
+      d.value = c;
+      document.getElementById("midpnselect").appendChild(d);
+    }
+    for (let a = 0; a < 10000; a++){
+      let c = "";
+      for (let b = 0; b < 4 - a.toString().length; b++){
+        c += "0";
+      }
+      c += a;
+      let d = document.createElement("option");
+      d.text = c;
+      d.value = c;
+      document.getElementById("rightpnselect").appendChild(d);
+    }
+    var leftslider = document.getElementById("leftslider");
+    var midslider = document.getElementById("midslider");
+    var rightslider = document.getElementById("rightslider");
+    leftslider.oninput = function (){
+      let a = "";
+      for (let b = 0; b < 4 - this.value.toString().length; b++){
+        a += "0";
+      }
+      a += this.value;
+      document.getElementById("leftpnselect1").innerHTML = a;
+    }
+    midslider.oninput = function (){
+      let a = "";
+      for (let b = 0; b < 3 - this.value.toString().length; b++){
+        a += "0";
+      }
+      a += this.value;
+      document.getElementById("midpnselect1").innerHTML = a;
+    }
+    rightslider.oninput = function (){
+      let a = "";
+      for (let b = 0; b < 4 - this.value.toString().length; b++){
+        a += "0";
+      }
+      a += this.value;
+      document.getElementById("rightpnselect1").innerHTML = a;
+    }
+    var add1 = 0;
+    function add(){
+      add1++;
+      var c = "";
+      for (var b = 0; b < 11 - add1.toString().length; b++){
+        c += "0";
+      }
+      c += add1;
+      document.getElementById("pnselect").innerHTML = c;
+    }
+    function getRandomInt(min, max) {
+      return Math.floor(Math.random() * (max - min)) + min;
+    }
+    function randomize(){
+      var a = getRandomInt(0, 10000000000);
+      var c = "";
+      for (var b = 0; b < 11 - a.toString().length; b++){
+        c += "0";
+      }
+      c += a;
+      document.getElementById("pnselect1").innerHTML = c;
+    }
+  </script>
+</html>
