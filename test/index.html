@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ECStyleSheet Test Runner</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f8f9fa;
+      color: #333;
+      max-width: 900px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
+    h1 {
+      border-bottom: 2px solid #dee2e6;
+      padding-bottom: 0.5rem;
+    }
+    .summary-card {
+      font-size: 1.15rem;
+      padding: 1rem 1.25rem;
+      border-radius: 6px;
+      margin-bottom: 1.5rem;
+      font-weight: 600;
+    }
+    .summary-card.running {
+      background: #e2e3e5;
+      color: #383d41;
+      border: 1px solid #d6d8db;
+    }
+    .summary-card.pass {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .summary-card.fail {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    .test-case {
+      background: #fff;
+      padding: 1rem;
+      margin-bottom: 0.75rem;
+      border-radius: 6px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      border-left: 5px solid #6c757d;
+    }
+    .test-case.passed {
+      border-left-color: #28a745;
+    }
+    .test-case.failed {
+      border-left-color: #dc3545;
+    }
+    .test-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .test-name {
+      font-weight: 600;
+      font-size: 1.05rem;
+    }
+    .test-status {
+      font-weight: bold;
+      text-transform: uppercase;
+      font-size: 0.85rem;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+    }
+    .test-status.passed {
+      background: #d4edda;
+      color: #155724;
+    }
+    .test-status.failed {
+      background: #f8d7da;
+      color: #721c24;
+    }
+    .error-log {
+      background: #f1f3f5;
+      border: 1px solid #dee2e6;
+      color: #dc3545;
+      padding: 0.75rem;
+      margin-top: 0.75rem;
+      border-radius: 4px;
+      font-family: monospace;
+      white-space: pre-wrap;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>ECStyleSheet Vanilla JS Test Suite</h1>
+  <div id="summary" class="summary-card running">Running test assertions...</div>
+  <div id="results"></div>
+
+  <script>
+    // --- Minimalistic Assertion Library ---
+    const assert = {
+      equal(actual, expected, message) {
+        if (actual !== expected) {
+          throw new Error(message || `Assertion Failed:\nExpected: "${expected}"\nActual:   "${actual}"`);
+        }
+      },
+      contains(actual, substring, message) {
+        if (!actual || !actual.includes(substring)) {
+          throw new Error(message || `Assertion Failed:\nExpected value to contain: "${substring}"\nActual value: "${actual}"`);
+        }
+      },
+      truthy(value, message) {
+        if (!value) {
+          throw new Error(message || `Assertion Failed: Expected truthy value but got: ${value}`);
+        }
+      },
+      falsy(value, message) {
+        if (value) {
+          throw new Error(message || `Assertion Failed: Expected falsy value but got: ${value}`);
+        }
+      }
+    };
+
+    // --- Dynamic Test Frame Sandbox Helper ---
+    function runInSandbox(testFn) {
+      return new Promise((resolve) => {
+        const iframe = document.createElement("iframe");
+        iframe.style.display = "none";
+        document.body.appendChild(iframe);
+
+        // This triggers after the iframe's DOM is parsed
+        iframe.onload = () => {
+          const checkReady = () => {
+            const win = iframe.contentWindow;
+            // Ensure stylesheet initialization is complete within the iframe frame
+            if (win && win.ECStyleSheet) {
+              try {
+                Promise.resolve(testFn(win, iframe.contentDocument))
+                  .then(() => {
+                    iframe.remove();
+                    resolve({ passed: true, error: null });
+                  })
+                  .catch((err) => {
+                    iframe.remove();
+                    resolve({ passed: false, error: err });
+                  });
+              } catch (err) {
+                iframe.remove();
+                resolve({ passed: false, error: err });
+              }
+            } else {
+              setTimeout(checkReady, 5);
+            }
+          };
+          checkReady();
+        };
+
+        // Write content to iframe - loads ec-stylesheet.js fresh
+        const doc = iframe.contentDocument || iframe.contentWindow.document;
+        doc.open();
+        doc.write(`
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <script src="../js/ECStyleSheet.js"><\/script>
+            </head>
+            <body>
+              <div id="root"></div>
+            </body>
+          </html>
+        `);
+        doc.close();
+      });
+    }
+
+    // --- Registry of Test Cases ---
+    const testCases = [];
+    function test(name, fn) {
+      testCases.push({ name, fn });
+    }
+
+    // --- Define Tests ---
+
+    test("Initializes style tag and injects global rules on startup", async (win, doc) => {
+      const styleTag = doc.getElementById("ec-stylesheet-rules");
+      assert.truthy(styleTag, "Style tag with ID 'ec-stylesheet-rules' should be created.");
+      
+      const content = styleTag.textContent;
+      assert.contains(content, "font-family: -apple-system", "Should inject default system font block.");
+      assert.contains(content, "box-sizing: border-box;", "Should inject default border-box rule.");
+    });
+
+    test("Parses basic property-value class rules", async (win, doc) => {
+      win.ECStyleSheet.process("padding-10px");
+      const rules = win.ECStyleSheet.getRules();
+      assert.equal(rules["padding-10px"], ".padding-10px { padding: 10px; }");
+    });
+
+    test("Resolves custom camelCase and mapped property-value rules", async (win, doc) => {
+      win.ECStyleSheet.process("paddingTop-20px");
+      win.ECStyleSheet.process("gridRowGap-15px");
+      const rules = win.ECStyleSheet.getRules();
+
+      assert.equal(rules["paddingTop-20px"], ".paddingTop-20px { padding-top: 20px; }");
+      assert.equal(rules["gridRowGap-15px"], ".gridRowGap-15px { grid-row-gap: 15px; }");
+    });
+
+    test("Replaces underscores with spaces in values", async (win, doc) => {
+      win.ECStyleSheet.process("fontFamily-Open_Sans");
+      const rules = win.ECStyleSheet.getRules();
+      assert.equal(rules["fontFamily-Open_Sans"], ".fontFamily-Open_Sans { font-family: Open Sans; }");
+    });
+
+    test("Processes negative property values accurately", async (win, doc) => {
+      win.ECStyleSheet.process("marginTop--15px");
+      const rules = win.ECStyleSheet.getRules();
+      assert.equal(rules["marginTop--15px"], ".marginTop--15px { margin-top: -15px; }");
+    });
+
+    test("Correctly formats media query breakpoints and pseudo-classes", async (win, doc) => {
+      win.ECStyleSheet.process("mobile:display-block");
+      win.ECStyleSheet.process("tablet:width-100%");
+      win.ECStyleSheet.process("hover:color-blue");
+      win.ECStyleSheet.process("mobile:hover:opacity-0.8");
+
+      const rules = win.ECStyleSheet.getRules();
+
+      assert.equal(rules["mobile:display-block"], "@media (max-width: 768px) { .mobile\\:display-block { display: block; } }");
+      assert.equal(rules["tablet:width-100%"], "@media (max-width: 1024px) { .tablet\\:width-100\\% { width: 100%; } }");
+      assert.equal(rules["hover:color-blue"], ".hover\\:color-blue:hover { color: blue; }");
+      assert.equal(rules["mobile:hover:opacity-0.8"], "@media (max-width: 768px) { .mobile\\:hover\\:opacity-0\\.8:hover { opacity: 0.8; } }");
+    });
+
+    test("Parses special composite cards and grid generators", async (win, doc) => {
+      win.ECStyleSheet.process("eccard");
+      win.ECStyleSheet.process("ecgrid-3x4");
+      const rules = win.ECStyleSheet.getRules();
+
+      assert.equal(rules["eccard"], ".eccard { background: var(--ec-bg, #ffffff); border: 1px solid var(--ec-border, #dee2e6); border-radius: 12px; overflow: hidden; }");
+      assert.equal(rules["ecgrid-3x4"], ".ecgrid-3x4 { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(4, 1fr); }");
+    });
+
+    test("Generates transitional bounce animation blocks", async (win, doc) => {
+      win.ECStyleSheet.process("ecbounce-10");
+      const rules = win.ECStyleSheet.getRules();
+
+      assert.equal(rules["ecbounce-10"], ".ecbounce-10 { transition: 0.2s; } .ecbounce-10:hover { transform: scale(1.1); } .ecbounce-10:active { transform: scale(0.9); }");
+    });
+
+    test("Scans DOM and attributes elements correctly", async (win, doc) => {
+      const sandboxElement = doc.createElement("div");
+      sandboxElement.className = "margin-25px";
+      doc.body.appendChild(sandboxElement);
+
+      win.ECStyleSheet.scan();
+
+      assert.equal(sandboxElement.getAttribute("data-ec-processed"), "1", "Should set the processed attribute flag.");
+      const rules = win.ECStyleSheet.getRules();
+      assert.contains(rules["margin-25px"], "margin: 25px;", "Should process and map style rule.");
+    });
+
+    test("MutationObserver detects newly injected elements and class updates", async (win, doc) => {
+      const dynamicDiv = doc.createElement("div");
+      doc.body.appendChild(dynamicDiv);
+
+      // Modify the target element attributes programmatically to trigger class changes
+      dynamicDiv.setAttribute("class", "cursor-pointer");
+
+      // Give MutationObserver runtime macro-task queue space to complete
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      const rules = win.ECStyleSheet.getRules();
+      assert.truthy(rules["cursor-pointer"], "Mutation observer did not capture the updated class attribute.");
+      assert.contains(rules["cursor-pointer"], "cursor: pointer;");
+    });
+
+    // --- Test Execution and Reporting Engine ---
+    async function runTests() {
+      const resultsDiv = document.getElementById("results");
+      const summaryDiv = document.getElementById("summary");
+      resultsDiv.innerHTML = "";
+
+      let passedCount = 0;
+      let failedCount = 0;
+
+      for (const t of testCases) {
+        const result = await runInSandbox(t.fn);
+
+        const testEl = document.createElement("div");
+        testEl.className = `test-case ${result.passed ? "passed" : "failed"}`;
+
+        const header = document.createElement("div");
+        header.className = "test-header";
+
+        const nameEl = document.createElement("span");
+        nameEl.className = "test-name";
+        nameEl.textContent = t.name;
+
+        const statusEl = document.createElement("span");
+        statusEl.className = `test-status ${result.passed ? "passed" : "failed"}`;
+        statusEl.textContent = result.passed ? "PASS" : "FAIL";
+
+        header.appendChild(nameEl);
+        header.appendChild(statusEl);
+        testEl.appendChild(header);
+
+        if (result.passed) {
+          passedCount++;
+        } else {
+          failedCount++;
+          const errEl = document.createElement("div");
+          errEl.className = "error-log";
+          errEl.textContent = result.error.stack || result.error.message || result.error;
+          testEl.appendChild(errEl);
+        }
+
+        resultsDiv.appendChild(testEl);
+      }
+
+      // Update Summary UI Element
+      summaryDiv.classList.remove("running");
+      if (failedCount === 0) {
+        summaryDiv.classList.add("pass");
+        summaryDiv.textContent = `SUCCESS: All ${passedCount} tests passed!`;
+      } else {
+        summaryDiv.classList.add("fail");
+        summaryDiv.textContent = `FAILURE: ${failedCount} tests failed, ${passedCount} passed.`;
+      }
+    }
+
+    // Run suite on content load
+    window.onload = runTests;
+  </script>
+</body>
+</html>
