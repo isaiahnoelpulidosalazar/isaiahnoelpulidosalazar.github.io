@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ECElements Test Runner</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f8f9fa;
+      color: #333;
+      max-width: 900px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
+    h1 {
+      border-bottom: 2px solid #dee2e6;
+      padding-bottom: 0.5rem;
+    }
+    .summary-card {
+      font-size: 1.15rem;
+      padding: 1rem 1.25rem;
+      border-radius: 6px;
+      margin-bottom: 1.5rem;
+      font-weight: 600;
+    }
+    .summary-card.running {
+      background: #e2e3e5;
+      color: #383d41;
+      border: 1px solid #d6d8db;
+    }
+    .summary-card.pass {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .summary-card.fail {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    .test-case {
+      background: #fff;
+      padding: 1rem;
+      margin-bottom: 0.75rem;
+      border-radius: 6px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      border-left: 5px solid #6c757d;
+    }
+    .test-case.passed {
+      border-left-color: #28a745;
+    }
+    .test-case.failed {
+      border-left-color: #dc3545;
+    }
+    .test-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .test-name {
+      font-weight: 600;
+      font-size: 1.05rem;
+    }
+    .test-status {
+      font-weight: bold;
+      text-transform: uppercase;
+      font-size: 0.85rem;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+    }
+    .test-status.passed {
+      background: #d4edda;
+      color: #155724;
+    }
+    .test-status.failed {
+      background: #f8d7da;
+      color: #721c24;
+    }
+    .error-log {
+      background: #f1f3f5;
+      border: 1px solid #dee2e6;
+      color: #dc3545;
+      padding: 0.75rem;
+      margin-top: 0.75rem;
+      border-radius: 4px;
+      font-family: monospace;
+      white-space: pre-wrap;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>ECElements Vanilla JS Test Suite</h1>
+  <div id="summary" class="summary-card running">Running test assertions...</div>
+  <div id="results"></div>
+
+  <script>
+    const assert = {
+      equal(actual, expected, message) {
+        if (actual !== expected) {
+          throw new Error(message || `Assertion Failed:\nExpected: "${expected}"\nActual:   "${actual}"`);
+        }
+      },
+      contains(actual, substring, message) {
+        if (!actual || !actual.includes(substring)) {
+          throw new Error(message || `Assertion Failed:\nExpected value to contain: "${substring}"\nActual value: "${actual}"`);
+        }
+      },
+      truthy(value, message) {
+        if (!value) {
+          throw new Error(message || `Assertion Failed: Expected truthy value but got: ${value}`);
+        }
+      },
+      falsy(value, message) {
+        if (value) {
+          throw new Error(message || `Assertion Failed: Expected falsy value but got: ${value}`);
+        }
+      }
+    };
+
+    function runInSandbox(testFn) {
+      return new Promise((resolve) => {
+        const iframe = document.createElement("iframe");
+        iframe.style.display = "none";
+        document.body.appendChild(iframe);
+
+        iframe.onload = () => {
+          const checkReady = () => {
+            const win = iframe.contentWindow;
+            if (win && win.ECButton && win.ECTheme) {
+              try {
+                Promise.resolve(testFn(win, iframe.contentDocument))
+                  .then(() => {
+                    iframe.remove();
+                    resolve({ passed: true, error: null });
+                  })
+                  .catch((err) => {
+                    iframe.remove();
+                    resolve({ passed: false, error: err });
+                  });
+              } catch (err) {
+                iframe.remove();
+                resolve({ passed: false, error: err });
+              }
+            } else {
+              setTimeout(checkReady, 5);
+            }
+          };
+          checkReady();
+        };
+
+        const doc = iframe.contentDocument || iframe.contentWindow.document;
+        doc.open();
+        doc.write(`
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <script src="../js/ECStyleSheet.js"><\/script>
+              <script src="../js/ECElements.js"><\/script>
+            </head>
+            <body></body>
+          </html>
+        `);
+        doc.close();
+      });
+    }
+
+    const testCases = [];
+    function test(name, fn) {
+      testCases.push({ name, fn });
+    }
+
+    test("Base Mixin toggles theme properties on element instances", async (win, doc) => {
+      const btn = new win.ECButton("Theme Check Button");
+
+      assert.equal(btn.element.style.getPropertyValue("--ec-bg"), "#ffffff");
+
+      btn.enableDarkMode();
+      assert.equal(btn.element.style.getPropertyValue("--ec-bg"), "#1a1a2e");
+
+      btn.disableDarkMode();
+      assert.equal(btn.element.style.getPropertyValue("--ec-bg"), "#ffffff");
+    });
+
+    test("ECButton processes clicks and manages standard states", async (win, doc) => {
+      let clickTriggerCount = 0;
+      const btn = new win.ECButton("Test Click");
+      btn.onClick(() => clickTriggerCount++);
+
+      const clickEvent = new win.MouseEvent("click");
+      btn.element.dispatchEvent(clickEvent);
+      assert.equal(clickTriggerCount, 1);
+
+      btn.disable();
+      assert.truthy(btn.element.disabled);
+
+      btn.enable();
+      assert.falsy(btn.element.disabled);
+    });
+
+    test("ECModal opens, closes, and appends interactive button nodes", async (win, doc) => {
+      const modal = new win.ECModal("Test Title");
+      doc.body.appendChild(modal.element);
+
+      assert.truthy(modal.element.classList.contains("display-none"));
+
+      modal.open();
+      assert.truthy(modal.element.classList.contains("display-flex"));
+      assert.truthy(modal.element.classList.contains("opacity-1"));
+
+      modal.setContent("<p>Hello Sandbox Content</p>");
+      assert.equal(modal._body.innerHTML, "<p>Hello Sandbox Content</p>");
+
+      modal.addFooterButton("Submit Button", () => {});
+      assert.equal(modal._footer.children.length, 1);
+    });
+
+    test("ECToast dynamic creation, class configurations, and fade transitions", async (win, doc) => {
+      const toast = new win.ECToast("Success notification!", { type: "success", duration: 50 });
+      toast.show();
+
+      const container = doc.querySelector(".position-fixed");
+      assert.truthy(container, "Toast element container needs to lazy load on DOM body on show trigger.");
+
+      assert.contains(toast.element.textContent, "Success notification!");
+      assert.equal(toast.element.style.borderLeftColor, "rgb(46, 125, 50)"); // Matches Hex #2e7d32
+
+      await new Promise(resolve => setTimeout(resolve, 100));
+      assert.falsy(toast.element.parentNode, "Toast should automatically destroy its node following duration timeout.");
+    });
+
+    test("ECCheckbox tracks status state and issues onChange notifications", async (win, doc) => {
+      let callbackResult = null;
+      const cb = new win.ECCheckbox("Agree", false);
+      cb.onChange((val) => callbackResult = val);
+
+      assert.falsy(cb.getValue());
+
+      cb.element.click();
+      assert.truthy(cb.getValue());
+      assert.truthy(callbackResult);
+    });
+
+    test("ECTextbox allows programmatically fetching and configuring input state values", async (win, doc) => {
+      const textbox = new win.ECTextbox({ label: "Name input", placeholder: "Placeholder text" });
+      doc.body.appendChild(textbox.element);
+
+      assert.equal(textbox.getValue(), "");
+
+      textbox.setValue("Test Username Input");
+      assert.equal(textbox.getValue(), "Test Username Input");
+    });
+
+    test("ECDataTable controls sorting data values and processing query filters", async (win, doc) => {
+      const columns = [
+        { key: "id", label: "ID", sortable: true },
+        { key: "name", label: "Name" }
+      ];
+      const data = [
+        { id: 3, name: "Alice" },
+        { id: 1, name: "Bob" },
+        { id: 2, name: "Charlie" }
+      ];
+
+      const dt = new win.ECDataTable({ columns, data, pageSize: 2 });
+      doc.body.appendChild(dt.element);
+
+      let renderedRows = Array.from(dt.element.querySelectorAll("tbody tr")).map(tr => tr.children[1].textContent);
+      assert.equal(renderedRows.length, 2, "Data table row lists must be limited by page boundary constraints.");
+      assert.equal(renderedRows[0], "Alice");
+
+      const headers = dt.element.querySelectorAll("thead th");
+      headers[0].click();
+
+      renderedRows = Array.from(dt.element.querySelectorAll("tbody tr")).map(tr => tr.children[1].textContent);
+      assert.equal(renderedRows[0], "Bob", "The rows should dynamically update ordering according to sorted keys.");
+      assert.equal(renderedRows[1], "Charlie");
+
+      const filterInput = dt.element.querySelector("input[type='text']");
+      filterInput.value = "Charlie";
+      filterInput.dispatchEvent(new win.Event("input"));
+
+      renderedRows = Array.from(dt.element.querySelectorAll("tbody tr")).map(tr => tr.children[1].textContent);
+      assert.equal(renderedRows.length, 1);
+      assert.equal(renderedRows[0], "Charlie");
+    });
+
+    test("ECRating highlights appropriate elements on star selections", async (win, doc) => {
+      let ratingResult = null;
+      const rating = new win.ECRating({ max: 5, value: 2 });
+      rating.onChange((val) => ratingResult = val);
+
+      assert.equal(rating.getValue(), 2);
+
+      rating._stars[3].click();
+      assert.equal(rating.getValue(), 4);
+      assert.equal(ratingResult, 4);
+    });
+
+    test("ECProgressBar controls custom tracking heights and scales numeric width metrics", async (win, doc) => {
+      const bar = new win.ECProgressBar({ value: 20, label: "Progress Check" });
+      doc.body.appendChild(bar.element);
+
+      assert.equal(bar.getValue(), 20);
+      assert.equal(bar._bar.style.width, "20%");
+
+      bar.setValue(85);
+      assert.equal(bar.getValue(), 85);
+      assert.equal(bar._bar.style.width, "85%");
+    });
+
+    async function runTests() {
+      const resultsDiv = document.getElementById("results");
+      const summaryDiv = document.getElementById("summary");
+      resultsDiv.innerHTML = "";
+
+      let passedCount = 0;
+      let failedCount = 0;
+
+      for (const t of testCases) {
+        const result = await runInSandbox(t.fn);
+
+        const testEl = document.createElement("div");
+        testEl.className = `test-case ${result.passed ? "passed" : "failed"}`;
+
+        const header = document.createElement("div");
+        header.className = "test-header";
+
+        const nameEl = document.createElement("span");
+        nameEl.className = "test-name";
+        nameEl.textContent = t.name;
+
+        const statusEl = document.createElement("span");
+        statusEl.className = `test-status ${result.passed ? "passed" : "failed"}`;
+        statusEl.textContent = result.passed ? "PASS" : "FAIL";
+
+        header.appendChild(nameEl);
+        header.appendChild(statusEl);
+        testEl.appendChild(header);
+
+        if (result.passed) {
+          passedCount++;
+        } else {
+          failedCount++;
+          const errEl = document.createElement("div");
+          errEl.className = "error-log";
+          errEl.textContent = result.error.stack || result.error.message || result.error;
+          testEl.appendChild(errEl);
+        }
+
+        resultsDiv.appendChild(testEl);
+      }
+
+      summaryDiv.classList.remove("running");
+      if (failedCount === 0) {
+        summaryDiv.classList.add("pass");
+        summaryDiv.textContent = `SUCCESS: All ${passedCount} tests passed!`;
+      } else {
+        summaryDiv.classList.add("fail");
+        summaryDiv.textContent = `FAILURE: ${failedCount} tests failed, ${passedCount} passed.`;
+      }
+    }
+
+    window.onload = runTests;
+  </script>
+</body>
+</html>

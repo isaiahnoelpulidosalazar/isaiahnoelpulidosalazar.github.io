@@ -96,7 +96,6 @@
   <div id="results"></div>
 
   <script>
-    // --- Minimalistic Assertion Library ---
     const assert = {
       equal(actual, expected, message) {
         if (actual !== expected) {
@@ -120,18 +119,15 @@
       }
     };
 
-    // --- Dynamic Test Frame Sandbox Helper ---
     function runInSandbox(testFn) {
       return new Promise((resolve) => {
         const iframe = document.createElement("iframe");
         iframe.style.display = "none";
         document.body.appendChild(iframe);
 
-        // This triggers after the iframe's DOM is parsed
         iframe.onload = () => {
           const checkReady = () => {
             const win = iframe.contentWindow;
-            // Ensure stylesheet initialization is complete within the iframe frame
             if (win && win.ECStyleSheet) {
               try {
                 Promise.resolve(testFn(win, iframe.contentDocument))
@@ -154,7 +150,6 @@
           checkReady();
         };
 
-        // Write content to iframe - loads ec-stylesheet.js fresh
         const doc = iframe.contentDocument || iframe.contentWindow.document;
         doc.open();
         doc.write(`
@@ -172,13 +167,10 @@
       });
     }
 
-    // --- Registry of Test Cases ---
     const testCases = [];
     function test(name, fn) {
       testCases.push({ name, fn });
     }
-
-    // --- Define Tests ---
 
     test("Initializes style tag and injects global rules on startup", async (win, doc) => {
       const styleTag = doc.getElementById("ec-stylesheet-rules");
@@ -262,10 +254,8 @@
       const dynamicDiv = doc.createElement("div");
       doc.body.appendChild(dynamicDiv);
 
-      // Modify the target element attributes programmatically to trigger class changes
       dynamicDiv.setAttribute("class", "cursor-pointer");
 
-      // Give MutationObserver runtime macro-task queue space to complete
       await new Promise(resolve => setTimeout(resolve, 50));
 
       const rules = win.ECStyleSheet.getRules();
@@ -273,7 +263,6 @@
       assert.contains(rules["cursor-pointer"], "cursor: pointer;");
     });
 
-    // --- Test Execution and Reporting Engine ---
     async function runTests() {
       const resultsDiv = document.getElementById("results");
       const summaryDiv = document.getElementById("summary");
@@ -316,7 +305,6 @@
         resultsDiv.appendChild(testEl);
       }
 
-      // Update Summary UI Element
       summaryDiv.classList.remove("running");
       if (failedCount === 0) {
         summaryDiv.classList.add("pass");
@@ -327,7 +315,6 @@
       }
     }
 
-    // Run suite on content load
     window.onload = runTests;
   </script>
 </body>
