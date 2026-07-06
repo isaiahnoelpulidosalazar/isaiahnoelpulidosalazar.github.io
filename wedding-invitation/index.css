@@ -1,0 +1,278 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+:root {
+    --bg-primary: #FCFBF9;
+    --bg-secondary: #F5EFEB;
+    --text-dark: #3A3A3A;
+    --text-muted: #7E7E7E;
+    --accent-gold: #C5A880;
+    --font-serif: 'Cormorant Garamond', serif;
+    --font-cursive: 'Great Vibes', cursive;
+    --font-sans: 'Montserrat', sans-serif;
+}
+body {
+    background-color: var(--bg-primary);
+    color: var(--text-dark);
+    font-family: var(--font-sans);
+    overflow-x: hidden;
+    line-height: 1.6;
+}
+.reveal {
+    opacity: 0;
+    transition: all 1.2s cubic-bezier(0.25, 1, 0.5, 1);
+    will-change: transform, opacity;
+}
+
+.reveal.fade-up {
+    transform: translateY(50px);
+}
+.reveal.slide-left {
+    transform: translateX(-80px);
+}
+.reveal.slide-right {
+    transform: translateX(80px);
+}
+.reveal.zoom-in {
+    transform: scale(0.85);
+}
+.reveal.active {
+    opacity: 1;
+    transform: translateY(0) translateX(0) scale(1);
+}
+.delay-1 { transition-delay: 0.2s; }
+.delay-2 { transition-delay: 0.4s; }
+.delay-3 { transition-delay: 0.6s; }
+h1, h2, h3 {
+    font-family: var(--font-serif);
+    font-weight: 400;
+}
+.cursive {
+    font-family: var(--font-cursive);
+    color: var(--accent-gold);
+    font-size: 3rem;
+}
+.btn-gold {
+    background-color: transparent;
+    border: 1px solid var(--accent-gold);
+    color: var(--text-dark);
+    padding: 12px 35px;
+    font-family: var(--font-sans);
+    font-size: 0.85rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 15px;
+}
+.btn-gold:hover {
+    background-color: var(--accent-gold);
+    color: white;
+    transform: translateY(-2px);
+}
+.hero {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    position: relative;
+    background: linear-gradient(rgba(252, 251, 249, 0.8), rgba(252, 251, 249, 0.8)), 
+                url('https://picsum.photos/1920/1080?blur=5') no-repeat center center/cover;
+    padding: 20px;
+}
+.hero-names {
+    font-size: 4.5rem;
+    margin: 15px 0;
+    letter-spacing: 2px;
+}
+.hero-date {
+    font-family: var(--font-sans);
+    letter-spacing: 5px;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+.scroll-down {
+    position: absolute;
+    bottom: 40px;
+    font-size: 0.75rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--accent-gold);
+    animation: bounce 2s infinite;
+}
+section {
+    padding: 100px 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+    text-align: center;
+}
+.invitation {
+    max-width: 700px;
+}
+.invitation p {
+    font-family: var(--font-serif);
+    font-size: 1.5rem;
+    margin: 20px 0;
+    line-height: 1.8;
+    font-style: italic;
+}
+.story-section {
+    background-color: var(--bg-secondary);
+    max-width: 100%;
+}
+.timeline {
+    position: relative;
+    max-width: 800px;
+    margin: 50px auto 0 auto;
+    padding: 20px 0;
+}
+.timeline::after {
+    content: '';
+    position: absolute;
+    width: 1px;
+    background-color: var(--accent-gold);
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    margin-left: -0.5px;
+}
+.timeline-item {
+    padding: 10px 40px;
+    position: relative;
+    background-color: inherit;
+    width: 50%;
+    text-align: right;
+}
+.timeline-item.left {
+    left: 0;
+}
+.timeline-item.right {
+    left: 50%;
+    text-align: left;
+}
+.timeline-item::after {
+    content: '';
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    right: -6px;
+    background-color: var(--bg-primary);
+    border: 2px solid var(--accent-gold);
+    top: 15px;
+    border-radius: 50%;
+    z-index: 1;
+}
+.timeline-item.right::after {
+    left: -6px;
+}
+.timeline-date {
+    font-family: var(--font-sans);
+    font-size: 0.8rem;
+    letter-spacing: 2px;
+    color: var(--accent-gold);
+    font-weight: 500;
+}
+.timeline-title {
+    font-size: 1.8rem;
+    margin: 5px 0 10px 0;
+}
+.timeline-content p {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+.event-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 40px;
+    margin-top: 50px;
+}
+.event-card {
+    background: white;
+    padding: 50px 30px;
+    border-radius: 4px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.03);
+    border: 1px solid rgba(197, 168, 128, 0.2);
+}
+.event-card h3 {
+    font-size: 2rem;
+    margin-bottom: 15px;
+}
+.event-details {
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    margin-bottom: 25px;
+}
+.rsvp-section {
+    background-color: var(--bg-secondary);
+    max-width: 100%;
+}
+.rsvp-form-container {
+    max-width: 500px;
+    margin: 40px auto 0 auto;
+    background: white;
+    padding: 40px;
+    border-radius: 4px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.03);
+}
+.form-group {
+    margin-bottom: 20px;
+    text-align: left;
+}
+.form-group label {
+    display: block;
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    color: var(--text-muted);
+}
+.form-group input, .form-group select {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #E2E2E2;
+    background-color: #FAFAFA;
+    font-family: var(--font-sans);
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 0.3s;
+}
+.form-group input:focus, .form-group select:focus {
+    border-color: var(--accent-gold);
+}
+@keyframes bounce {
+    0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+    40% { transform: translateY(-10px); }
+    60% { transform: translateY(-5px); }
+}
+@media (max-width: 768px) {
+    .hero-names {
+        font-size: 3rem;
+    }
+    .timeline::after {
+        left: 31px;
+    }
+    .timeline-item {
+        width: 100%;
+        padding-left: 70px;
+        padding-right: 25px;
+        text-align: left;
+    }
+    .timeline-item.right {
+        left: 0%;
+    }
+    .timeline-item::after {
+        left: 25px;
+        right: auto;
+    }
+    .timeline-item.right::after {
+        left: 25px;
+    }
+    section {
+        padding: 60px 15px;
+    }
+}
