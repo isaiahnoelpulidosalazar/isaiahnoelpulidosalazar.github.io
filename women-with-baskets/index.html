@@ -29,152 +29,502 @@
         <link rel="manifest" href="../manifest.json">
         <meta name="msapplication-TileColor" content="#F4F4F4">
         <meta name="msapplication-TileImage" content="../ms-icon-144x144.png">
-        <meta name="description" content="An assignment webpage showcasing the famous artwork of Anita Magsaysay-Ho, 'Women with Baskets'.">
-        <meta name="keywords" content="isaiah noel salazar, isaiahnoelpulidosalazar, isaiahnoelpulidosalazar.github.io, isaiah noel pulido salazar, women with baskets, anita magsaysay-ho, anita magsaysay ho, anita magsaysay, filipino painter, filipino artist, filipino art, filipino culture, social realism, post-cubism, modernism">
+        <meta name="description" content="An interactive showcase of Anita Magsaysay-Ho's masterpiece 'Women with Baskets', exploring Filipino Modernism and Social Realism.">
+        <meta name="keywords" content="isaiah noel salazar, women with baskets, anita magsaysay-ho, filipino artist, modernism">
         <meta name="author" content="Isaiah Noel Pulido Salazar">
         <meta name="theme-color" content="#834A36">
-        <title>Women with Baskets</title>
+        <title>"Women with Baskets" - Anita Magsaysay-Ho</title>
         <style>
             @font-face {
-                font-family: Nunito;
-                src: url(fonts/Nunito.ttf);
+                font-family: 'Nunito';
+                src: url('fonts/Nunito.ttf');
+                font-display: swap;
             }
-            html {
-                font-family: Nunito;
+            :root {
+                --primary: #834A36;
+                --primary-dark: #653525;
+                --accent: #D4A373;
+                --bg: #ECE8C2;
+                --bg-card: #FAF8F0;
+                --text: #2B2D42;
+                --spacing: 24px;
+            }
+            * {
+                box-sizing: border-box;
+                scroll-behavior: smooth;
             }
             body {
-                background-color: #ECE8C2;
-                box-sizing: border-box;
+                background-color: var(--bg);
+                color: var(--text);
+                font-family: 'Nunito', sans-serif;
                 margin: 0;
+                line-height: 1.6;
             }
-            h1 {
-                text-align: center;
-            }
-            #title {
-                background-color: #834A36;
-                box-sizing: border-box;
+            header {
+                background-color: var(--primary);
                 color: white;
-                margin: 0 0 32px 0;
-                padding: 16px;
+                padding: 24px 16px;
                 position: sticky;
                 top: 0;
-                width: 100%;
-            }
-            #title > h1, p {
-                margin: 0;
+                z-index: 1000;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
                 text-align: center;
             }
-            #div1 {
+            header h1 {
+                margin: 0;
+                font-size: 2rem;
+                letter-spacing: 1px;
+            }
+            header p {
+                margin: 4px 0 0 0;
+                font-style: italic;
+                opacity: 0.9;
+            }
+            .container {
+                max-width: 1000px;
+                margin: 40px auto;
+                padding: 0 20px;
+            }
+            .art-showcase {
+                background: var(--bg-card);
+                border-radius: 20px;
+                padding: var(--spacing);
+                box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+                text-align: center;
+                margin-bottom: 40px;
+            }
+            .image-wrapper {
+                position: relative;
+                display: inline-block;
+                max-width: 100%;
+                overflow: hidden;
+                border-radius: 12px;
+                box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+            }
+            .image-wrapper img {
+                display: block;
+                max-width: 100%;
+                height: auto;
+                transition: transform 0.5s ease;
+            }
+            .image-wrapper:hover img {
+                transform: scale(1.03);
+            }
+            .source-link {
+                margin-top: 16px;
+                display: block;
+                font-size: 0.9rem;
+            }
+            .source-link a {
+                color: var(--primary);
+                text-decoration: none;
+                font-weight: bold;
+            }
+            .source-link a:hover {
+                text-decoration: underline;
+            }
+            .details-grid {
                 display: grid;
-                grid-template-areas: "img4 img3 img1" "img6 img2 img5";
+                grid-template-columns: 1.2fr 0.8fr;
+                gap: var(--spacing);
+                align-items: stretch;
+                margin-bottom: var(--spacing);
+            }
+            .details-content {
+                background: var(--bg-card);
+                padding: 32px;
+                border-radius: 20px;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+                display: flex;
+                flex-direction: column;
                 justify-content: center;
             }
-            #div1 > img {
-                width: calc(600px * 0.3);
+            .details-content h2 {
+                color: var(--primary);
+                margin-top: 0;
+                font-size: 1.8rem;
+                border-bottom: 2px solid var(--accent);
+                padding-bottom: 8px;
             }
-            .img1 {
-                border-top-right-radius: 16px;
-                grid-area: img1;
+            .right-column {
+                display: flex;
+                flex-direction: column;
+                gap: var(--spacing);
+                justify-content: space-between;
+                height: 100%;
             }
-            .img2 {
-                grid-area: img2;
+            .video-wrapper {
+                position: relative;
+                background: #000;
+                border-radius: 20px;
+                box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+                overflow: hidden;
+                aspect-ratio: 16/9;
+                flex-grow: 1;
             }
-            .img3 {
-                grid-area: img3;
-            }
-            .img4 {
-                border-top-left-radius: 16px;
-                grid-area: img4;
-            }
-            .img5 {
-                border-bottom-right-radius: 16px;
-                grid-area: img5;
-            }
-            .img6 {
-                border-bottom-left-radius: 16px;
-                grid-area: img6;
-            }
-            #description {
+            .video-cover {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.6)), 
+                            url('https://i.ibb.co/3mx7fWR3/anita-magsaysay-ho-women-with-baskets-fish-and-crab.jpg') center/cover no-repeat;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
                 align-items: center;
-                display: grid;
-                grid-template-columns: 50% 50%;
+                cursor: pointer;
+                transition: opacity 0.4s ease;
+                z-index: 2;
+            }
+            .video-cover:hover {
+                background: linear-gradient(rgba(0,0,0,0.1), rgba(0,0,0,0.4)), 
+                            url('https://i.ibb.co/3mx7fWR3/anita-magsaysay-ho-women-with-baskets-fish-and-crab.jpg') center/cover no-repeat;
+            }
+            .video-cover p {
+                color: white;
+                font-size: 1.2rem;
+                font-weight: bold;
+                margin: 12px 0 0 0;
+                text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            }
+            .play-btn {
+                width: 70px;
+                height: 70px;
+                background: var(--bg);
+                border-radius: 50%;
+                display: flex;
                 justify-content: center;
-                justify-self: center;
+                align-items: center;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+                transition: transform 0.3s ease;
             }
-            #description > div {
-                padding: 16px;
-                width: calc(100% - 16px * 2);
+            .play-btn::after {
+                content: '';
+                display: block;
+                width: 0;
+                height: 0;
+                border-style: solid;
+                border-width: 12px 0 12px 20px;
+                border-color: transparent transparent transparent var(--primary);
+                margin-left: 6px;
             }
-            #description > div > p {
-                text-align: justify;
+            .video-cover:hover .play-btn {
+                transform: scale(1.15);
             }
-            #description > div > video {
-                border-radius: 16px;
-                margin: 16px;
-                width: calc(100% - 16px * 2);
+            iframe {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                display: block;
             }
-            @media (max-width: 1024px){
-                #description {
+            .quote-card {
+                background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+                color: white;
+                padding: 24px;
+                border-radius: 20px;
+                box-shadow: 0 10px 25px rgba(131, 74, 54, 0.2);
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                flex-grow: 1;
+            }
+            .quote-card blockquote {
+                margin: 0;
+                font-size: 1rem;
+                font-style: italic;
+                line-height: 1.5;
+            }
+            .quote-card cite {
+                display: block;
+                margin-top: 12px;
+                font-size: 0.9rem;
+                font-weight: bold;
+                text-align: right;
+                color: var(--accent);
+            }
+            .specs-card {
+                background: var(--bg-card);
+                border-radius: 20px;
+                padding: 24px;
+                margin-bottom: 40px;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            }
+            .specs-card h3 {
+                color: var(--primary);
+                margin: 0 0 12px 0;
+                font-size: 1.2rem;
+                border-bottom: 2px solid var(--accent);
+                padding-bottom: 6px;
+            }
+            .specs-table {
+                width: 100%;
+                border-collapse: collapse;
+            }
+            .specs-table td {
+                padding: 10px 0;
+                font-size: 0.95rem;
+                border-bottom: 1px dashed #E2E8F0;
+            }
+            .specs-table td:first-child {
+                font-weight: bold;
+                color: var(--primary);
+                width: 30%;
+            }
+            .specs-table tr:last-child td {
+                border-bottom: none;
+            }
+            .interactive-panel {
+                background: var(--primary);
+                color: white;
+                border-radius: 20px;
+                padding: 32px;
+                margin-bottom: 40px;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            }
+            .interactive-panel h2 {
+                margin-top: 0;
+                text-align: center;
+            }
+            .tabs {
+                display: flex;
+                justify-content: center;
+                gap: 12px;
+                margin-bottom: 24px;
+                flex-wrap: wrap;
+            }
+            .tab-btn {
+                background: rgba(255,255,255,0.15);
+                border: 2px solid transparent;
+                color: white;
+                padding: 10px 20px;
+                border-radius: 30px;
+                cursor: pointer;
+                font-weight: bold;
+                transition: all 0.3s ease;
+            }
+            .tab-btn.active, .tab-btn:hover {
+                background: white;
+                color: var(--primary);
+                transform: translateY(-2px);
+            }
+            .tab-content {
+                display: none;
+                animation: fadeIn 0.4s ease forwards;
+                background: rgba(255,255,255,0.1);
+                padding: 24px;
+                border-radius: 12px;
+                min-height: 120px;
+            }
+            .tab-content.active {
+                display: block;
+            }
+            .quiz-container {
+                background: var(--bg-card);
+                border-radius: 20px;
+                padding: 32px;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+                margin-bottom: 40px;
+            }
+            .quiz-container h2 {
+                color: var(--primary);
+                margin-top: 0;
+                text-align: center;
+            }
+            .quiz-option {
+                display: block;
+                background: white;
+                border: 2px solid #E2E8F0;
+                padding: 14px 20px;
+                border-radius: 10px;
+                margin: 12px 0;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                font-weight: 600;
+                width: 100%;
+                text-align: left;
+            }
+            .quiz-option:hover {
+                border-color: var(--primary);
+                background: #FFFDF5;
+            }
+            .quiz-option.correct {
+                background: #D4EDDA;
+                border-color: #28A745;
+                color: #155724;
+            }
+            .quiz-option.wrong {
+                background: #F8D7DA;
+                border-color: #DC3545;
+                color: #721C24;
+            }
+            .quiz-feedback {
+                margin-top: 16px;
+                font-weight: bold;
+                text-align: center;
+                min-height: 24px;
+            }
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(8px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+            @media (max-width: 768px){
+                .details-grid {
                     grid-template-columns: 1fr;
                 }
-                #description > div {
-                    padding: unset;
-                    width: 540px;
-                }
-                #description > div > video {
-                    margin: 32px 0;
-                    width: 540px;
-                }
-            }
-            @media (max-width: 600px){
-                #div1 {
-                    padding: 0 5vw;
-                }
-                #div1 > img {
-                    width: 30vw;
-                }
-                #description {
-                    width: 90vw;
-                }
-                #description > div {
-                    width: 100%;
-                }
-                #description > div > video {
-                    width: 100%;
+                header h1 {
+                    font-size: 1.6rem;
                 }
             }
         </style>
     </head>
     <body>
-        <div id="title">
+        <header>
             <h1>Women with Baskets</h1>
             <p>By Anita Magsaysay-Ho</p>
+        </header>
+
+        <div class="container">
+            <section class="art-showcase">
+                <div class="image-wrapper">
+                    <img src="https://i.ibb.co/3mx7fWR3/anita-magsaysay-ho-women-with-baskets-fish-and-crab.jpg" alt="Women with Baskets painting">
+                </div>
+                <div class="source-link">
+                    <strong>Source:</strong> 
+                    <a href="https://www.artnet.com/artists/anita-magsaysay-ho/women-with-baskets-fish-and-crab-M99XhbHiZjkZUFkFyeWXjQ2" target="_blank" rel="noopener">
+                        Untitled (Women with Baskets) via artnet
+                    </a>
+                </div>
+            </section>
+
+            <section class="interactive-panel">
+                <h2>Explore the Masterpiece</h2>
+                <div class="tabs">
+                    <button class="tab-btn active" onclick="showTab('style')">Artistic Style</button>
+                    <button class="tab-btn" onclick="showTab('symbolism')">Symbolism</button>
+                    <button class="tab-btn" onclick="showTab('heritage')">Filipino Heritage</button>
+                </div>
+                <div id="style" class="tab-content active">
+                    <p>Magsaysay-Ho leverages <strong>Post-Cubism</strong> and modern abstractions, using angular shapes, expressive lines, and stylized geometry to break away from traditional romanticized realism.</p>
+                </div>
+                <div id="symbolism" class="tab-content">
+                    <p>The <strong>baskets, fish, and crabs</strong> represent the abundance of local resources, while the coordinated labor of the women emphasizes communal unity, sisterhood, and joint resilience.</p>
+                </div>
+                <div id="heritage" class="tab-content">
+                    <p>Unlike classic depictions of quiet domesticity, her portrayal spotlights the industriousness, strength, and vibrant, hard-working spirit of rural <strong>Filipina women</strong>.</p>
+                </div>
+            </section>
+
+            <section class="details-grid">
+                <div class="details-content">
+                    <h2>Anita Magsaysay-Ho</h2>
+                    <p>A Filipina painter who specialized in Social Realism and post-Cubism in regard 
+                        to women in Filipino culture. Magsaysay-Ho's work appeals to Modernism by utilizing 
+                        more abstract designs and styles rather than realistic approaches.</p>
+                    <p>She was the only female member of the <strong>"Thirteen Moderns,"</strong> a pioneering group of Filipino modernist artists. In 1958, she was recognized by a panel of experts as one of the six major painters of the country's history.</p>
+                    <p>Her most celebrated works masterfully capture the beauty, collective power, and grace of Filipino women negotiating everyday struggles. Today, her prestigious collections are housed globally and across major museums in the Philippines.</p>
+                </div>
+
+                <div class="right-column">
+                    <div class="video-wrapper">
+                        <div class="video-cover" id="videoCover" onclick="startVideo()">
+                            <div class="play-btn"></div>
+                            <p>Watch Video Guide</p>
+                        </div>
+                        <iframe id="promoVideo" src="https://www.youtube.com/embed/60m9DphszqI?si=ZSv4reqMvsTJPZfC" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+                    </div>
+
+                    <div class="quote-card">
+                        <blockquote>
+                            "I know very well the strength, hard work, and quiet dignity of Philippine women, for I am one of them."
+                        </blockquote>
+                        <cite>— Anita Magsaysay-Ho</cite>
+                    </div>
+                </div>
+            </section>
+
+            <section class="specs-card">
+                <h3>Artwork Information</h3>
+                <table class="specs-table">
+                    <tr>
+                        <td>Alternative Title</td>
+                        <td>Women with Baskets, Fish, and Crab</td>
+                    </tr>
+                    <tr>
+                        <td>Medium</td>
+                        <td>Oil on Canvas</td>
+                    </tr>
+                    <tr>
+                        <td>Created</td>
+                        <td>Circa 1980</td>
+                    </tr>
+                    <tr>
+                        <td>Movement</td>
+                        <td>Post-Cubism / Social Realism</td>
+                    </tr>
+                    <tr>
+                        <td>Historical Note</td>
+                        <td>Sold for a historic ₱53 Million at auction in 2021.</td>
+                    </tr>
+                </table>
+            </section>
+
+            <section class="quiz-container">
+                <h2>Quick Art Challenge</h2>
+                <p style="text-align: center;">Test your attention to detail!</p>
+                <div id="quiz-box">
+                    <p><strong>Question: Anita Magsaysay-Ho was the sole female member of which historic group?</strong></p>
+                    <button class="quiz-option" onclick="checkAnswer(this, false)">The Triumvirate</button>
+                    <button class="quiz-option" onclick="checkAnswer(this, true)">The Thirteen Moderns</button>
+                    <button class="quiz-option" onclick="checkAnswer(this, false)">The Neo-Realists</button>
+                </div>
+                <div id="quiz-feedback" class="quiz-feedback"></div>
+            </section>
         </div>
-        <div id="div1">
-            <img src="images/Women with Baskets/1.jpg" alt="Women with Baskets 1" class="img1">
-            <img src="images/Women with Baskets/2.jpg" alt="Women with Baskets 2" class="img2">
-            <img src="images/Women with Baskets/3.jpg" alt="Women with Baskets 3" class="img3">
-            <img src="images/Women with Baskets/4.jpg" alt="Women with Baskets 4" class="img4">
-            <img src="images/Women with Baskets/5.jpg" alt="Women with Baskets 5" class="img5">
-            <img src="images/Women with Baskets/6.jpg" alt="Women with Baskets 6" class="img6">
-        </div>
-        <div id="description">
-            <div>
-                <h1>Anita Magsaysay-Ho</h1>
-                <p>A Filipina painter who specialized in Social Realism and post-Cubism in regard 
-                    to women in Filipino culture. Magsaysay-Ho's work appeals to Modernism by utilizing 
-                    more abstract designs and styles rather than realistic approaches. She was the only 
-                    female member of the "Thirteen Moderns," a standing group of Filipino modernist 
-                    artists, and in 1958 was chosen by a panel of experts as one of the six major 
-                    painters of the country's history. The most famous work of Magsaysay-Ho are subject 
-                    to the beauty of Filipino women dealing with everyday issues. Collections of her 
-                    artwork can be found in museums around the Philippines.</p>
-            </div>
-            <div>
-                <video controls>
-                    <source src="videos/Anita.mp4">
-                </video>
-            </div>
-        </div>
+
+        <script>
+            function showTab(tabId) {
+                document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+                document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+                
+                document.getElementById(tabId).classList.add('active');
+                event.currentTarget.classList.add('active');
+            }
+
+            function checkAnswer(btn, isCorrect) {
+                const feedback = document.getElementById('quiz-feedback');
+                const options = document.querySelectorAll('.quiz-option');
+                
+                options.forEach(opt => {
+                    opt.disabled = true;
+                    opt.style.cursor = 'default';
+                });
+
+                if (isCorrect) {
+                    btn.classList.add('correct');
+                    feedback.innerHTML = "Correct! She was the pioneering female force of the Thirteen Moderns.";
+                    feedback.style.color = "#28A745";
+                } else {
+                    btn.classList.add('wrong');
+                    feedback.innerHTML = "Not quite! Try exploring her biography again.";
+                    feedback.style.color = "#DC3545";
+                    
+                    options.forEach(opt => {
+                        if (opt.textContent.includes('Thirteen Moderns')) {
+                            opt.classList.add('correct');
+                        }
+                    });
+                }
+            }
+
+            function startVideo() {
+                const cover = document.getElementById('videoCover');
+                cover.style.opacity = '0';
+                setTimeout(() => {
+                    cover.style.display = 'none';
+                }, 400);
+            }
+        </script>
     </body>
 </html>
