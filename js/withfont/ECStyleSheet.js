@@ -5,6 +5,7 @@
   var TABLET_BREAKPOINT = 1024;
   var STYLE_TAG_ID = "ec-stylesheet-rules";
   var PROCESSED_ATTR = "data-ec-processed";
+  var IS_FONT_SET = false;
   var IS_BORDER_BOX_SET = false;
 
   var propertyMap = {
@@ -359,6 +360,12 @@
   }
 
   function scanDOM() {
+    if (!IS_FONT_SET) {
+      var fontRule = "* { font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif; }";
+      generatedRules["global-font"] = fontRule;
+      getStyleTag().textContent += "\n" + fontRule;
+      IS_FONT_SET = true;
+    }
     if (!IS_BORDER_BOX_SET) {
       var globalRule = "* { box-sizing: border-box; }";
       generatedRules["global-border-box"] = globalRule;
