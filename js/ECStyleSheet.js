@@ -588,14 +588,24 @@
     return this;
   };
 
-  function ECModal(title) {
+  function ECModal(title, options) {
     var self = this;
+    
+    options = options || {};
 
     this.element = document.createElement("div");
     this.element.className = BASE_CLS + " display-none position-fixed inset-0 background-rgba(0,0,0,0.5) zIndex-1000 alignItems-center justifyContent-center opacity-0 pointerEvents-none transition-opacity_0.22s_ease";
 
     this._box = document.createElement("div");
     this._box.className = "background-var(--ec-bg,_#fff) color-var(--ec-text,_#212529) border-1px_solid_var(--ec-border,_#dee2e6) borderRadius-12px padding-24px minWidth-320px maxWidth-90vw maxHeight-85vh overflowY-auto transform-translateY(14px) transition-transform_0.22s_ease";
+
+    if (options.width) {
+      var widthValue = typeof options.width === "number" ? options.width + "px" : options.width;
+      
+      this._box.style.width = widthValue;
+      this._box.style.maxWidth = "min(" + widthValue + ", 90vw)";
+      this._box.style.minWidth = "auto";
+    }
 
     this._header = document.createElement("div");
     this._header.className = "display-flex alignItems-center justifyContent-space-between marginBottom-16px";
