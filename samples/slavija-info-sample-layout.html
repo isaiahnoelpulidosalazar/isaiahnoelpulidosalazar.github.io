@@ -1,0 +1,2305 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SLAVIJA INFO — Istina pre svih | Vesti i Intervjui</title>
+  
+  <!-- BBC-inspired Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Merriweather:ital,wght@0,300;0,400;0,700;0,900;1,400&display=swap" rel="stylesheet">
+
+  <style>
+    /* ==========================================================================
+       BBC NEWS DESIGN SYSTEM CSS
+       ========================================================================== */
+    :root {
+      --bbc-red: #bb1919;
+      --bbc-red-dark: #990000;
+      --bbc-black: #121212;
+      --bbc-dark-nav: #202224;
+      --bbc-video-bg: #0f141c;
+      --bbc-grey-light: #f6f6f6;
+      --bbc-border: #e2e2e2;
+      --bbc-text-primary: #141414;
+      --bbc-text-muted: #545658;
+      --bbc-live-red: #d00000;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-serif: 'Merriweather', Georgia, "Times New Roman", serif;
+      --container-max: 1280px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background-color: #ffffff;
+      color: var(--bbc-text-primary);
+      line-height: 1.45;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    img {
+      max-width: 100%;
+      height: auto;
+      display: block;
+      object-fit: cover;
+    }
+
+    .container {
+      max-width: var(--container-max);
+      margin: 0 auto;
+      padding: 0 16px;
+    }
+
+    /* --------------------------------------------------
+       1. BBC TOP GLOBAL UTILITY BAR
+       -------------------------------------------------- */
+    .bbc-top-bar {
+      background-color: var(--bbc-black);
+      color: #ffffff;
+      font-size: 13px;
+      border-bottom: 1px solid #2a2a2a;
+    }
+
+    .bbc-top-bar .container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 44px;
+    }
+
+    .bbc-brand-blocks {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      font-weight: 900;
+      font-size: 14px;
+      letter-spacing: 0.5px;
+    }
+
+    .bbc-brand-blocks .block {
+      background-color: #ffffff;
+      color: #000000;
+      width: 22px;
+      height: 22px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+    }
+
+    .bbc-brand-name {
+      margin-left: 8px;
+      font-weight: 800;
+      font-size: 15px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .bbc-top-utilities {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .utility-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      color: #e0e0e0;
+      transition: color 0.2s;
+      background: none;
+      border: none;
+      font-family: inherit;
+      font-size: 13px;
+    }
+
+    .utility-item:hover {
+      color: #ffffff;
+    }
+
+    .script-toggle-btn {
+      background: #2a2a2a;
+      color: #fff;
+      padding: 4px 10px;
+      border-radius: 2px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid #444;
+      transition: all 0.2s;
+    }
+
+    .script-toggle-btn:hover {
+      background: var(--bbc-red);
+      border-color: var(--bbc-red);
+    }
+
+    .saved-badge {
+      background-color: var(--bbc-red);
+      color: #fff;
+      font-size: 11px;
+      font-weight: bold;
+      padding: 1px 6px;
+      border-radius: 10px;
+    }
+
+    /* --------------------------------------------------
+       2. BBC RED HEADER & CATEGORY NAVIGATION
+       -------------------------------------------------- */
+    .bbc-header-red {
+      background-color: var(--bbc-red);
+      color: #ffffff;
+    }
+
+    .bbc-header-red .container {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      padding-top: 14px;
+      padding-bottom: 12px;
+    }
+
+    .site-title-area {
+      display: flex;
+      align-items: baseline;
+      gap: 14px;
+    }
+
+    .site-title {
+      font-size: 38px;
+      font-weight: 900;
+      letter-spacing: -1px;
+      line-height: 1;
+      text-transform: uppercase;
+    }
+
+    .site-slogan {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      font-weight: 600;
+      opacity: 0.9;
+      border-left: 1px solid rgba(255, 255, 255, 0.4);
+      padding-left: 14px;
+    }
+
+    /* Category Nav Strip */
+    .bbc-category-nav {
+      background-color: var(--bbc-red-dark);
+      border-top: 1px solid rgba(255, 255, 255, 0.15);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .bbc-category-nav ul {
+      list-style: none;
+      display: flex;
+      align-items: center;
+      overflow-x: auto;
+      white-space: nowrap;
+      scrollbar-width: none;
+    }
+
+    .bbc-category-nav ul::-webkit-scrollbar {
+      display: none;
+    }
+
+    .bbc-category-nav li a {
+      display: block;
+      color: #ffffff;
+      padding: 11px 16px;
+      font-size: 14px;
+      font-weight: 700;
+      border-bottom: 3px solid transparent;
+      transition: all 0.2s;
+    }
+
+    .bbc-category-nav li a:hover,
+    .bbc-category-nav li.active a {
+      background-color: rgba(0, 0, 0, 0.2);
+      border-bottom-color: #ffffff;
+    }
+
+    .bbc-sub-topics {
+      background-color: #ffffff;
+      border-bottom: 1px solid var(--bbc-border);
+      padding: 8px 0;
+      font-size: 13px;
+    }
+
+    .bbc-sub-topics ul {
+      display: flex;
+      gap: 18px;
+      list-style: none;
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+
+    .bbc-sub-topics a {
+      color: var(--bbc-text-muted);
+      font-weight: 600;
+    }
+
+    .bbc-sub-topics a:hover {
+      color: var(--bbc-red);
+      text-decoration: underline;
+    }
+
+    /* --------------------------------------------------
+       3. BBC BREAKING / LIVE TICKER
+       -------------------------------------------------- */
+    .breaking-ticker {
+      background-color: #fff2f2;
+      border-top: 2px solid var(--bbc-live-red);
+      border-bottom: 1px solid #ffd4d4;
+      padding: 10px 0;
+      margin-bottom: 24px;
+    }
+
+    .breaking-ticker .container {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .live-badge {
+      background-color: var(--bbc-live-red);
+      color: #ffffff;
+      padding: 3px 8px;
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .live-badge::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      background: white;
+      border-radius: 50%;
+      display: inline-block;
+      animation: pulseDot 1.4s infinite;
+    }
+
+    @keyframes pulseDot {
+      0% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.3; transform: scale(0.7); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    .breaking-headline {
+      font-weight: 700;
+      font-size: 15px;
+      color: #141414;
+      flex-grow: 1;
+    }
+
+    .breaking-link {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--bbc-red);
+      text-decoration: underline;
+    }
+
+    /* --------------------------------------------------
+       4. BBC HERO GRID (3-ZONE SECTION)
+       -------------------------------------------------- */
+    .hero-news-grid {
+      display: grid;
+      grid-template-columns: 1.6fr 1fr 0.9fr;
+      gap: 24px;
+      margin-bottom: 40px;
+      border-bottom: 1px solid var(--bbc-border);
+      padding-bottom: 30px;
+    }
+
+    .tag {
+      color: var(--bbc-red);
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+      display: inline-block;
+    }
+
+    .lead-story {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .lead-image-wrap {
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 14px;
+      border-radius: 2px;
+      background: #000;
+      aspect-ratio: 16 / 9;
+    }
+
+    .lead-image-wrap img {
+      width: 100%;
+      height: 100%;
+      transition: transform 0.4s ease;
+    }
+
+    .lead-story:hover .lead-image-wrap img {
+      transform: scale(1.03);
+    }
+
+    .lead-title {
+      font-family: var(--font-serif);
+      font-size: 28px;
+      line-height: 1.25;
+      font-weight: 800;
+      margin-bottom: 10px;
+      cursor: pointer;
+    }
+
+    .lead-title:hover {
+      color: var(--bbc-red);
+      text-decoration: underline;
+    }
+
+    .lead-summary {
+      color: var(--bbc-text-muted);
+      font-size: 15px;
+      margin-bottom: 12px;
+      line-height: 1.5;
+    }
+
+    .meta-time {
+      font-size: 12px;
+      color: #767676;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .bookmark-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #888;
+      display: inline-flex;
+      align-items: center;
+      font-size: 12px;
+      gap: 4px;
+      padding: 2px;
+    }
+
+    .bookmark-btn:hover {
+      color: var(--bbc-red);
+    }
+
+    .related-links {
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid var(--bbc-border);
+      list-style: none;
+    }
+
+    .related-links li {
+      margin-bottom: 8px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .related-links li a:hover {
+      color: var(--bbc-red);
+      text-decoration: underline;
+    }
+
+    .related-links li::before {
+      content: "■";
+      color: var(--bbc-red);
+      font-size: 10px;
+      margin-right: 8px;
+    }
+
+    /* Middle Stacked Column */
+    .secondary-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      border-left: 1px solid var(--bbc-border);
+      border-right: 1px solid var(--bbc-border);
+      padding: 0 16px;
+    }
+
+    .stacked-card {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .stacked-thumb {
+      aspect-ratio: 16 / 9;
+      overflow: hidden;
+      margin-bottom: 10px;
+      background: #000;
+    }
+
+    .stacked-thumb img {
+      width: 100%;
+      height: 100%;
+      transition: transform 0.3s;
+    }
+
+    .stacked-card:hover img {
+      transform: scale(1.04);
+    }
+
+    .stacked-title {
+      font-family: var(--font-serif);
+      font-size: 17px;
+      font-weight: 700;
+      line-height: 1.35;
+      margin-bottom: 6px;
+      cursor: pointer;
+    }
+
+    .stacked-title:hover {
+      color: var(--bbc-red);
+      text-decoration: underline;
+    }
+
+    /* Right Sidebar (BBC Latest / Ticker) */
+    .sidebar-feed {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .sidebar-header {
+      font-size: 18px;
+      font-weight: 800;
+      margin-bottom: 14px;
+      padding-bottom: 6px;
+      border-bottom: 2px solid var(--bbc-black);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .feed-list {
+      list-style: none;
+    }
+
+    .feed-item {
+      padding: 12px 0;
+      border-bottom: 1px solid var(--bbc-border);
+    }
+
+    .feed-item:first-child {
+      padding-top: 0;
+    }
+
+    .feed-title {
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1.4;
+      margin-bottom: 4px;
+      cursor: pointer;
+    }
+
+    .feed-title:hover {
+      color: var(--bbc-red);
+      text-decoration: underline;
+    }
+
+    /* --------------------------------------------------
+       5. BBC WATCH / SLAVIJA VIDEO STRIP (DARK)
+       -------------------------------------------------- */
+    .bbc-video-strip {
+      background-color: var(--bbc-video-bg);
+      color: #ffffff;
+      padding: 36px 0;
+      margin-bottom: 40px;
+    }
+
+    .video-strip-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      border-bottom: 1px solid #28303f;
+      padding-bottom: 12px;
+    }
+
+    .video-section-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 22px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .video-play-badge {
+      background: var(--bbc-red);
+      color: #ffffff;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+    }
+
+    .video-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 18px;
+    }
+
+    .video-card {
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .video-thumb-wrap {
+      position: relative;
+      aspect-ratio: 16 / 9;
+      background: #000;
+      margin-bottom: 10px;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .video-thumb-wrap img {
+      width: 100%;
+      height: 100%;
+      opacity: 0.9;
+      transition: opacity 0.3s, transform 0.3s;
+    }
+
+    .video-card:hover .video-thumb-wrap img {
+      opacity: 1;
+      transform: scale(1.05);
+    }
+
+    .duration-pill {
+      position: absolute;
+      bottom: 8px;
+      right: 8px;
+      background: rgba(0, 0, 0, 0.85);
+      color: #ffffff;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .video-play-overlay {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 44px;
+      height: 44px;
+      background: rgba(187, 25, 25, 0.9);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+      transition: transform 0.2s, background 0.2s;
+    }
+
+    .video-card:hover .video-play-overlay {
+      transform: translate(-50%, -50%) scale(1.12);
+      background: var(--bbc-red);
+    }
+
+    .video-title {
+      font-size: 15px;
+      font-weight: 700;
+      line-height: 1.35;
+      margin-bottom: 6px;
+      color: #ffffff;
+    }
+
+    .video-guest {
+      font-size: 12px;
+      color: #9cb1cc;
+      margin-bottom: 4px;
+    }
+
+    .video-meta {
+      font-size: 11px;
+      color: #69788d;
+    }
+
+    /* --------------------------------------------------
+       6. 4-COLUMN CONTENT SECTION (POLITIKA & DRUŠTVO)
+       -------------------------------------------------- */
+    .section-title-wrap {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      border-bottom: 2px solid var(--bbc-black);
+      padding-bottom: 8px;
+      margin-bottom: 20px;
+    }
+
+    .section-title-text {
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+    }
+
+    .four-col-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+      margin-bottom: 40px;
+      border-bottom: 1px solid var(--bbc-border);
+      padding-bottom: 30px;
+    }
+
+    .grid-card {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .grid-thumb {
+      aspect-ratio: 16 / 9;
+      background: #eee;
+      margin-bottom: 10px;
+      overflow: hidden;
+    }
+
+    .grid-thumb img {
+      width: 100%;
+      height: 100%;
+      transition: transform 0.3s;
+    }
+
+    .grid-card:hover img {
+      transform: scale(1.04);
+    }
+
+    .grid-title {
+      font-family: var(--font-serif);
+      font-size: 16px;
+      font-weight: 700;
+      line-height: 1.35;
+      margin-bottom: 8px;
+      cursor: pointer;
+    }
+
+    .grid-title:hover {
+      color: var(--bbc-red);
+      text-decoration: underline;
+    }
+
+    .grid-excerpt {
+      font-size: 13px;
+      color: var(--bbc-text-muted);
+      line-height: 1.45;
+      margin-bottom: 8px;
+    }
+
+    /* --------------------------------------------------
+       7. SPLIT ZONE: INVESTIGATION & BBC MOST READ (1-5)
+       -------------------------------------------------- */
+    .split-layout-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 30px;
+      margin-bottom: 40px;
+    }
+
+    .sub-split-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    /* BBC 1-5 Most Read ranking */
+    .most-read-box {
+      border-left: 1px solid var(--bbc-border);
+      padding-left: 24px;
+    }
+
+    .most-read-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .most-read-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--bbc-border);
+    }
+
+    .most-read-item:first-child {
+      padding-top: 0;
+    }
+
+    .rank-number {
+      font-size: 38px;
+      font-weight: 900;
+      line-height: 1;
+      color: var(--bbc-red);
+      font-family: var(--font-sans);
+      min-width: 28px;
+    }
+
+    .rank-content h4 {
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1.35;
+      cursor: pointer;
+    }
+
+    .rank-content h4:hover {
+      color: var(--bbc-red);
+      text-decoration: underline;
+    }
+
+    /* --------------------------------------------------
+       8. OPINIONS / KOLUMNE (BBC VOICES STYLE)
+       -------------------------------------------------- */
+    .opinion-section {
+      background: var(--bbc-grey-light);
+      padding: 36px 0;
+      margin-bottom: 40px;
+      border-top: 1px solid var(--bbc-border);
+      border-bottom: 1px solid var(--bbc-border);
+    }
+
+    .opinion-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+
+    .opinion-card {
+      background: #ffffff;
+      padding: 24px;
+      border: 1px solid var(--bbc-border);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      border-top: 3px solid var(--bbc-red);
+    }
+
+    .author-bio {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    .author-avatar {
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid var(--bbc-red);
+    }
+
+    .author-name {
+      font-weight: 800;
+      font-size: 15px;
+    }
+
+    .author-role {
+      font-size: 12px;
+      color: var(--bbc-text-muted);
+    }
+
+    .opinion-quote {
+      font-family: var(--font-serif);
+      font-size: 16px;
+      font-style: italic;
+      line-height: 1.45;
+      color: #1a1a1a;
+      margin-bottom: 14px;
+      cursor: pointer;
+    }
+
+    .opinion-quote:hover {
+      color: var(--bbc-red);
+    }
+
+    /* --------------------------------------------------
+       9. DONATION BANNER (SLAVIJA INFO COMMUNITY SUPPORT)
+       -------------------------------------------------- */
+    .support-banner {
+      background: linear-gradient(135deg, #18202c 0%, #0d1219 100%);
+      color: #ffffff;
+      padding: 30px;
+      border-radius: 4px;
+      margin-bottom: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 30px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      border-left: 6px solid var(--bbc-red);
+    }
+
+    .support-text h3 {
+      font-size: 22px;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+
+    .support-text p {
+      color: #b0c0d4;
+      font-size: 14px;
+      max-width: 600px;
+      line-height: 1.5;
+    }
+
+    .support-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-width: 320px;
+    }
+
+    .donation-pill-box {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 8px 12px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 13px;
+    }
+
+    .copy-btn {
+      background: var(--bbc-red);
+      color: #fff;
+      border: none;
+      padding: 4px 8px;
+      border-radius: 2px;
+      font-size: 11px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .copy-btn:hover {
+      background: #e61e1e;
+    }
+
+    /* --------------------------------------------------
+       10. BBC COMPREHENSIVE FOOTER
+       -------------------------------------------------- */
+    .bbc-footer {
+      background-color: var(--bbc-black);
+      color: #ffffff;
+      padding: 40px 0 20px 0;
+      border-top: 4px solid var(--bbc-red);
+      font-size: 13px;
+    }
+
+    .footer-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #2a2a2a;
+      padding-bottom: 24px;
+      margin-bottom: 24px;
+    }
+
+    .footer-columns {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1.2fr;
+      gap: 30px;
+      margin-bottom: 30px;
+    }
+
+    .footer-col h5 {
+      font-size: 14px;
+      font-weight: 800;
+      color: #ffffff;
+      margin-bottom: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .footer-links {
+      list-style: none;
+    }
+
+    .footer-links li {
+      margin-bottom: 8px;
+    }
+
+    .footer-links a {
+      color: #a4a4a4;
+    }
+
+    .footer-links a:hover {
+      color: #ffffff;
+      text-decoration: underline;
+    }
+
+    .social-links {
+      display: flex;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .social-btn {
+      background: #222;
+      color: #fff;
+      width: 34px;
+      height: 34px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 2px;
+      font-size: 14px;
+      transition: background 0.2s;
+    }
+
+    .social-btn:hover {
+      background: var(--bbc-red);
+    }
+
+    .footer-bottom {
+      border-top: 1px solid #222;
+      padding-top: 18px;
+      color: #777;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+    }
+
+    /* --------------------------------------------------
+       11. MODALS (ARTICLE READER, VIDEO, SEARCH)
+       -------------------------------------------------- */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.75);
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      backdrop-filter: blur(3px);
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal-dialog {
+      background: #ffffff;
+      width: 100%;
+      max-width: 840px;
+      max-height: 90vh;
+      border-radius: 4px;
+      overflow-y: auto;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      position: relative;
+      animation: modalFadeIn 0.25s ease-out;
+    }
+
+    @keyframes modalFadeIn {
+      from { opacity: 0; transform: translateY(15px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .modal-close-btn {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: #222;
+      color: #fff;
+      border: none;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+    }
+
+    .modal-close-btn:hover {
+      background: var(--bbc-red);
+    }
+
+    /* Article Reader Inside */
+    .article-header-meta {
+      padding: 30px 36px 14px 36px;
+    }
+
+    .article-modal-title {
+      font-family: var(--font-serif);
+      font-size: 30px;
+      font-weight: 800;
+      line-height: 1.25;
+      margin-top: 8px;
+      margin-bottom: 12px;
+    }
+
+    .article-byline {
+      font-size: 13px;
+      color: #666;
+      border-bottom: 1px solid var(--bbc-border);
+      padding-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .article-modal-img {
+      width: 100%;
+      max-height: 420px;
+      object-fit: cover;
+    }
+
+    .article-modal-body {
+      padding: 24px 36px 36px 36px;
+      font-family: var(--font-serif);
+      font-size: 17px;
+      line-height: 1.7;
+      color: #2b2b2b;
+    }
+
+    .article-modal-body p {
+      margin-bottom: 16px;
+    }
+
+    /* Video Player Modal Inside */
+    .video-modal-dialog {
+      background: #11141a;
+      color: #ffffff;
+      max-width: 900px;
+    }
+
+    .mock-player-container {
+      position: relative;
+      aspect-ratio: 16 / 9;
+      background: #000;
+    }
+
+    .mock-player-container img {
+      width: 100%;
+      height: 100%;
+      opacity: 0.8;
+    }
+
+    .player-controls-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(transparent, rgba(0,0,0,0.9));
+      padding: 12px 18px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-size: 13px;
+    }
+
+    .video-info-box {
+      padding: 24px 30px;
+    }
+
+    /* Search Modal Inside */
+    .search-modal-dialog {
+      max-width: 600px;
+      padding: 30px;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 14px 18px;
+      font-size: 18px;
+      border: 2px solid var(--bbc-red);
+      outline: none;
+      border-radius: 2px;
+      font-family: inherit;
+      margin-bottom: 20px;
+    }
+
+    .search-results-list {
+      list-style: none;
+      max-height: 350px;
+      overflow-y: auto;
+    }
+
+    .search-result-item {
+      padding: 10px 0;
+      border-bottom: 1px solid #eee;
+      cursor: pointer;
+    }
+
+    .search-result-item:hover h4 {
+      color: var(--bbc-red);
+    }
+
+    /* Toast Notification */
+    .toast-notice {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #121212;
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: 4px;
+      font-size: 14px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+      border-left: 4px solid var(--bbc-red);
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+      z-index: 2000;
+    }
+
+    .toast-notice.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 1024px) {
+      .hero-news-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+      .sidebar-feed {
+        grid-column: span 2;
+        border-top: 1px solid var(--bbc-border);
+        padding-top: 20px;
+      }
+      .secondary-stack {
+        border-right: none;
+      }
+      .four-col-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+      .video-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+      .split-layout-grid {
+        grid-template-columns: 1fr;
+      }
+      .most-read-box {
+        border-left: none;
+        border-top: 1px solid var(--bbc-border);
+        padding-left: 0;
+        padding-top: 24px;
+      }
+      .footer-columns {
+        grid-template-columns: 1fr 1fr;
+      }
+      .support-banner {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .support-actions {
+        width: 100%;
+      }
+    }
+
+    @media (max-width: 680px) {
+      .hero-news-grid,
+      .four-col-grid,
+      .video-grid,
+      .opinion-grid,
+      .sub-split-grid {
+        grid-template-columns: 1fr;
+      }
+      .secondary-stack {
+        border-left: none;
+        padding: 0;
+      }
+      .site-title {
+        font-size: 26px;
+      }
+      .site-slogan {
+        display: none;
+      }
+      .footer-columns {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ==========================================================================
+       1. BBC TOP GLOBAL NAVIGATION BAR
+       ========================================================================== -->
+  <div class="bbc-top-bar">
+    <div class="container">
+      <div style="display: flex; align-items: center;">
+        <div class="bbc-brand-blocks">
+          <span class="block">S</span>
+          <span class="block">L</span>
+          <span class="block">A</span>
+          <span class="block">V</span>
+          <span class="block">I</span>
+          <span class="block">J</span>
+          <span class="block">A</span>
+        </div>
+        <span class="bbc-brand-name">INFO</span>
+      </div>
+
+      <div class="bbc-top-utilities">
+        <span class="utility-item" title="Vreme u Beogradu">
+          ⛅ Beograd 19°C
+        </span>
+        
+        <!-- Cyrillic / Latin instant script toggle -->
+        <button class="script-toggle-btn" id="scriptToggleBtn" title="Prebaci pismo (Ćirilica / Latinica)">
+          ĆIR / LAT
+        </button>
+
+        <button class="utility-item" id="openSavedBtn" title="Sačuvane vesti">
+          📑 <span data-translate>Sačuvano</span> <span class="saved-badge" id="savedCount">0</span>
+        </button>
+
+        <button class="utility-item" id="openSearchBtn" title="Pretraži portal">
+          🔍 <span data-translate>Pretraga</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       2. BBC RED HEADER & TOPIC NAVIGATION
+       ========================================================================== -->
+  <header class="bbc-header-red">
+    <div class="container">
+      <div class="site-title-area">
+        <h1 class="site-title">SLAVIJA INFO</h1>
+        <span class="site-slogan" data-translate>Misli slobodno • Istina pre svih</span>
+      </div>
+      <div style="font-size: 13px; font-weight: 600; text-align: right; opacity: 0.9;">
+        <span id="currentDateStr">26. Septembar 2026.</span><br>
+        <small data-translate>Nezavisni medijski portal i TV produkcija</small>
+      </div>
+    </div>
+  </header>
+
+  <!-- Sticky BBC Navigation strip -->
+  <nav class="bbc-category-nav">
+    <div class="container">
+      <ul id="mainNav">
+        <li class="active"><a href="#" data-filter="all" data-translate>Početna</a></li>
+        <li><a href="#" data-filter="politika" data-translate>Politika</a></li>
+        <li><a href="#" data-filter="drustvo" data-translate>Društvo</a></li>
+        <li><a href="#" data-filter="hronika" data-translate>Hronika</a></li>
+        <li><a href="#" data-filter="video" data-translate>Slavija TV</a></li>
+        <li><a href="#" data-filter="intervjui" data-translate>Intervjui</a></li>
+        <li><a href="#" data-filter="kolumne" data-translate>Kolumne</a></li>
+        <li><a href="#" data-filter="ekonomija" data-translate>Ekonomija</a></li>
+        <li><a href="#" data-filter="svet" data-translate>Svet & Region</a></li>
+        <li><a href="#donacije" style="color: #ffe600;" data-translate>Podrži Slavija Info</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Secondary topic breadcrumb -->
+  <div class="bbc-sub-topics">
+    <div class="container">
+      <ul>
+        <li><strong style="color: #000;" data-translate>Fokus:</strong></li>
+        <li><a href="#" data-translate>Izbori u Srbiji</a></li>
+        <li><a href="#" data-translate>Pravosuđe i BIA</a></li>
+        <li><a href="#" data-translate>Vojni sindikat</a></li>
+        <li><a href="#" data-translate>Sloboda medija</a></li>
+        <li><a href="#" data-translate>Afera Litijum</a></li>
+        <li><a href="#" data-translate>EXPO i javne nabavke</a></li>
+        <li><a href="#" data-translate>Intervju nedelje</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <main class="container" style="margin-top: 20px;">
+
+    <!-- ==========================================================================
+         3. BBC BREAKING / LIVE TICKER
+         ========================================================================== -->
+    <section class="breaking-ticker">
+      <div class="container">
+        <span class="live-badge" data-translate>Uživo</span>
+        <div class="breaking-headline" data-translate>
+          Opozicija i nezavisni pravni timovi objavili nacrt protokola za sprečavanje zloupotreba i inženjeringa na biračkim mestima
+        </div>
+        <a href="javascript:void(0)" class="breaking-link" onclick="openArticleModal(1)" data-translate>Pratite dešavanja &rarr;</a>
+      </div>
+    </section>
+
+    <!-- ==========================================================================
+         4. BBC 3-ZONE HERO TOP STORIES GRID
+         ========================================================================== -->
+    <section class="hero-news-grid">
+      <!-- Zone 1: Main Lead Story (Left, Wide) -->
+      <article class="lead-story">
+        <div class="lead-image-wrap" onclick="openArticleModal(1)">
+          <img src="https://images.unsplash.com/photo-1541872703-74c5e44368f9?auto=format&fit=crop&w=1200&q=80" alt="Skupština i politika">
+        </div>
+        <span class="tag" data-translate>Politika &bull; Izbori</span>
+        <h2 class="lead-title" onclick="openArticleModal(1)" data-translate>
+          Vučićev režim u strahu od debakla: Opozicioni front priprema do sada najrigorozniju kontrolu birališta
+        </h2>
+        <p class="lead-summary" data-translate>
+          Predsednik NDSS dr Miloš Jovanović i opozicioni lideri ističu da vlast sprema izborni inženjering i pritiske. Formira se mreža od preko 12.000 obučenih čuvara kutija koji će braniti svaki glas građana.
+        </p>
+        <div class="meta-time">
+          <span data-translate>pre 22 minuta &bull; Redakcija Slavija Info</span>
+          <button class="bookmark-btn" onclick="saveStory(1, 'Vučićev režim u strahu od debakla')">
+            💾 <span data-translate>Sačuvaj</span>
+          </button>
+        </div>
+
+        <ul class="related-links">
+          <li>
+            <a href="javascript:void(0)" onclick="openArticleModal(2)" data-translate>Stefan Janjić: Predlog novog zakona pokušava da stavi društvene mreže i kritiku vlasti pod strogu cenzuru</a>
+          </li>
+          <li>
+            <a href="javascript:void(0)" onclick="openArticleModal(3)" data-translate>Miroslav Parović: Zašto je vladajućoj koaliciji predstojeća izborna noć ključna borba za goli opstanak</a>
+          </li>
+        </ul>
+      </article>
+
+      <!-- Zone 2: Middle Stacked Column (2 cards) -->
+      <div class="secondary-stack">
+        <article class="stacked-card">
+          <div class="stacked-thumb" onclick="openArticleModal(4)">
+            <img src="https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=800&q=80" alt="Pravosuđe">
+          </div>
+          <span class="tag" data-translate>Hronika &bull; Mediji</span>
+          <h3 class="stacked-title" onclick="openArticleModal(4)" data-translate>
+            Pravni tim urednika Slavija info Ljubomira Stefanovića podnosi novu krivičnu prijavu protiv agenata BIA
+          </h3>
+          <p style="font-size: 13px; color: #555; margin-bottom: 6px;" data-translate>
+            Nakon potvrde stručnjaka o neovlašćenom instaliranju špijunskog softvera na telefon, tužilaštvu upućeni nepobitni dokazi o progonu nezavisnih novinara.
+          </p>
+          <div class="meta-time">
+            <span data-translate>pre 48 minuta</span> &bull; 
+            <button class="bookmark-btn" onclick="saveStory(4, 'Pravni tim podnosi krivične prijave')">💾</button>
+          </div>
+        </article>
+
+        <article class="stacked-card" style="border-top: 1px solid var(--bbc-border); padding-top: 16px;">
+          <div class="stacked-thumb" onclick="openArticleModal(5)">
+            <img src="https://images.unsplash.com/photo-1505373877841-8d25f7d46678?auto=format&fit=crop&w=800&q=80" alt="Tužilaštvo">
+          </div>
+          <span class="tag" data-translate>Pravosuđe</span>
+          <h3 class="stacked-title" onclick="openArticleModal(5)" data-translate>
+            Jasmina Paunović: Tužilaštvo mora bez odlaganja da ispita svedočenja o ucenama i korupciji u vrhu vlasti
+          </h3>
+          <p style="font-size: 13px; color: #555; margin-bottom: 6px;" data-translate>
+            Bivša tužiteljka razotkriva načine na koje se predmeti od najvišeg javnog značaja sklanjaju u fioke.
+          </p>
+          <div class="meta-time">
+            <span data-translate>pre 1 sat</span> &bull; 
+            <button class="bookmark-btn" onclick="saveStory(5, 'Jasmina Paunović o tužilaštvu')">💾</button>
+          </div>
+        </article>
+      </div>
+
+      <!-- Zone 3: Right Sidebar (Najnovije Vesti / BBC Feed) -->
+      <aside class="sidebar-feed">
+        <div class="sidebar-header">
+          <span data-translate>Najnovije Vesti</span>
+          <span style="font-size: 11px; color: var(--bbc-red); font-weight: 800;">● AŽURIRANO</span>
+        </div>
+        <ul class="feed-list">
+          <li class="feed-item">
+            <span class="tag" style="margin-bottom: 2px;" data-translate>Društvo</span>
+            <h4 class="feed-title" onclick="openArticleModal(6)" data-translate>
+              Novica Antić: Progon uzbunjivača u vojsci i policiji pokazuje da partijski poslušnici štite kriminal
+            </h4>
+            <div class="meta-time" data-translate>pre 34 min</div>
+          </li>
+          <li class="feed-item">
+            <span class="tag" style="margin-bottom: 2px;" data-translate>Ekonomija</span>
+            <h4 class="feed-title" onclick="openArticleModal(7)" data-translate>
+              Poljoprivrednici u Vojvodini najavljuju novu rundu traktorskih blokada: Subvencije kasne mesecima
+            </h4>
+            <div class="meta-time" data-translate>pre 1 sat</div>
+          </li>
+          <li class="feed-item">
+            <span class="tag" style="margin-bottom: 2px;" data-translate>Svet & Region</span>
+            <h4 class="feed-title" onclick="openArticleModal(8)" data-translate>
+              Zoran Božinovski: Mreža političkih ucena i tajnih bankarskih računa od Beograda do Skoplja
+            </h4>
+            <div class="meta-time" data-translate>pre 2 sata</div>
+          </li>
+          <li class="feed-item">
+            <span class="tag" style="margin-bottom: 2px;" data-translate>Analiza</span>
+            <h4 class="feed-title" onclick="openArticleModal(9)" data-translate>
+              Cvijetin Milivojević: Sistem u Srbiji se kreće iz mekog totalitarizma u potpunu autokratiju
+            </h4>
+            <div class="meta-time" data-translate>pre 3 sata</div>
+          </li>
+          <li class="feed-item">
+            <span class="tag" style="margin-bottom: 2px;" data-translate>Prava</span>
+            <h4 class="feed-title" onclick="openArticleModal(10)" data-translate>
+              Romska partija podnela tužbe protiv režimskih propagandista zbog govora mržnje i širenja neistina
+            </h4>
+            <div class="meta-time" data-translate>pre 4 sata</div>
+          </li>
+        </ul>
+      </aside>
+    </section>
+  </main>
+
+  <!-- ==========================================================================
+       5. BBC WATCH / SLAVIJA TV & INTERVJU STRIP (DARK THEME)
+       ========================================================================== -->
+  <section class="bbc-video-strip" id="slavija-tv">
+    <div class="container">
+      <div class="video-strip-header">
+        <div class="video-section-title">
+          <span class="video-play-badge">▶</span>
+          <span data-translate>Slavija TV &bull; Emisije i Intervjui</span>
+        </div>
+        <div style="font-size: 13px; color: #a5b4c9;">
+          <span data-translate>Kanal prati više od 140.000 pretplatnika</span>
+        </div>
+      </div>
+
+      <div class="video-grid">
+        <!-- Video 1 -->
+        <div class="video-card" onclick="openVideoModal('Miloš Jovanović', 'Vučić je gotov! Ovo je dobitna kombinacija!', '1:38:14', '16.9.2026', '145K')">
+          <div class="video-thumb-wrap">
+            <img src="https://images.unsplash.com/photo-1590602847861-f357a9332bbc?auto=format&fit=crop&w=700&q=80" alt="Miloš Jovanović Intervju">
+            <div class="video-play-overlay">▶</div>
+            <span class="duration-pill">⏱ 1:38:14</span>
+          </div>
+          <h4 class="video-title" data-translate>INTERVJU: Miloš Jovanović — Vučić je gotov! Ovo je dobitna kombinacija za promene</h4>
+          <div class="video-guest" data-translate>Gost: Dr Miloš Jovanović, predsednik NDSS</div>
+          <div class="video-meta" data-translate>145.200 pregleda &bull; Voditelj: Ljubomir Stefanović</div>
+        </div>
+
+        <!-- Video 2 -->
+        <div class="video-card" onclick="openVideoModal('Jasmina Paunović', 'Obraćenja svedoka treba tužilaštvo da ispita!', '1:12:05', '19.6.2026', '98K')">
+          <div class="video-thumb-wrap">
+            <img src="https://images.unsplash.com/photo-1505373877841-8d25f7d46678?auto=format&fit=crop&w=700&q=80" alt="Jasmina Paunović">
+            <div class="video-play-overlay">▶</div>
+            <span class="duration-pill">⏱ 1:12:05</span>
+          </div>
+          <h4 class="video-title" data-translate>INTERVJU: Jasmina Paunović — Kako vrh tužilaštva zataškava korupciju u javnim preduzećima</h4>
+          <div class="video-guest" data-translate>Gošća: Jasmina Paunović, bivši tužilac VJT</div>
+          <div class="video-meta" data-translate>98.400 pregleda &bull; Slavija Info Produkcija</div>
+        </div>
+
+        <!-- Video 3 -->
+        <div class="video-card" onclick="openVideoModal('Predrag Popović', 'Prelistavanje: Stiglo pismo iz inostranstva!', '54:30', '14.9.2026', '118K')">
+          <div class="video-thumb-wrap">
+            <img src="https://images.unsplash.com/photo-1495020689067-958852a7765e?auto=format&fit=crop&w=700&q=80" alt="Predrag Popović">
+            <div class="video-play-overlay">▶</div>
+            <span class="duration-pill">⏱ 54:30</span>
+          </div>
+          <h4 class="video-title" data-translate>PRELISTAVANJE: Predrag Popović — Haos u vladajućem kartelu i tajni računi na Kipru</h4>
+          <div class="video-guest" data-translate>Gost: Predrag Popović, novinar i publicista</div>
+          <div class="video-meta" data-translate>118.000 pregleda &bull; Slavija Info Studio</div>
+        </div>
+
+        <!-- Video 4 -->
+        <div class="video-card" onclick="openVideoModal('Miroslav Parović', 'Vučiću je predstojeća izborna noć ključna!', '1:04:42', '31.7.2026', '87K')">
+          <div class="video-thumb-wrap">
+            <img src="https://images.unsplash.com/photo-1543269865-cbf427effbad?auto=format&fit=crop&w=700&q=80" alt="Miroslav Parović">
+            <div class="video-play-overlay">▶</div>
+            <span class="duration-pill">⏱ 1:04:42</span>
+          </div>
+          <h4 class="video-title" data-translate>INTERVJU: Miroslav Parović — Energetski krah, EXPO mahinacije i rasprodaja resursa</h4>
+          <div class="video-guest" data-translate>Gost: Dr inž. Miroslav Parović</div>
+          <div class="video-meta" data-translate>87.100 pregleda &bull; Slavija Info TV</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <main class="container">
+    <!-- ==========================================================================
+         6. BBC 4-COLUMN TOPIC GRID (POLITIKA I DRUŠTVO)
+         ========================================================================== -->
+    <div class="section-title-wrap">
+      <h3 class="section-title-text" data-translate>Srbija: Politika i Društvo</h3>
+      <a href="#" style="font-size: 13px; font-weight: 700; color: var(--bbc-red);" data-translate>Sve vesti iz rubrike &rarr;</a>
+    </div>
+
+    <div class="four-col-grid">
+      <article class="grid-card">
+        <div class="grid-thumb" onclick="openArticleModal(6)">
+          <img src="https://images.unsplash.com/photo-1572949645841-094f3a9c4c94?auto=format&fit=crop&w=600&q=80" alt="Protesti">
+        </div>
+        <span class="tag" data-translate>Sloboda govora</span>
+        <h4 class="grid-title" onclick="openArticleModal(6)" data-translate>
+          Studenti i profesori u odbrani autonomije fakulteta: Pritisci i pretnje nas neće ućutkati
+        </h4>
+        <p class="grid-excerpt" data-translate>
+          Nakon incidenata i napada na profesore, akademska zajednica u Beogradu i Novom Sadu potpisala proglas o nepokoravanju.
+        </p>
+        <div class="meta-time" data-translate>pre 2 sata</div>
+      </article>
+
+      <article class="grid-card">
+        <div class="grid-thumb" onclick="openArticleModal(2)">
+          <img src="https://images.unsplash.com/photo-1505373877841-8d25f7d46678?auto=format&fit=crop&w=600&q=80" alt="Zakonodavstvo">
+        </div>
+        <span class="tag" data-translate>Pravo</span>
+        <h4 class="grid-title" onclick="openArticleModal(2)" data-translate>
+          Advokat Stefan Janjić: Zašto vlast po hitnom postupku nameće zakone o nadzoru interneta
+        </h4>
+        <p class="grid-excerpt" data-translate>
+          Pravna analiza novih odredaba koje policiji omogućavaju gonjenje građana za kritičke komentare i analize.
+        </p>
+        <div class="meta-time" data-translate>pre 3 sata</div>
+      </article>
+
+      <article class="grid-card">
+        <div class="grid-thumb" onclick="openArticleModal(7)">
+          <img src="https://images.unsplash.com/photo-1500937386664-56d1dfef3854?auto=format&fit=crop&w=600&q=80" alt="Poljoprivreda">
+        </div>
+        <span class="tag" data-translate>Ekonomija</span>
+        <h4 class="grid-title" onclick="openArticleModal(7)" data-translate>
+          Uvozni lobi i damping cena: Kako se sistematski uništava domaći poljoprivrednik u Srbiji
+        </h4>
+        <p class="grid-excerpt" data-translate>
+          Predstavnici udruženja poljoprivrednika izneli podatke o uvezenom mesu sumnjivog kvaliteta dok domaći stočni fond nestaje.
+        </p>
+        <div class="meta-time" data-translate>pre 4 sata</div>
+      </article>
+
+      <article class="grid-card">
+        <div class="grid-thumb" onclick="openArticleModal(11)">
+          <img src="https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=600&q=80" alt="Javne finansije">
+        </div>
+        <span class="tag" data-translate>Istraživanje</span>
+        <h4 class="grid-title" onclick="openArticleModal(11)" data-translate>
+          Milijarde za projekte bez tendera: Analiza ekonomista o zaduživanju koje će otplaćivati generacije
+        </h4>
+        <p class="grid-excerpt" data-translate>
+          Dok bolnice kubure sa lekovima, stotine miliona evra iz budžeta prelivaju se u privatne džepove kroz 'specijalne zakone'.
+        </p>
+        <div class="meta-time" data-translate>pre 5 sati</div>
+      </article>
+    </div>
+
+    <!-- ==========================================================================
+         7. SPLIT ZONE: DUBINSKA ISTRAŽIVANJA & BBC MOST READ (1-5)
+         ========================================================================== -->
+    <div class="split-layout-grid">
+      <div>
+        <div class="section-title-wrap">
+          <h3 class="section-title-text" data-translate>Slavija Istražuje &bull; Hronika i Pravosuđe</h3>
+        </div>
+
+        <div class="sub-split-grid">
+          <article class="grid-card">
+            <div class="grid-thumb" onclick="openArticleModal(4)">
+              <img src="https://images.unsplash.com/photo-1543269865-cbf427effbad?auto=format&fit=crop&w=800&q=80" alt="BIA i mediji">
+            </div>
+            <span class="tag" data-translate>Ekskluzivno</span>
+            <h4 class="grid-title" onclick="openArticleModal(4)" data-translate>
+              Dokumenti otkrivaju: Kako tajne službe prave dosijee protiv urednika nezavisnih Youtube medija
+            </h4>
+            <p class="grid-excerpt" data-translate>
+              Iskaz Ljubomira Stefanovića i svedočenja advokata o metodama zastrašivanja, praćenju vozila i špijunaži telefona.
+            </p>
+            <div class="meta-time" data-translate>pre 1 dan &bull; Autor: Redakcija</div>
+          </article>
+
+          <article class="grid-card">
+            <div class="grid-thumb" onclick="openArticleModal(12)">
+              <img src="https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=800&q=80" alt="Sudstvo">
+            </div>
+            <span class="tag" data-translate>Korupcija</span>
+            <h4 class="grid-title" onclick="openArticleModal(12)" data-translate>
+              Slučaj rekonstrukcije i nadstrešnice: Zašto se kriju imena podizvođača i građevinski ugovori
+            </h4>
+            <p class="grid-excerpt" data-translate>
+              Advokati i inženjeri traže uvid u kompletnu dokumentaciju o poslovima preduzeća povezanih sa vrhom vladajuće partije.
+            </p>
+            <div class="meta-time" data-translate>pre 2 dana &bull; Istraživački tim</div>
+          </article>
+        </div>
+      </div>
+
+      <!-- BBC Ranked 1-5 Most Read -->
+      <aside class="most-read-box">
+        <div class="section-title-wrap" style="border-bottom-color: var(--bbc-red);">
+          <h3 class="section-title-text" data-translate>Najčitanije</h3>
+        </div>
+
+        <ul class="most-read-list">
+          <li class="most-read-item">
+            <span class="rank-number">1</span>
+            <div class="rank-content">
+              <span class="tag" style="margin-bottom: 2px;" data-translate>Intervju</span>
+              <h4 onclick="openArticleModal(1)" data-translate>
+                Miloš Jovanović: Narod neće trpeti izbornu krađu, režim srlja u sopstvenu propast
+              </h4>
+            </div>
+          </li>
+          <li class="most-read-item">
+            <span class="rank-number">2</span>
+            <div class="rank-content">
+              <span class="tag" style="margin-bottom: 2px;" data-translate>Ekskluzivno</span>
+              <h4 onclick="openArticleModal(4)" data-translate>
+                Urednik Slavija info: 'Mene su kidnapovali na ulici, ali neću odustati od istine'
+              </h4>
+            </div>
+          </li>
+          <li class="most-read-item">
+            <span class="rank-number">3</span>
+            <div class="rank-content">
+              <span class="tag" style="margin-bottom: 2px;" data-translate>Pravosuđe</span>
+              <h4 onclick="openArticleModal(5)" data-translate>
+                Jasmina Paunović: Tužiteljka otkrila kako se obaraju optužnice protiv kartela
+              </h4>
+            </div>
+          </li>
+          <li class="most-read-item">
+            <span class="rank-number">4</span>
+            <div class="rank-content">
+              <span class="tag" style="margin-bottom: 2px;" data-translate>Vojni sindikat</span>
+              <h4 onclick="openArticleModal(6)" data-translate>
+                Novica Antić izneo šokantne podatke o vojnim nabavkama i pritiscima na oficire
+              </h4>
+            </div>
+          </li>
+          <li class="most-read-item">
+            <span class="rank-number">5</span>
+            <div class="rank-content">
+              <span class="tag" style="margin-bottom: 2px;" data-translate>Prelistavanje</span>
+              <h4 onclick="openArticleModal(3)" data-translate>
+                Predrag Popović: Vučićev sistem puca po šavovima, unutrašnji sukobi više se ne mogu sakriti
+              </h4>
+            </div>
+          </li>
+        </ul>
+      </aside>
+    </div>
+
+    <!-- ==========================================================================
+         8. BBC OPINION / KOLUMNE (BBC VOICES STYLE)
+         ========================================================================== -->
+    <section class="opinion-section">
+      <div class="container">
+        <div class="section-title-wrap">
+          <h3 class="section-title-text" data-translate>Kolumne &bull; Stav i Analize</h3>
+          <span style="font-size: 13px; color: var(--bbc-text-muted);" data-translate>Autorski tekstovi i slobodna misao</span>
+        </div>
+
+        <div class="opinion-grid">
+          <div class="opinion-card">
+            <div>
+              <div class="author-bio">
+                <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80" alt="Ljubomir Stefanović" class="author-avatar">
+                <div>
+                  <div class="author-name" data-translate>Ljubomir Stefanović</div>
+                  <div class="author-role" data-translate>Glavni i odgovorni urednik Slavija info</div>
+                </div>
+              </div>
+              <p class="opinion-quote" onclick="openArticleModal(13)" data-translate>
+                "Kada vlast počne da hapsi i uhodi novinare zbog reči i objava, to nije znak njihove snage, već panike onih koji znaju da je vreme laži isteklo."
+              </p>
+            </div>
+            <div class="meta-time" data-translate>Pročitaj celu kolumnu &rarr;</div>
+          </div>
+
+          <div class="opinion-card">
+            <div>
+              <div class="author-bio">
+                <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80" alt="Profesor Dejan Mirović" class="author-avatar">
+                <div>
+                  <div class="author-name" data-translate>Prof. dr Dejan Mirović</div>
+                  <div class="author-role" data-translate>Profesor međunarodnog prava</div>
+                </div>
+              </div>
+              <p class="opinion-quote" onclick="openArticleModal(14)" data-translate>
+                "Pokušaj da se kroz montirane sudske procese ućutkaju profesori univerziteta predstavlja slom pravnog poretka. Sudovi moraju biti brana bezakonju."
+              </p>
+            </div>
+            <div class="meta-time" data-translate>Pročitaj celu kolumnu &rarr;</div>
+          </div>
+
+          <div class="opinion-card">
+            <div>
+              <div class="author-bio">
+                <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&q=80" alt="Advokat Čedomir Stojković" class="author-avatar">
+                <div>
+                  <div class="author-name" data-translate>Čedomir Stojković</div>
+                  <div class="author-role" data-translate>Advokat i borac za ljudska prava</div>
+                </div>
+              </div>
+              <p class="opinion-quote" onclick="openArticleModal(15)" data-translate>
+                "Ustav Srbije nije ukras na polici. Prava građana ne dodeljuje predsednik države, ona se brane svakodnevnom građanskom neposlušnošću."
+              </p>
+            </div>
+            <div class="meta-time" data-translate>Pročitaj celu kolumnu &rarr;</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================================================
+         9. DONATION & CROWDFUNDING BANNER (SLAVIJA INFO SUPPORT)
+         ========================================================================== -->
+    <section class="support-banner" id="donacije">
+      <div class="support-text">
+        <h3 data-translate>Podržite nezavisni rad redakcije Slavija Info</h3>
+        <p data-translate>
+          Slavija Info ne prima novac iz režimskog budžeta niti od tajkuna. Naš jedini finansijer ste vi — slobodni građani Srbije. Pomozite nam da nastavimo sa istraživačkim emisijama, raskrinkavanjem korupcije i odbranom slobodne reči.
+        </p>
+      </div>
+
+      <div class="support-actions">
+        <div class="donation-pill-box">
+          <span><strong>Dinarski račun:</strong> 205-9001011440036-38</span>
+          <button class="copy-btn" onclick="copyToClipboard('205-9001011440036-38')">Kopiraj</button>
+        </div>
+        <div class="donation-pill-box">
+          <span><strong>PayPal:</strong> slavijainfors@gmail.com</span>
+          <button class="copy-btn" onclick="copyToClipboard('slavijainfors@gmail.com')">Kopiraj</button>
+        </div>
+        <div style="font-size: 11px; text-align: center; color: #9ab4d6;" data-translate>
+          Pridružite se i YouTube članstvu kluba Slavija info
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ==========================================================================
+       10. BBC COMPREHENSIVE FOOTER
+       ========================================================================== -->
+  <footer class="bbc-footer">
+    <div class="container">
+      <div class="footer-top">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div class="bbc-brand-blocks">
+            <span class="block">S</span>
+            <span class="block">L</span>
+            <span class="block">A</span>
+            <span class="block">V</span>
+            <span class="block">I</span>
+            <span class="block">J</span>
+            <span class="block">A</span>
+          </div>
+          <span style="font-weight: 800; font-size: 16px; margin-left: 6px;">INFO</span>
+        </div>
+
+        <div style="font-size: 12px; color: #a0a0a0;">
+          <span data-translate>Misli slobodno, gledaj SLAVIJA INFO!</span>
+        </div>
+      </div>
+
+      <div class="footer-columns">
+        <div class="footer-col">
+          <h5 data-translate>O Slavija Info</h5>
+          <p style="color: #999; line-height: 1.6; font-size: 13px;" data-translate>
+            Slavija info je nezavisni multimedijalni portal posvećen objektivnom informisanju, istraživačkom novinarstvu i promociji slobode izražavanja. Kroz naše emisije i intervjue donosimo stavove bez cenzure i straha.
+          </p>
+          <div class="social-links">
+            <a href="https://www.youtube.com/@SLAVIJAINFO" target="_blank" class="social-btn" title="YouTube">▶</a>
+            <a href="https://twitter.com/SlavijaI" target="_blank" class="social-btn" title="Twitter / X">𝕏</a>
+            <a href="https://www.facebook.com/SlavijaTV/" target="_blank" class="social-btn" title="Facebook">f</a>
+            <a href="https://www.instagram.com/slavijainfo/" target="_blank" class="social-btn" title="Instagram">📸</a>
+            <a href="https://www.tiktok.com/@slavijainfo" target="_blank" class="social-btn" title="TikTok">♪</a>
+          </div>
+        </div>
+
+        <div class="footer-col">
+          <h5 data-translate>Rubrike</h5>
+          <ul class="footer-links">
+            <li><a href="#" data-translate>Početna strana</a></li>
+            <li><a href="#" data-translate>Politika i izbori</a></li>
+            <li><a href="#" data-translate>Društvo i sindikati</a></li>
+            <li><a href="#" data-translate>Hronika i suđenja</a></li>
+            <li><a href="#" data-translate>Geopolitika i region</a></li>
+            <li><a href="#" data-translate>Ekonomija i javne nabavke</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h5 data-translate>TV Emisije</h5>
+          <ul class="footer-links">
+            <li><a href="#slavija-tv" data-translate>Intervju Slavija info</a></li>
+            <li><a href="#slavija-tv" data-translate>Slavija Specijal</a></li>
+            <li><a href="#slavija-tv" data-translate>Prelistavanje štampe</a></li>
+            <li><a href="#slavija-tv" data-translate>Komentari nedelje</a></li>
+            <li><a href="#slavija-tv" data-translate>Arhiva gostovanja</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h5 data-translate>Kontakt & Podrška</h5>
+          <ul class="footer-links">
+            <li><span style="color:#aaa;">Email:</span> slavijainfors@gmail.com</li>
+            <li><span style="color:#aaa;">Urednik:</span> Ljubomir Stefanović</li>
+            <li><a href="#donacije" data-translate>Dinarske donacije</a></li>
+            <li><a href="#donacije" data-translate>PayPal uplate</a></li>
+            <li><a href="#" data-translate>Pravila korišćenja</a></li>
+            <li><a href="#" data-translate>Politika privatnosti</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <div>
+          &copy; 2026 Slavija Info. Sva prava zadržana. Prototip kreiran u BBC News modularnom stilu.
+        </div>
+        <div>
+          <span>Slavija Info TV &bull; Beograd, Srbija</span>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ==========================================================================
+       MODAL 1: FULL ARTICLE READER MODAL
+       ========================================================================== -->
+  <div class="modal-overlay" id="articleModal">
+    <div class="modal-dialog">
+      <button class="modal-close-btn" onclick="closeArticleModal()">&times;</button>
+      <div class="article-header-meta">
+        <span class="tag" id="modalTag">POLITIKA</span>
+        <h2 class="article-modal-title" id="modalTitle">Naslov teksta</h2>
+        <div class="article-byline">
+          <span id="modalMeta">26. Septembar 2026. &bull; Slavija Info Redakcija</span>
+          <span style="cursor: pointer;" onclick="alert('Link je kopiran!')">🔗 Deli vest</span>
+        </div>
+      </div>
+      <img id="modalImage" class="article-modal-img" src="" alt="Vest slika">
+      <div class="article-modal-body" id="modalBody">
+        <!-- Body injected dynamically -->
+      </div>
+      <div style="background: #fbfbfb; padding: 20px 36px; border-top: 1px solid #eee;">
+        <h4 style="font-size: 15px; font-weight: 800; margin-bottom: 12px;" data-translate>Komentari čitalaca (4)</h4>
+        <div style="margin-bottom: 10px; font-size: 13px;">
+          <strong>Dejan M.:</strong> "Svaka čast Slavija info, jedini medij gde se može čuti neposredna istina bez cenzure!"
+        </div>
+        <div style="margin-bottom: 10px; font-size: 13px;">
+          <strong>Milica S.:</strong> "Podrška gospodinu Stefanoviću, samo nastavite da raskrinkavate kriminal."
+        </div>
+        <input type="text" placeholder="Napišite vaš komentar..." style="width: 100%; padding: 8px 12px; font-size: 13px; border: 1px solid #ccc; border-radius: 2px;">
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 2: VIDEO INTERVIEW PLAYER MODAL
+       ========================================================================== -->
+  <div class="modal-overlay" id="videoModal">
+    <div class="modal-dialog video-modal-dialog">
+      <button class="modal-close-btn" onclick="closeVideoModal()">&times;</button>
+      <div class="mock-player-container">
+        <img src="https://images.unsplash.com/photo-1590602847861-f357a9332bbc?auto=format&fit=crop&w=1000&q=80" alt="Video">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center;">
+          <div style="width: 64px; height: 64px; background: var(--bbc-red); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; margin: 0 auto 12px auto; box-shadow: 0 4px 15px rgba(0,0,0,0.6); cursor: pointer;" onclick="alert('Pokretanje simulacije video strima...')">▶</div>
+          <span style="font-weight: 800; background: rgba(0,0,0,0.7); padding: 4px 10px; border-radius: 4px;" data-translate>SLAVIJA INFO TV EMISIJA</span>
+        </div>
+        <div class="player-controls-bar">
+          <span>▶ Reprodukcija</span>
+          <div style="flex-grow: 1; height: 4px; background: #555; border-radius: 2px; position: relative;">
+            <div style="width: 35%; height: 100%; background: var(--bbc-red);"></div>
+          </div>
+          <span id="videoDuration">1:38:14</span>
+          <span>🔊 100%</span>
+        </div>
+      </div>
+      <div class="video-info-box">
+        <span class="tag" style="color: #ff4d4d;" data-translate>Ekskluzivni intervju</span>
+        <h3 id="videoModalTitle" style="font-size: 22px; font-weight: 800; margin: 6px 0 10px 0;">Naslov emisije</h3>
+        <p id="videoModalGuest" style="color: #adc0d9; font-size: 14px; margin-bottom: 12px;">Gost emisije</p>
+        <p style="color: #cfd9e8; font-size: 14px; line-height: 1.6;" data-translate>
+          Gost emisije na kanalu Slavija info bez zadrške govori o gorućim političkim problemima, ucenama u pravosuđu, krađi javnih resursa i planovima za predstojeće prelomne događaje u Srbiji.
+        </p>
+        <div style="margin-top: 18px; padding-top: 14px; border-top: 1px solid #242e3e; display: flex; justify-content: space-between; font-size: 13px; color: #889bb4;">
+          <span id="videoModalViews">145K pregleda</span>
+          <span>Urednik i voditelj: Ljubomir Stefanović</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 3: LIVE SEARCH MODAL
+       ========================================================================== -->
+  <div class="modal-overlay" id="searchModal">
+    <div class="modal-dialog search-modal-dialog">
+      <button class="modal-close-btn" onclick="closeSearchModal()">&times;</button>
+      <h3 style="font-size: 20px; font-weight: 800; margin-bottom: 14px;" data-translate>Pretražite Slavija Info</h3>
+      <input type="text" id="searchInput" class="search-input" placeholder="Unesite pojam (npr. Jovanović, BIA, izbori, protest)..." autofocus>
+      <div style="font-size: 12px; font-weight: 700; color: #888; margin-bottom: 8px; text-transform: uppercase;" data-translate>Rezultati pretrage</div>
+      <ul class="search-results-list" id="searchResults">
+        <!-- Results injected via JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification element -->
+  <div class="toast-notice" id="toastNotice">Tekst obaveštenja</div>
+
+  <!-- ==========================================================================
+       JAVASCRIPT LOGIC
+       ========================================================================== -->
+  <script>
+    /* Database of Slavija Info content for prototype reading and filtering */
+    const storiesDB = {
+      1: {
+        tag: "POLITIKA • IZBORI",
+        title: "Vučićev režim u strahu od debakla: Opozicioni front priprema do sada najrigorozniju kontrolu birališta",
+        meta: "26. Septembar 2026. • Slavija Info Redakcija",
+        img: "https://images.unsplash.com/photo-1541872703-74c5e44368f9?auto=format&fit=crop&w=1200&q=80",
+        body: `
+          <p>Predsednik Novog DSS-a dr Miloš Jovanović i drugi lideri opozicije dogovorili su koordinisani nastup i zajedničku kontrolu svih biračkih mesta širom Srbije kako bi sprečili planirani inženjering vladajuće koalicije.</p>
+          <p>U intervjuu za Slavija info, sagovornici su naglasili da vladajući kartel uviđa pad rejtinga u svim većim gradskim centrima, zbog čega pripremaju fiktivne birače i manipulacije biračkim spiskovima. "Ovo nije samo borba partija, ovo je pitanje elementarnog opstanka naroda i prava na slobodan izbor," istaknuto je.</p>
+          <p>Nezavisne posmatračke misije i pravni timovi već su obučili preko 12.000 volontera koji će u izbornoj noći fotografisati i elektronski slati sve zapisnike pre nego što vlast pokuša njihovo prekrajanje.</p>
+        `
+      },
+      2: {
+        tag: "PRAVO • PARLAMENT",
+        title: "Stefan Janjić: Predlog novog zakona pokušava da stavi društvene mreže i kritiku vlasti pod cenzuru",
+        meta: "26. Septembar 2026. • Autor: Stefan Janjić",
+        img: "https://images.unsplash.com/photo-1505373877841-8d25f7d46678?auto=format&fit=crop&w=800&q=80",
+        body: `
+          <p>Advokat i poslanik Stefan Janjić u razgovoru za portal Slavija info upozorio je da najnovije izmene krivičnog zakonodavstva imaju za cilj zastrašivanje građana koji na internetu govore o korupciji.</p>
+          <p>"Režim gubi monopol nad televizijskim frekvencijama jer se građani sve više informišu preko Youtube kanala i društvenih mreža. Ovaj zakon je očajnički potez da se kriminalizuje svaka slobodna misao," naveo je Janjić.</p>
+        `
+      },
+      3: {
+        tag: "POLITIKA • ANALIZA",
+        title: "Miroslav Parović: Zašto je vladajućoj koaliciji predstojeća izborna noć ključna borba za opstanak",
+        meta: "26. Septembar 2026. • Slavija Info Studio",
+        img: "https://images.unsplash.com/photo-1543269865-cbf427effbad?auto=format&fit=crop&w=800&q=80",
+        body: `
+          <p>Dr inženjer Miroslav Parović naglašava da su finansijske obaveze i megalomanski projekti poput EXPO-a doveli javne finansije do tačke pucanja. "Gubitak vlasti u Beogradu ili nekoliko većih gradova značio bi trenutan kolaps finansijskih kanala kojima se održava režimska piramida," tvrdi Parović.</p>
+        `
+      },
+      4: {
+        tag: "HRONIKA • SLOBODA MEDIJA",
+        title: "Pravni tim urednika Slavija info Ljubomira Stefanovića podnosi novu krivičnu prijavu protiv agenata BIA",
+        meta: "26. Septembar 2026. • Hronika",
+        img: "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=800&q=80",
+        body: `
+          <p>Advokatski tim glavnog i odgovornog urednika Slavija info Ljubomira Stefanovića uputio je Tužilaštvu za organizovani kriminal novi set dokaza o nezakonitom presretanju komunikacija i instaliranju špijunskog softvera na mobilne telefone članova redakcije.</p>
+          <p>Forenzičko veštačenje Share Fondacije potvrdilo je postojanje zlonamernog koda koji je ubačen u telefon u trenucima dok je Stefanović bio protivpravno zadržan u policijskoj stanici na Voždovcu. "Ovo je direktan napad na ustavom zagarantovanu tajnost pisama i slobodu novinarskog rada," naveo je advokat Nikola Lakić.</p>
+        `
+      },
+      5: {
+        tag: "PRAVOSUĐE",
+        title: "Jasmina Paunović: Tužilaštvo mora bez odlaganja da ispita svedočenja o ucenama i korupciji",
+        meta: "26. Septembar 2026. • Pravosuđe",
+        img: "https://images.unsplash.com/photo-1505373877841-8d25f7d46678?auto=format&fit=crop&w=800&q=80",
+        body: `
+          <p>Bivša tužiteljka Višeg javnog tužilaštva Jasmina Paunović istakla je u programu Slavija info da pasivnost republičkog javnog tužioca Zagorke Dolovac šalje poruku izvršnoj vlasti da je zakon selektivan.</p>
+          <p>"Kada imate dokumente i svedočenja uzbunjivača koji direktno optužuju visoke funkcionere za nameštanje tendera od stotina miliona evra, posao tužioca nije da čeka nalog politike, već da naloži hapšenje," rekla je Paunović.</p>
+        `
+      },
+      6: {
+        tag: "DRUŠTVO • AKADEMIJA",
+        title: "Studenti i profesori u odbrani autonomije fakulteta: Pritisci i pretnje nas neće ućutkati",
+        meta: "26. Septembar 2026. • Društvo",
+        img: "https://images.unsplash.com/photo-1572949645841-094f3a9c4c94?auto=format&fit=crop&w=600&q=80",
+        body: `
+          <p>Akademski plenumi širom Srbije usvojili su deklaraciju podrške dekanima i profesorima koji su se našli pod režimskom medijskom hajkom zbog odbijanja partijskih diktata.</p>
+        `
+      },
+      7: {
+        tag: "EKONOMIJA • SELO",
+        title: "Uvozni lobi i damping cena: Kako se sistematski uništava domaći poljoprivrednik u Srbiji",
+        meta: "26. Septembar 2026. • Ekonomija",
+        img: "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?auto=format&fit=crop&w=600&q=80",
+        body: `
+          <p>Predstavnici sedam udruženja poljoprivrednika poručili su da će blokirati ključne saobraćajnice ukoliko vlada ne isplati zaostale subvencije po hektaru i ne uvede zaštitne carine na uvoz smrznutog mesa i mleka u prahu.</p>
+        `
+      },
+      11: {
+        tag: "ISTRAŽIVANJE",
+        title: "Milijarde za projekte bez tendera: Analiza ekonomista o zaduživanju koje će otplaćivati generacije",
+        meta: "26. Septembar 2026. • Istraživački desk",
+        img: "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=600&q=80",
+        body: `
+          <p>Ekskluzivna računica pokazuje da je javni dug Srbije u protekloj deceniji više nego udvostručen, dok se najveći infrastrukturni projekti ugovaraju direktnim pogodbama bez nadmetanja.</p>
+        `
+      },
+      12: {
+        tag: "KORUPCIJA",
+        title: "Slučaj rekonstrukcije i nadstrešnice: Zašto se kriju imena podizvođača i građevinski ugovori",
+        meta: "26. Septembar 2026. • Hronika",
+        img: "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=800&q=80",
+        body: `
+          <p>Pravni zastupnici porodica i inženjerske komore traže hitno objavljivanje tajnih aneksa ugovora koji otkrivaju ko je odobrio upotrebu neadekvatnih materijala na železničkim stanicama.</p>
+        `
+      },
+      13: {
+        tag: "KOLUMNA",
+        title: "Ljubomir Stefanović: Reč urednika — Istina pre svih i po svaku cenu",
+        meta: "26. Septembar 2026. • Kolumna",
+        img: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80",
+        body: `
+          <p>Kada smo pre nekoliko godina pokrenuli Slavija info televiziju i portal, znali smo da put istine neće biti posut ružama. Svedočili smo pretnjama, uhođenjima, prisluškivanjima i privođenjima. Ali svaki pritisak je dokaz da radimo pravu stvar za ovu zemlju i ovaj narod.</p>
+        `
+      },
+      14: {
+        tag: "KOLUMNA",
+        title: "Prof. dr Dejan Mirović: Zašto vlast strahuje od argumenata i univerziteta",
+        meta: "26. Septembar 2026. • Kolumna",
+        img: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=800&q=80",
+        body: `
+          <p>Pravo je nauka koja ne trpi tiraniju. Kada režim posegne za tužbama protiv onih koji ukazuju na zloupotrebu međunarodnih sporazuma, to je siguran signal da su ostali bez ijednog pravnog argumenta.</p>
+        `
+      },
+      15: {
+        tag: "KOLUMNA",
+        title: "Čedomir Stojković: Ustav je mrtvo slovo na papiru ako ga ne branimo",
+        meta: "26. Septembar 2026. • Kolumna",
+        img: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=800&q=80",
+        body: `
+          <p>Sloboda se ne osvaja ćutanjem. Svaki građanin koji odbije da učestvuje u prevari, ucenama i manipulacijama jeste stub odbrane ustavnosti Srbije.</p>
+        `
+      }
+    };
+
+    /* Saved bookmarks system */
+    let savedStories = [];
+
+    function saveStory(id, title) {
+      if (!savedStories.includes(id)) {
+        savedStories.push(id);
+        document.getElementById('savedCount').textContent = savedStories.length;
+        showToast(`Sačuvano: "${title.substring(0, 32)}..."`);
+      } else {
+        showToast("Ova vest je već u vašoj listi sačuvanih!");
+      }
+    }
+
+    document.getElementById('openSavedBtn').addEventListener('click', () => {
+      if (savedStories.length === 0) {
+        showToast("Nemate sačuvanih vesti. Kliknite na 'Sačuvaj' uz bilo koji tekst.");
+      } else {
+        alert("Sačuvane vesti ID: " + savedStories.join(", "));
+      }
+    });
+
+    /* Article Modal Handler */
+    function openArticleModal(id) {
+      const data = storiesDB[id] || storiesDB[1];
+      document.getElementById('modalTag').textContent = data.tag;
+      document.getElementById('modalTitle').textContent = data.title;
+      document.getElementById('modalMeta').textContent = data.meta;
+      document.getElementById('modalImage').src = data.img;
+      document.getElementById('modalBody').innerHTML = data.body;
+      document.getElementById('articleModal').classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeArticleModal() {
+      document.getElementById('articleModal').classList.remove('active');
+      document.body.style.overflow = 'auto';
+    }
+
+    /* Video Modal Handler */
+    function openVideoModal(guest, title, duration, date, views) {
+      document.getElementById('videoModalTitle').textContent = "INTERVJU: " + guest + " — " + title;
+      document.getElementById('videoModalGuest').textContent = "Gost: " + guest + " • Datum: " + date;
+      document.getElementById('videoDuration').textContent = duration;
+      document.getElementById('videoModalViews').textContent = views + " pregleda na kanalu Slavija info";
+      document.getElementById('videoModal').classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeVideoModal() {
+      document.getElementById('videoModal').classList.remove('active');
+      document.body.style.overflow = 'auto';
+    }
+
+    /* Search Modal Handler */
+    const searchModal = document.getElementById('searchModal');
+    const searchInput = document.getElementById('searchInput');
+    const searchResults = document.getElementById('searchResults');
+
+    document.getElementById('openSearchBtn').addEventListener('click', () => {
+      searchModal.classList.add('active');
+      searchInput.value = '';
+      renderSearchResults('');
+      setTimeout(() => searchInput.focus(), 100);
+      document.body.style.overflow = 'hidden';
+    });
+
+    function closeSearchModal() {
+      searchModal.classList.remove('active');
+      document.body.style.overflow = 'auto';
+    }
+
+    searchInput.addEventListener('input', (e) => {
+      renderSearchResults(e.target.value.trim().toLowerCase());
+    });
+
+    function renderSearchResults(query) {
+      searchResults.innerHTML = '';
+      const keys = Object.keys(storiesDB);
+      let found = 0;
+
+      for (let k of keys) {
+        const item = storiesDB[k];
+        if (!query || item.title.toLowerCase().includes(query) || item.tag.toLowerCase().includes(query)) {
+          found++;
+          const li = document.createElement('li');
+          li.className = 'search-result-item';
+          li.innerHTML = `
+            <span class="tag" style="margin-bottom:2px;">${item.tag}</span>
+            <h4 style="font-size:14px; font-weight:700;">${item.title}</h4>
+            <div style="font-size:11px; color:#888;">${item.meta}</div>
+          `;
+          li.onclick = () => {
+            closeSearchModal();
+            openArticleModal(k);
+          };
+          searchResults.appendChild(li);
+        }
+      }
+
+      if (found === 0) {
+        searchResults.innerHTML = '<li style="padding:15px 0; color:#888;">Nema pronađenih rezultata za uneti pojam.</li>';
+      }
+    }
+
+    /* Clipboard Copy Utility */
+    function copyToClipboard(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        showToast(`Kopirano u privremenu memoriju: ${text}`);
+      }).catch(() => {
+        showToast(`Broj računa: ${text}`);
+      });
+    }
+
+    /* Toast Notification function */
+    function showToast(message) {
+      const toast = document.getElementById('toastNotice');
+      toast.textContent = message;
+      toast.classList.add('show');
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 3200);
+    }
+
+    /* ==========================================================================
+       SERBIAN LATINICA <-> ĆIRILICA TRANSLITERATOR
+       ========================================================================== */
+    let currentScript = 'lat'; // 'lat' or 'cyr'
+
+    const latToCyrMap = {
+      'dž': 'џ', 'Dž': 'Џ', 'DŽ': 'Џ',
+      'lj': 'љ', 'Lj': 'Љ', 'LJ': 'Љ',
+      'nj': 'њ', 'Nj': 'Њ', 'NJ': 'Њ',
+      'a': 'а', 'b': 'б', 'v': 'в', 'g': 'г', 'd': 'д', 'đ': 'ђ', 'e': 'е',
+      'ž': 'ж', 'z': 'з', 'i': 'и', 'j': 'ј', 'k': 'к', 'l': 'л', 'm': 'м',
+      'n': 'н', 'o': 'о', 'p': 'п', 'r': 'р', 's': 'с', 't': 'т', 'ć': 'ћ',
+      'u': 'у', 'f': 'ф', 'h': 'х', 'c': 'ц', 'č': 'ч', 'š': 'ш',
+      'A': 'А', 'B': 'Б', 'V': 'В', 'G': 'Г', 'D': 'Д', 'Đ': 'Ђ', 'E': 'Е',
+      'Ž': 'Ж', 'Z': 'З', 'I': 'И', 'J': 'Ј', 'K': 'К', 'L': 'Л', 'M': 'М',
+      'N': 'Н', 'O': 'О', 'P': 'П', 'R': 'Р', 'S': 'С', 'T': 'Т', 'Ć': 'Ћ',
+      'U': 'У', 'F': 'Ф', 'H': 'Х', 'C': 'Ц', 'Č': 'Ч', 'Š': 'Ш'
+    };
+
+    const cyrToLatMap = {};
+    for (let k in latToCyrMap) {
+      cyrToLatMap[latToCyrMap[k]] = k;
+    }
+
+    function transliterateText(text, targetScript) {
+      if (targetScript === 'cyr') {
+        let res = [];
+        let i = 0;
+        while (i < text.length) {
+          if (i + 1 < text.length && latToCyrMap[text.slice(i, i + 2)]) {
+            res.push(latToCyrMap[text.slice(i, i + 2)]);
+            i += 2;
+          } else if (latToCyrMap[text[i]]) {
+            res.push(latToCyrMap[text[i]]);
+            i += 1;
+          } else {
+            res.push(text[i]);
+            i += 1;
+          }
+        }
+        return res.join('');
+      } else {
+        let res = [];
+        for (let ch of text) {
+          res.push(cyrToLatMap[ch] || ch);
+        }
+        return res.join('');
+      }
+    }
+
+    function convertNodeScript(node, script) {
+      if (node.nodeType === Node.TEXT_NODE) {
+        node.nodeValue = transliterateText(node.nodeValue, script);
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        if (!['SCRIPT', 'STYLE', 'SVG'].includes(node.tagName)) {
+          for (let child of node.childNodes) {
+            convertNodeScript(child, script);
+          }
+        }
+      }
+    }
+
+    document.getElementById('scriptToggleBtn').addEventListener('click', () => {
+      currentScript = (currentScript === 'lat') ? 'cyr' : 'lat';
+      convertNodeScript(document.body, currentScript);
+      showToast(currentScript === 'cyr' ? "Pismo promenjeno: Ćirilica (Ћирилица)" : "Pismo promenjeno: Latinica (Latin)");
+    });
+
+    // Close modals on Escape key
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeArticleModal();
+        closeVideoModal();
+        closeSearchModal();
+      }
+    });
+
+    // Close modals when clicking backdrop
+    [document.getElementById('articleModal'), document.getElementById('videoModal'), document.getElementById('searchModal')].forEach(modal => {
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          closeArticleModal();
+          closeVideoModal();
+          closeSearchModal();
+        }
+      });
+    });
+  </script>
+</body>
+</html>
