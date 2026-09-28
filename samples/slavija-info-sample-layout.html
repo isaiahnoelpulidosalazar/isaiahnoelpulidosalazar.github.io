@@ -2,7 +2,7 @@
 <html lang="sr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
   <title>Slavija Info | Nezavisni medijski portal & produkcija</title>
   
   <!-- Google Fonts: BBC-style typography -->
@@ -26,8 +26,8 @@
       
       /* BBC Neutrals */
       --bbc-black: #121212;
-      --bbc-dark-gray: #303030;
-      --bbc-mid-gray: #5A5A5A;
+      --bbc-dark-gray: #2B2B2B;
+      --bbc-mid-gray: #555A60;
       --bbc-light-gray: #F4F6F9;
       --bbc-border-gray: #E2E5EA;
       --bbc-footer-bg: #07192C;
@@ -43,12 +43,18 @@
       box-sizing: border-box;
       margin: 0;
       padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      overflow-x: hidden;
+      width: 100%;
     }
 
     body {
       font-family: var(--font-sans);
       color: var(--bbc-black);
-      background-color: #FAFBFC;
+      background-color: #F8F9FA;
       line-height: 1.5;
       -webkit-font-smoothing: antialiased;
     }
@@ -85,37 +91,40 @@
     .flag-ribbon .stripe-white { background-color: #FFFFFF; flex: 1; }
 
     /* ==========================================================================
-       TOP UTILITY BAR (DEEP BLUE THEME)
+       TOP UTILITY BAR (RESPONSIVE)
        ========================================================================== */
     .top-meta-bar {
       background-color: var(--serbian-blue-deep);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-      font-size: 0.82rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 0.8rem;
       color: #CAD5E2;
-      padding: 7px 0;
+      padding: 6px 0;
     }
 
     .meta-content {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
     }
 
     .meta-left {
       display: flex;
       align-items: center;
-      gap: 16px;
+      gap: 12px;
+      font-size: 0.78rem;
     }
 
     .live-badge {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
+      gap: 5px;
       background: var(--serbian-red);
       color: white;
       font-weight: 700;
-      font-size: 0.72rem;
-      padding: 2px 8px;
+      font-size: 0.7rem;
+      padding: 2px 7px;
       border-radius: 2px;
       text-transform: uppercase;
       letter-spacing: 0.5px;
@@ -138,7 +147,14 @@
     .social-links {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
+    }
+
+    .social-links-label {
+      font-weight: 600;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
 
     .social-btn {
@@ -153,7 +169,7 @@
       transition: all 0.2s ease;
     }
 
-    .social-btn:hover {
+    .social-btn:hover, .social-btn:active {
       transform: translateY(-1px);
     }
     .social-btn.fb:hover { background: #1877F2; }
@@ -168,13 +184,13 @@
     }
 
     /* ==========================================================================
-       BBC HEADER WITH BLUE SCHEME FOR WHITE LOGO
+       BLUE HEADER FOR WHITE-TEXT LOGO
        ========================================================================== */
     .site-header {
       background: linear-gradient(180deg, var(--serbian-blue) 0%, var(--serbian-blue-dark) 100%);
-      padding: 22px 0 18px 0;
+      padding: 16px 0;
       border-bottom: 2px solid rgba(255, 255, 255, 0.12);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
     }
 
     .header-inner {
@@ -182,50 +198,46 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      position: relative;
+      text-align: center;
     }
 
     .logo-container {
-      display: flex;
+      display: inline-flex;
       justify-content: center;
       align-items: center;
-      margin-bottom: 6px;
+      margin-bottom: 4px;
     }
 
     .header-logo {
-      height: 72px;
+      height: 64px;
       width: auto;
+      max-width: 85vw;
       object-fit: contain;
-      max-width: 90vw;
-      filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
+      filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.3));
     }
 
-    /* Fallback if local PNG is not yet loaded */
     .logo-fallback {
       display: none;
-      font-size: 2.3rem;
+      font-size: 1.9rem;
       font-weight: 800;
       letter-spacing: -0.5px;
       color: #FFFFFF;
       text-transform: uppercase;
       font-family: var(--font-sans);
     }
-    .logo-fallback span {
-      color: var(--serbian-red);
-    }
+    .logo-fallback span { color: var(--serbian-red); }
 
     .tagline {
-      font-size: 0.78rem;
+      font-size: 0.74rem;
       text-transform: uppercase;
-      letter-spacing: 2.5px;
+      letter-spacing: 2px;
       font-weight: 600;
       color: #D6E4F0;
       margin-top: 4px;
-      text-shadow: 0 1px 2px rgba(0,0,0,0.4);
     }
 
     /* ==========================================================================
-       BBC NAVIGATION BAR
+       BBC NAVIGATION BAR (MOBILE-READY)
        ========================================================================== */
     .bbc-nav {
       background: var(--serbian-blue-deep);
@@ -233,13 +245,14 @@
       top: 0;
       z-index: 1000;
       border-bottom: 3px solid var(--serbian-red);
-      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      box-shadow: 0 3px 10px rgba(0,0,0,0.2);
     }
 
     .nav-container {
       display: flex;
       align-items: center;
       justify-content: space-between;
+      position: relative;
     }
 
     .nav-menu {
@@ -254,8 +267,8 @@
       display: block;
       color: #FFFFFF;
       font-weight: 600;
-      font-size: 0.92rem;
-      padding: 13px 18px;
+      font-size: 0.9rem;
+      padding: 13px 16px;
       border-bottom: 3px solid transparent;
       white-space: nowrap;
     }
@@ -273,6 +286,21 @@
       gap: 10px;
     }
 
+    .nav-donate-pill {
+      background: var(--serbian-red);
+      color: white !important;
+      padding: 6px 14px !important;
+      border-radius: 3px;
+      font-size: 0.82rem !important;
+      font-weight: 700 !important;
+      border-bottom: none !important;
+      white-space: nowrap;
+    }
+    .nav-donate-pill:hover {
+      background: var(--serbian-red-dark) !important;
+    }
+
+    /* Hamburger Button */
     .mobile-toggle {
       display: none;
       background: transparent;
@@ -280,21 +308,38 @@
       color: white;
       padding: 8px;
       cursor: pointer;
+      width: 44px;
+      height: 44px;
+      align-items: center;
+      justify-content: center;
     }
 
-    .nav-donate-pill {
-      background: var(--serbian-red);
-      color: white !important;
-      padding: 6px 14px !important;
-      border-radius: 3px;
-      margin-left: 10px;
-      font-size: 0.84rem !important;
-      font-weight: 700 !important;
-      border-bottom: none !important;
-      transition: background 0.2s;
+    .hamburger-icon {
+      width: 22px;
+      height: 16px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
     }
-    .nav-donate-pill:hover {
-      background: var(--serbian-red-dark) !important;
+
+    .hamburger-icon span {
+      display: block;
+      height: 2px;
+      width: 100%;
+      background: white;
+      border-radius: 2px;
+      transition: all 0.25s ease-in-out;
+    }
+
+    .mobile-toggle.active .hamburger-icon span:nth-child(1) {
+      transform: translateY(7px) rotate(45deg);
+    }
+    .mobile-toggle.active .hamburger-icon span:nth-child(2) {
+      opacity: 0;
+    }
+    .mobile-toggle.active .hamburger-icon span:nth-child(3) {
+      transform: translateY(-7px) rotate(-45deg);
     }
 
     /* ==========================================================================
@@ -303,8 +348,8 @@
     .ticker-bar {
       background: #FFFFFF;
       border-bottom: 1px solid var(--bbc-border-gray);
-      padding: 8px 0;
-      font-size: 0.88rem;
+      padding: 7px 0;
+      font-size: 0.85rem;
     }
 
     .ticker-inner {
@@ -318,12 +363,13 @@
       background: var(--serbian-red);
       color: white;
       font-weight: 700;
-      padding: 4px 10px;
-      margin-right: 14px;
-      font-size: 0.76rem;
+      padding: 3px 8px;
+      margin-right: 12px;
+      font-size: 0.72rem;
       letter-spacing: 0.5px;
       text-transform: uppercase;
       white-space: nowrap;
+      flex-shrink: 0;
     }
 
     .ticker-marquee {
@@ -340,10 +386,10 @@
     }
 
     /* ==========================================================================
-       HIGHLIGHTED CAROUSEL: "LIČNOSTI U FOKUSU" (IMPORTANT PEOPLE & OPINION)
+       HIGHLIGHTED CAROUSEL: "LIČNOSTI U FOKUSU" (TOUCH & SWIPE FRIENDLY)
        ========================================================================== */
     .vip-spotlight-section {
-      margin: 24px auto 16px auto;
+      margin: 20px auto 14px auto;
     }
 
     .vip-container-highlight {
@@ -351,8 +397,8 @@
       border: 2px solid var(--serbian-blue);
       border-top: 5px solid var(--serbian-red);
       border-radius: 6px;
-      padding: 22px 20px 24px 20px;
-      box-shadow: 0 4px 18px rgba(12, 64, 118, 0.08);
+      padding: 18px 16px 20px 16px;
+      box-shadow: 0 4px 16px rgba(12, 64, 118, 0.08);
       position: relative;
     }
 
@@ -360,43 +406,44 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 20px;
-      padding-bottom: 12px;
+      margin-bottom: 16px;
+      padding-bottom: 10px;
       border-bottom: 1px solid var(--bbc-border-gray);
+      flex-wrap: wrap;
+      gap: 10px;
     }
 
     .vip-title-group {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
       flex-wrap: wrap;
     }
 
     .vip-badge {
       background: var(--serbian-blue);
       color: white;
-      font-size: 0.75rem;
+      font-size: 0.72rem;
       font-weight: 800;
       text-transform: uppercase;
-      letter-spacing: 0.8px;
-      padding: 4px 9px;
+      letter-spacing: 0.6px;
+      padding: 3px 8px;
       border-radius: 3px;
     }
 
     .vip-title {
-      font-size: 1.25rem;
+      font-size: 1.15rem;
       font-weight: 800;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.4px;
       color: var(--serbian-blue-dark);
     }
 
     .vip-subtitle {
-      font-size: 0.85rem;
+      font-size: 0.8rem;
       color: var(--bbc-mid-gray);
     }
 
-    /* Carousel Navigation Arrows */
     .carousel-controls {
       display: flex;
       align-items: center;
@@ -417,10 +464,9 @@
       transition: all 0.2s;
     }
 
-    .carousel-nav-btn:hover {
+    .carousel-nav-btn:hover, .carousel-nav-btn:active {
       background: var(--serbian-blue);
       color: white;
-      border-color: var(--serbian-blue);
     }
 
     .carousel-nav-btn svg {
@@ -429,58 +475,55 @@
       fill: currentColor;
     }
 
-    /* Carousel Track & Slides */
+    /* Carousel Viewport & Track */
     .vip-carousel-viewport {
       overflow: hidden;
       width: 100%;
       position: relative;
+      touch-action: pan-y;
       cursor: grab;
     }
-    .vip-carousel-viewport:active {
-      cursor: grabbing;
-    }
+    .vip-carousel-viewport:active { cursor: grabbing; }
 
     .vip-carousel-track {
       display: flex;
-      gap: 20px;
-      transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+      gap: 16px;
+      transition: transform 0.35s cubic-bezier(0.2, 0.9, 0.4, 1);
       will-change: transform;
     }
 
-    /* The Individual VIP Column Card */
+    /* The VIP Card */
     .vip-slide-card {
-      flex: 0 0 calc((100% - 60px) / 4);
+      flex: 0 0 calc((100% - 48px) / 4);
       background: #FAFBFD;
       border: 1px solid #E3EAF2;
       border-radius: 6px;
-      padding: 20px 16px;
+      padding: 16px 14px;
       display: flex;
       flex-direction: column;
       align-items: center;
       text-align: center;
-      position: relative;
-      transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+      transition: transform 0.25s ease, box-shadow 0.25s ease;
       user-select: none;
     }
 
     .vip-slide-card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 6px 16px rgba(12, 64, 118, 0.12);
+      transform: translateY(-3px);
+      box-shadow: 0 6px 14px rgba(12, 64, 118, 0.1);
       border-color: var(--serbian-blue);
       background: #FFFFFF;
     }
 
-    /* Circular Avatar with signature dashed ring */
+    /* Circular Avatar with dashed border */
     .vip-avatar-wrap {
-      width: 130px;
-      height: 130px;
-      margin: 0 auto 14px auto;
+      width: 120px;
+      height: 120px;
+      margin: 0 auto 12px auto;
       border-radius: 50%;
-      border: 2px dashed rgba(12, 64, 118, 0.4);
-      padding: 6px;
+      border: 2px dashed rgba(12, 64, 118, 0.45);
+      padding: 5px;
       background: #FFFFFF;
-      position: relative;
-      transition: border-color 0.25s ease;
+      flex-shrink: 0;
     }
 
     .vip-slide-card:hover .vip-avatar-wrap {
@@ -495,16 +538,11 @@
     }
 
     .vip-card-title {
-      font-size: 1.05rem;
+      font-size: 0.98rem;
       font-weight: 700;
       line-height: 1.35;
       color: var(--serbian-blue-dark);
-      margin-bottom: 10px;
-      text-align: center;
-    }
-
-    .vip-card-title a {
-      color: inherit;
+      margin-bottom: 8px;
     }
 
     .vip-slide-card:hover .vip-card-title {
@@ -512,24 +550,22 @@
     }
 
     .vip-card-excerpt {
-      font-size: 0.85rem;
+      font-size: 0.82rem;
       color: var(--bbc-mid-gray);
-      line-height: 1.45;
-      text-align: center;
+      line-height: 1.4;
       margin-top: auto;
     }
 
-    /* Carousel Dots Indicator */
     .carousel-dots {
       display: flex;
       justify-content: center;
       gap: 6px;
-      margin-top: 18px;
+      margin-top: 16px;
     }
 
     .carousel-dot {
-      width: 9px;
-      height: 9px;
+      width: 8px;
+      height: 8px;
       border-radius: 50%;
       background: #CBD5E1;
       cursor: pointer;
@@ -538,12 +574,13 @@
 
     .carousel-dot.active {
       background: var(--serbian-red);
-      width: 22px;
-      border-radius: 5px;
+      width: 20px;
+      border-radius: 4px;
     }
 
     /* ==========================================================================
-       MAIN BBC HERO CONTENT GRID
+       MAIN BBC GRID: CENTER-FEATURED HERO ARCHITECTURE
+       Left: Secondary Stack | Center: FEATURED LEAD | Right: Most Read
        ========================================================================== */
     .main-section {
       padding: 16px 0 28px 0;
@@ -551,16 +588,93 @@
 
     .bbc-hero-grid {
       display: grid;
-      grid-template-columns: 2fr 1.2fr 1fr;
+      /* 3 Columns: Left side-stack, Center HERO (wider & commanding), Right Most Read */
+      grid-template-columns: 1fr 1.8fr 1fr;
       gap: 24px;
+      align-items: start;
       border-bottom: 1px solid var(--bbc-border-gray);
       padding-bottom: 28px;
     }
 
-    /* Lead Story (Big BBC Feature) */
-    .lead-story {
+    /* Left Column: Secondary Stories Stack */
+    .hero-col-left {
+      order: 1;
       display: flex;
       flex-direction: column;
+      gap: 18px;
+    }
+
+    .column-header-mini {
+      font-size: 0.88rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--serbian-blue);
+      border-bottom: 2px solid var(--serbian-blue);
+      padding-bottom: 4px;
+      margin-bottom: 6px;
+    }
+
+    .secondary-card {
+      display: flex;
+      flex-direction: column;
+      border-bottom: 1px solid var(--bbc-border-gray);
+      padding-bottom: 14px;
+    }
+    .secondary-card:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .secondary-card .img-wrapper {
+      position: relative;
+      overflow: hidden;
+      aspect-ratio: 16 / 9;
+      background: #EEE;
+      border-radius: 2px;
+      margin-bottom: 8px;
+    }
+
+    .secondary-card h3 {
+      font-size: 1rem;
+      line-height: 1.35;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .secondary-card:hover h3 {
+      color: var(--serbian-blue);
+    }
+
+    /* Center Column: THE FEATURED / HIGHLIGHTED LEAD STORY */
+    .hero-col-center {
+      order: 2;
+      background: #FFFFFF;
+      border: 1px solid var(--bbc-border-gray);
+      border-top: 4px solid var(--serbian-red);
+      border-radius: 4px;
+      padding: 16px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .featured-badge-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .featured-spotlight-pill {
+      background: var(--serbian-red);
+      color: white;
+      font-size: 0.72rem;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 2px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
 
     .lead-story .img-wrapper {
@@ -568,6 +682,8 @@
       overflow: hidden;
       background: #000;
       aspect-ratio: 16 / 9;
+      border-radius: 2px;
+      margin-bottom: 12px;
     }
 
     .lead-story img {
@@ -588,13 +704,12 @@
       font-size: 0.78rem;
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      margin-top: 14px;
-      margin-bottom: 4px;
+      margin-bottom: 6px;
     }
 
     .lead-story h2 {
       font-family: var(--font-serif);
-      font-size: 1.85rem;
+      font-size: 1.7rem;
       line-height: 1.25;
       font-weight: 700;
       margin-bottom: 10px;
@@ -607,7 +722,7 @@
 
     .lead-story p {
       color: var(--bbc-mid-gray);
-      font-size: 0.98rem;
+      font-size: 0.94rem;
       line-height: 1.5;
       margin-bottom: 12px;
     }
@@ -617,7 +732,8 @@
       color: var(--bbc-mid-gray);
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
+      flex-wrap: wrap;
     }
 
     .article-meta .time {
@@ -626,61 +742,26 @@
       gap: 4px;
     }
 
-    /* Secondary Stories */
-    .secondary-stack {
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
-
-    .secondary-card {
-      display: flex;
-      flex-direction: column;
-      border-bottom: 1px solid var(--bbc-border-gray);
-      padding-bottom: 16px;
-    }
-    .secondary-card:last-child {
-      border-bottom: none;
-      padding-bottom: 0;
-    }
-
-    .secondary-card .img-wrapper {
-      position: relative;
-      overflow: hidden;
-      aspect-ratio: 16 / 9;
-      background: #EEE;
-      margin-bottom: 10px;
-    }
-
-    .secondary-card h3 {
-      font-size: 1.08rem;
-      line-height: 1.35;
-      font-weight: 700;
-      margin-bottom: 6px;
-    }
-
-    .secondary-card:hover h3 {
-      color: var(--serbian-blue);
-    }
-
-    /* "NAJČITANIJE" / Most Read (BBC Numbered 1-5) */
-    .trending-column {
+    /* Right Column: "NAJČITANIJE" / Most Read (BBC 1-5) */
+    .hero-col-right {
+      order: 3;
       background: #FFFFFF;
-      border-left: 1px solid var(--bbc-border-gray);
-      padding-left: 20px;
+      border: 1px solid var(--bbc-border-gray);
+      border-radius: 4px;
+      padding: 14px 16px;
     }
 
     .section-title-wrap {
       display: flex;
       align-items: center;
       gap: 8px;
-      margin-bottom: 18px;
+      margin-bottom: 14px;
       border-bottom: 2px solid var(--serbian-red);
-      padding-bottom: 8px;
+      padding-bottom: 6px;
     }
 
     .section-title {
-      font-size: 1.15rem;
+      font-size: 1.05rem;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.5px;
@@ -691,29 +772,32 @@
       list-style: none;
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 14px;
     }
 
     .numbered-item {
       display: flex;
-      gap: 14px;
+      gap: 12px;
       align-items: flex-start;
       border-bottom: 1px solid #EFEFEF;
-      padding-bottom: 14px;
+      padding-bottom: 12px;
     }
-    .numbered-item:last-child { border-bottom: none; }
+    .numbered-item:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
 
     .rank-number {
-      font-size: 2.2rem;
+      font-size: 2rem;
       font-weight: 800;
       line-height: 1;
       color: var(--serbian-blue);
-      min-width: 32px;
+      min-width: 28px;
       text-align: center;
     }
 
     .numbered-content h4 {
-      font-size: 0.95rem;
+      font-size: 0.9rem;
       line-height: 1.35;
       font-weight: 600;
       margin-bottom: 4px;
@@ -729,21 +813,23 @@
     .media-section {
       background: var(--serbian-blue-deep);
       color: white;
-      padding: 36px 0;
-      margin: 32px 0;
+      padding: 32px 0;
+      margin: 28px 0;
     }
 
     .media-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 24px;
+      margin-bottom: 20px;
       border-bottom: 1px solid rgba(255,255,255,0.15);
-      padding-bottom: 12px;
+      padding-bottom: 10px;
+      flex-wrap: wrap;
+      gap: 8px;
     }
 
     .media-title {
-      font-size: 1.4rem;
+      font-size: 1.25rem;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.5px;
@@ -754,18 +840,19 @@
 
     .media-title-icon {
       background: var(--serbian-red);
-      width: 28px;
-      height: 28px;
+      width: 26px;
+      height: 26px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       border-radius: 50%;
+      flex-shrink: 0;
     }
 
     .media-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 20px;
+      gap: 18px;
     }
 
     .video-card {
@@ -778,8 +865,8 @@
       aspect-ratio: 16 / 9;
       background: #000;
       overflow: hidden;
-      border-radius: 2px;
-      margin-bottom: 10px;
+      border-radius: 3px;
+      margin-bottom: 8px;
     }
 
     .video-thumb img {
@@ -791,19 +878,19 @@
     }
 
     .video-card:hover .video-thumb img {
-      transform: scale(1.05);
+      transform: scale(1.04);
       opacity: 1;
     }
 
     .video-duration {
       position: absolute;
-      bottom: 8px;
-      right: 8px;
+      bottom: 6px;
+      right: 6px;
       background: rgba(0,0,0,0.85);
       color: white;
-      font-size: 0.72rem;
+      font-size: 0.7rem;
       font-weight: 700;
-      padding: 2px 6px;
+      padding: 2px 5px;
       border-radius: 2px;
     }
 
@@ -812,14 +899,14 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      width: 44px;
-      height: 44px;
+      width: 40px;
+      height: 40px;
       background: var(--serbian-red);
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.4);
       transition: transform 0.2s ease;
     }
 
@@ -828,26 +915,24 @@
     }
 
     .play-badge svg {
-      width: 18px;
-      height: 18px;
+      width: 16px;
+      height: 16px;
       fill: white;
       margin-left: 2px;
     }
 
     .video-card h4 {
-      font-size: 0.96rem;
+      font-size: 0.92rem;
       line-height: 1.35;
       font-weight: 600;
       color: #FFFFFF;
-      margin-bottom: 6px;
+      margin-bottom: 4px;
     }
 
-    .video-card:hover h4 {
-      color: #FFB3B6;
-    }
+    .video-card:hover h4 { color: #FFB3B6; }
 
     .video-guest {
-      font-size: 0.8rem;
+      font-size: 0.78rem;
       color: rgba(255,255,255,0.7);
     }
 
@@ -857,45 +942,48 @@
     .support-banner {
       background: linear-gradient(135deg, var(--serbian-blue) 0%, var(--serbian-blue-deep) 100%);
       color: white;
-      padding: 24px 30px;
-      border-radius: 4px;
-      margin: 20px auto 40px auto;
+      padding: 22px 24px;
+      border-radius: 6px;
+      margin: 16px auto 36px auto;
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 20px;
       border-left: 6px solid var(--serbian-red);
+      flex-wrap: wrap;
     }
 
     .support-banner-text h3 {
-      font-size: 1.3rem;
+      font-size: 1.25rem;
       font-weight: 700;
       margin-bottom: 4px;
     }
 
     .support-banner-text p {
-      font-size: 0.92rem;
+      font-size: 0.9rem;
       color: rgba(255,255,255,0.85);
-      max-width: 780px;
+      max-width: 760px;
     }
 
     .btn-donate-paypal {
       display: inline-flex;
       align-items: center;
+      justify-content: center;
       gap: 8px;
       background: linear-gradient(180deg, #0079C1 0%, #00457C 100%);
       color: white;
       font-weight: 700;
-      padding: 12px 24px;
+      padding: 12px 22px;
       border-radius: 4px;
-      font-size: 0.95rem;
+      font-size: 0.92rem;
       white-space: nowrap;
       box-shadow: 0 4px 10px rgba(0,0,0,0.25);
       transition: all 0.2s ease;
       border: 1px solid rgba(255,255,255,0.3);
+      min-height: 44px;
     }
 
-    .btn-donate-paypal:hover {
+    .btn-donate-paypal:hover, .btn-donate-paypal:active {
       background: linear-gradient(180deg, #0086D6 0%, #003661 100%);
       transform: translateY(-2px);
     }
@@ -907,14 +995,14 @@
     }
 
     /* ==========================================================================
-       BBC FOOTER & COMPREHENSIVE SLAVIJA INFO DETAILS
+       BBC MEGA FOOTER
        ========================================================================== */
     .site-footer {
       background: var(--bbc-footer-bg);
       color: #E0E0E0;
-      padding-top: 50px;
+      padding-top: 40px;
       border-top: 5px solid var(--serbian-red);
-      font-size: 0.9rem;
+      font-size: 0.88rem;
     }
 
     .footer-top {
@@ -922,16 +1010,15 @@
       flex-direction: column;
       align-items: center;
       text-align: center;
-      padding-bottom: 30px;
+      padding-bottom: 26px;
       border-bottom: 1px solid rgba(255,255,255,0.1);
     }
 
     .footer-logo {
-      height: 70px;
+      height: 64px;
       width: auto;
       object-fit: contain;
-      margin-bottom: 14px;
-      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+      margin-bottom: 12px;
     }
 
     .footer-social-row {
@@ -944,17 +1031,17 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 38px;
-      height: 38px;
+      width: 40px;
+      height: 40px;
       border-radius: 50%;
       background: rgba(255,255,255,0.08);
       color: white;
       transition: all 0.2s;
     }
 
-    .footer-social-row a:hover {
+    .footer-social-row a:hover, .footer-social-row a:active {
       background: var(--serbian-red);
-      transform: scale(1.1);
+      transform: scale(1.08);
     }
 
     .footer-social-row svg {
@@ -963,24 +1050,23 @@
       fill: currentColor;
     }
 
-    /* Footer Columns */
     .footer-grid {
       display: grid;
       grid-template-columns: 1.6fr 1fr 1.6fr;
-      gap: 40px;
-      padding: 36px 0;
+      gap: 36px;
+      padding: 32px 0;
       border-bottom: 1px solid rgba(255,255,255,0.1);
     }
 
     .footer-col h4 {
       color: #FFFFFF;
-      font-size: 1.05rem;
+      font-size: 1rem;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 18px;
+      letter-spacing: 0.8px;
+      margin-bottom: 14px;
       position: relative;
-      padding-bottom: 8px;
+      padding-bottom: 6px;
     }
 
     .footer-col h4::after {
@@ -988,16 +1074,16 @@
       position: absolute;
       left: 0;
       bottom: 0;
-      width: 32px;
+      width: 28px;
       height: 2px;
       background: var(--serbian-red);
     }
 
     .footer-about-text {
-      font-size: 0.88rem;
-      line-height: 1.65;
+      font-size: 0.86rem;
+      line-height: 1.6;
       color: #B8C2CC;
-      margin-bottom: 16px;
+      margin-bottom: 14px;
       text-align: justify;
     }
 
@@ -1006,7 +1092,7 @@
       align-items: flex-start;
       gap: 10px;
       margin-top: 12px;
-      font-size: 0.88rem;
+      font-size: 0.86rem;
       color: #DFE5EB;
     }
 
@@ -1015,7 +1101,7 @@
       height: 18px;
       fill: var(--serbian-red);
       flex-shrink: 0;
-      margin-top: 3px;
+      margin-top: 2px;
     }
 
     .contact-line a {
@@ -1023,30 +1109,24 @@
       text-decoration: underline;
     }
 
-    .contact-line a:hover {
-      color: var(--serbian-red);
-    }
-
-    /* Popular Categories in Footer */
     .footer-categories-list {
       list-style: none;
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 10px;
+      gap: 8px;
     }
 
     .footer-categories-list li a {
       color: #B8C2CC;
-      font-size: 0.88rem;
+      font-size: 0.86rem;
       display: flex;
       align-items: center;
       gap: 6px;
-      transition: color 0.15s ease;
+      padding: 3px 0;
     }
 
     .footer-categories-list li a:hover {
       color: #FFFFFF;
-      padding-left: 4px;
     }
 
     .footer-categories-list li a::before {
@@ -1055,31 +1135,31 @@
       font-size: 1.1rem;
     }
 
-    /* Donation Box & Accounts */
+    /* Donations Block */
     .donation-box {
       background: rgba(255,255,255,0.04);
       border: 1px solid rgba(255,255,255,0.12);
       border-radius: 6px;
-      padding: 18px;
+      padding: 16px;
     }
 
     .donation-desc {
-      font-size: 0.86rem;
+      font-size: 0.84rem;
       color: #DFE5EB;
-      margin-bottom: 14px;
+      margin-bottom: 12px;
       font-weight: 500;
     }
 
     .account-item {
       background: rgba(0,0,0,0.25);
       border-left: 3px solid var(--serbian-blue-light);
-      padding: 8px 12px;
+      padding: 8px 10px;
       margin-bottom: 10px;
       border-radius: 0 4px 4px 0;
     }
 
     .account-label {
-      font-size: 0.72rem;
+      font-size: 0.7rem;
       text-transform: uppercase;
       letter-spacing: 0.5px;
       color: #9AA7B5;
@@ -1088,32 +1168,34 @@
 
     .account-value {
       font-family: monospace;
-      font-size: 0.95rem;
+      font-size: 0.92rem;
       font-weight: 700;
       color: #FFFFFF;
-      letter-spacing: 0.5px;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      flex-wrap: wrap;
+      gap: 6px;
+      word-break: break-all;
     }
 
     .copy-btn {
-      background: rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.12);
       border: none;
-      color: #B8C2CC;
-      padding: 2px 6px;
+      color: #CAD5E2;
+      padding: 4px 8px;
       border-radius: 3px;
-      font-size: 0.7rem;
+      font-size: 0.72rem;
       cursor: pointer;
+      min-height: 28px;
     }
-    .copy-btn:hover {
+    .copy-btn:hover, .copy-btn:active {
       background: var(--serbian-blue-light);
       color: white;
     }
 
     .paypal-footer-btn-wrap {
       margin-top: 14px;
-      text-align: center;
     }
 
     .paypal-footer-btn {
@@ -1124,118 +1206,169 @@
       background: linear-gradient(180deg, #0079C1 0%, #00457C 100%);
       color: #FFFFFF;
       font-weight: 700;
-      font-size: 0.95rem;
-      padding: 10px 18px;
+      font-size: 0.92rem;
+      padding: 11px 16px;
       border-radius: 4px;
       box-shadow: 0 3px 8px rgba(0,0,0,0.3);
       border: 1px solid rgba(255,255,255,0.2);
-    }
-
-    .paypal-footer-btn:hover {
-      background: linear-gradient(180deg, #008AD6 0%, #003661 100%);
-      transform: translateY(-1px);
+      min-height: 44px;
     }
 
     .footer-bottom {
-      padding: 20px 0;
+      padding: 18px 0;
       text-align: center;
-      font-size: 0.78rem;
+      font-size: 0.76rem;
       color: #798797;
     }
 
     /* Toast Notification */
     .toast {
       position: fixed;
-      bottom: 24px;
-      right: 24px;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
       background: var(--serbian-red);
       color: white;
-      padding: 10px 18px;
+      padding: 9px 18px;
       border-radius: 4px;
-      font-size: 0.85rem;
+      font-size: 0.84rem;
       font-weight: 600;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+      box-shadow: 0 4px 14px rgba(0,0,0,0.3);
       opacity: 0;
       pointer-events: none;
-      transition: opacity 0.25s ease, transform 0.25s ease;
-      transform: translateY(10px);
+      transition: all 0.25s ease;
       z-index: 9999;
+      white-space: nowrap;
     }
     .toast.show {
       opacity: 1;
-      transform: translateY(0);
+      transform: translateX(-50%) translateY(0);
     }
 
     /* ==========================================================================
-       RESPONSIVE DESIGN
+       MOBILE RESPONSIVENESS (BREAKPOINTS)
        ========================================================================== */
-    @media (max-width: 1100px) {
+    @media (max-width: 1080px) {
       .vip-slide-card {
-        flex: 0 0 calc((100% - 40px) / 3);
-      }
-    }
-
-    @media (max-width: 1024px) {
-      .bbc-hero-grid {
-        grid-template-columns: 1.5fr 1fr;
-      }
-      .trending-column {
-        grid-column: span 2;
-        border-left: none;
-        border-top: 1px solid var(--bbc-border-gray);
-        padding-left: 0;
-        padding-top: 20px;
+        flex: 0 0 calc((100% - 32px) / 3);
       }
       .media-grid {
         grid-template-columns: repeat(2, 1fr);
       }
+    }
+
+    @media (max-width: 900px) {
+      .bbc-hero-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+      }
+
+      /* In mobile/tablet, place the CENTER featured story FIRST, then secondary, then trending */
+      .hero-col-center {
+        order: 1;
+      }
+      .hero-col-left {
+        order: 2;
+      }
+      .hero-col-right {
+        order: 3;
+      }
+
       .footer-grid {
         grid-template-columns: 1fr;
-        gap: 30px;
+        gap: 28px;
       }
     }
 
     @media (max-width: 768px) {
-      .meta-content {
-        flex-direction: column;
-        gap: 8px;
-      }
-      .vip-slide-card {
-        flex: 0 0 calc((100% - 20px) / 2);
-      }
-      .bbc-hero-grid {
-        grid-template-columns: 1fr;
-      }
-      .trending-column {
-        grid-column: span 1;
-      }
-      .media-grid {
-        grid-template-columns: 1fr;
-      }
       .mobile-toggle {
         display: flex;
       }
+
       .nav-menu {
         display: none;
         flex-direction: column;
         width: 100%;
         background: var(--serbian-blue-deep);
+        padding: 6px 0 12px 0;
+        border-top: 1px solid rgba(255,255,255,0.1);
       }
+
       .nav-menu.open {
         display: flex;
       }
+
+      .nav-item a {
+        padding: 12px 18px;
+        border-bottom: 1px solid rgba(255,255,255,0.06);
+        font-size: 0.95rem;
+      }
+
       .nav-container {
         flex-wrap: wrap;
       }
+
+      .meta-content {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+      }
+
+      .meta-left {
+        justify-content: center;
+      }
+
+      .social-links {
+        justify-content: center;
+      }
+
+      .social-links-label {
+        display: none; /* Keep clean on small mobile */
+      }
+
+      .vip-slide-card {
+        flex: 0 0 calc((100% - 16px) / 2);
+      }
+
       .support-banner {
         flex-direction: column;
         text-align: center;
+        padding: 18px 16px;
+      }
+
+      .btn-donate-paypal {
+        width: 100%;
+      }
+
+      .lead-story h2 {
+        font-size: 1.45rem;
       }
     }
 
-    @media (max-width: 500px) {
+    @media (max-width: 520px) {
       .vip-slide-card {
-        flex: 0 0 100%;
+        flex: 0 0 86%; /* Gives a nice native peek of next card */
+      }
+
+      .media-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .header-logo {
+        height: 52px;
+      }
+
+      .tagline {
+        font-size: 0.68rem;
+        letter-spacing: 1.5px;
+      }
+
+      .footer-categories-list {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .lead-story h2 {
+        font-size: 1.35rem;
       }
     }
   </style>
@@ -1260,7 +1393,7 @@
         <div>Beograd 18°C</div>
       </div>
       <div class="social-links">
-        <span style="font-weight: 600; font-size: 0.75rem; text-transform: uppercase;">Pratite Slavija Info:</span>
+        <span class="social-links-label">Pratite Slavija Info:</span>
         
         <!-- Facebook -->
         <a href="https://www.facebook.com/share/1D19Hao1FU" target="_blank" rel="noopener noreferrer" class="social-btn fb" title="Facebook">
@@ -1285,7 +1418,7 @@
     </div>
   </div>
 
-  <!-- CENTERED HEADER WITH BLUE THEME FOR WHITE LOGO -->
+  <!-- CENTERED HEADER WITH BLUE SCHEME FOR WHITE LOGO -->
   <header class="site-header">
     <div class="container header-inner">
       <a href="#" class="logo-container">
@@ -1321,7 +1454,11 @@
       <div class="nav-actions">
         <a href="#donacije" class="nav-donate-pill">Podrži Rad</a>
         <button class="mobile-toggle" id="mobileMenuBtn" aria-label="Meni">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
+          <div class="hamburger-icon">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
         </button>
       </div>
     </div>
@@ -1339,41 +1476,23 @@
     </div>
   </div>
 
-  <!-- BBC HERO CONTENT GRID -->
+  <!-- ==========================================================================
+       MAIN BBC HERO CONTENT GRID: CENTER-FEATURED LAYOUT
+       ========================================================================== -->
   <main class="main-section container">
     <div class="bbc-hero-grid">
       
-      <!-- BBC Lead Story -->
-      <article class="lead-story">
-        <a href="#" class="img-wrapper">
-          <img src="https://images.unsplash.com/photo-1541872703-74c5e44368f9?auto=format&fit=crop&w=1200&q=80" alt="Studentska lista">
-        </a>
-        <span class="category-badge">Ekskluzivno • Politika</span>
-        <a href="#">
-          <h2>Slavija info otkriva: Objavljeno 250 kandidata za Studentsku listu</h2>
-        </a>
-        <p>
-          Istraživački tim Slavija Infa došao je do celokupnog spiska od 250 kandidata koji će činiti novu autonomnu Studentsku listu za predstojeće parlamentarne izbore. Otkrivamo ko su ključni ljudi pokreta i kakvi su planovi za decentralizaciju političke scene.
-        </p>
-        <div class="article-meta">
-          <span class="time">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.2 3.2.8-1.3-4.5-2.7V7z"/></svg>
-            Pre 28 minuta
-          </span>
-          <span>•</span>
-          <span>Autor: Redakcija Slavija Info</span>
-        </div>
-      </article>
-
-      <!-- BBC Center Stack (2 Secondary Articles) -->
-      <div class="secondary-stack">
+      <!-- LEFT COLUMN: AKTULENE / NAJNOVIJE VESTI -->
+      <aside class="hero-col-left">
+        <div class="column-header-mini">Aktuelno u Srbiji</div>
+        
         <article class="secondary-card">
           <a href="#" class="img-wrapper">
-            <img src="https://images.unsplash.com/photo-1572949645841-094f3a9c4c94?auto=format&fit=crop&w=800&q=80" alt="Diplomatija">
+            <img src="https://images.unsplash.com/photo-1572949645841-094f3a9c4c94?auto=format&fit=crop&w=600&q=80" alt="Diplomatija">
           </a>
-          <span class="category-badge" style="margin-top:0;">Geopolitika</span>
+          <span class="category-badge">Geopolitika</span>
           <a href="#">
-            <h3>Američki kongresmen: Vučić će pokušati da utiče na izborni proces, međunarodni posmatrači moraju biti budni</h3>
+            <h3>Američki kongresmen: Vučić će pokušati da utiče na izborni proces</h3>
           </a>
           <div class="article-meta">
             <span class="time">Pre 1 sat</span>
@@ -1382,20 +1501,49 @@
 
         <article class="secondary-card">
           <a href="#" class="img-wrapper">
-            <img src="https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?auto=format&fit=crop&w=800&q=80" alt="Veterani">
+            <img src="https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?auto=format&fit=crop&w=600&q=80" alt="Veterani">
           </a>
-          <span class="category-badge" style="margin-top:0;">Društvo & Pravda</span>
+          <span class="category-badge">Društvo & Pravo</span>
           <a href="#">
-            <h3>General Momir Stojanović: 4.900 ratnih veterana u jednom danu dobilo pozive tužilaštva</h3>
+            <h3>General Momir Stojanović: 4.900 ratnih veterana dobilo pozive</h3>
           </a>
           <div class="article-meta">
             <span class="time">Pre 3 sata</span>
           </div>
         </article>
-      </div>
+      </aside>
 
-      <!-- BBC Right Column ("NAJČITANIJE" / Most Read) -->
-      <aside class="trending-column">
+      <!-- CENTER COLUMN: THE MAIN FEATURED / HIGHLIGHTED HERO STORY -->
+      <section class="hero-col-center">
+        <div class="featured-badge-bar">
+          <span class="featured-spotlight-pill">U Žiži • Istaknuta Vest</span>
+          <span style="font-size: 0.76rem; color: var(--serbian-blue); font-weight: 700;">EKSLUZIVNO</span>
+        </div>
+
+        <article class="lead-story">
+          <a href="#" class="img-wrapper">
+            <img src="https://images.unsplash.com/photo-1541872703-74c5e44368f9?auto=format&fit=crop&w=1200&q=80" alt="Studentska lista">
+          </a>
+          <span class="category-badge">Istraživački Tim Slavija Info</span>
+          <a href="#">
+            <h2>Slavija info otkriva: Objavljeno 250 kandidata za Studentsku listu</h2>
+          </a>
+          <p>
+            Istraživački tim Slavija Infa došao je do celokupnog spiska od 250 kandidata koji će činiti novu autonomnu Studentsku listu za predstojeće parlamentarne izbore. Otkrivamo ko su ključni ljudi pokreta, kakvi su planovi za decentralizaciju političke scene i ko stoji iza pokušaja sabotaže.
+          </p>
+          <div class="article-meta">
+            <span class="time">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.2 3.2.8-1.3-4.5-2.7V7z"/></svg>
+              Pre 28 minuta
+            </span>
+            <span>•</span>
+            <span>Autor: Redakcija Slavija Info</span>
+          </div>
+        </article>
+      </section>
+
+      <!-- RIGHT COLUMN: "NAJČITANIJE" / Most Read (BBC 1-5) -->
+      <aside class="hero-col-right">
         <div class="section-title-wrap">
           <h3 class="section-title">Najčitanije</h3>
         </div>
@@ -1406,34 +1554,34 @@
               <a href="#">
                 <h4>Miloš Jovanović: Plašim se da izbori neće rešiti krizu, odgovornost je Vučićeva</h4>
               </a>
-              <span class="article-meta">Politika • Pre 2 sata</span>
+              <span class="article-meta">Politika • Pre 2h</span>
             </div>
           </li>
           <li class="numbered-item">
             <span class="rank-number">2</span>
             <div class="numbered-content">
               <a href="#">
-                <h4>Studenti iz Kosovske Mitrovice demantovali navode o nametnutim glasanjima</h4>
+                <h4>Studenti iz Kosovske Mitrovice demantovali navode režimskih medija</h4>
               </a>
-              <span class="article-meta">Društvo • Pre 4 sata</span>
+              <span class="article-meta">Društvo • Pre 4h</span>
             </div>
           </li>
           <li class="numbered-item">
             <span class="rank-number">3</span>
             <div class="numbered-content">
               <a href="#">
-                <h4>AUTENTIČNA DESNICA potpisala koalicioni sporazum i kreće u prikupljanje potpisa</h4>
+                <h4>AUTENTIČNA DESNICA potpisala koalicioni sporazum i kreće u potpise</h4>
               </a>
-              <span class="article-meta">Vesti • Pre 5 sati</span>
+              <span class="article-meta">Vesti • Pre 5h</span>
             </div>
           </li>
           <li class="numbered-item">
             <span class="rank-number">4</span>
             <div class="numbered-content">
               <a href="#">
-                <h4>Pritisci na novinare: Urednik Slavija Infa ponovo na meti prorežimskih tabloida</h4>
+                <h4>Pritisci na novinare: Urednik Slavija Infa ponovo na meti tabloida</h4>
               </a>
-              <span class="article-meta">Hronika • Pre 6 sati</span>
+              <span class="article-meta">Hronika • Pre 6h</span>
             </div>
           </li>
           <li class="numbered-item">
@@ -1442,7 +1590,7 @@
               <a href="#">
                 <h4>Analiza: Zašto je ekonomska slika u Srbiji znatno lošija od zvanične statistike</h4>
               </a>
-              <span class="article-meta">Ekonomija • Pre 7 sati</span>
+              <span class="article-meta">Ekonomija • Pre 7h</span>
             </div>
           </li>
         </ol>
@@ -1459,9 +1607,9 @@
           <span class="media-title-icon">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
           </span>
-          Slavija Info TV • Ekskluzivne Emisije & Intervjui
+          Slavija Info TV • Ekskluzivne Emisije
         </div>
-        <a href="https://www.youtube.com/@SLAVIJAINFO" target="_blank" rel="noopener noreferrer" style="color: #FFB3B6; font-size: 0.88rem; font-weight: 600;">
+        <a href="https://www.youtube.com/@SLAVIJAINFO" target="_blank" rel="noopener noreferrer" style="color: #FFB3B6; font-size: 0.85rem; font-weight: 600;">
           Pratite naš YouTube kanal &rarr;
         </a>
       </div>
@@ -1477,7 +1625,7 @@
           </a>
           <span class="category-badge" style="color: #FFB3B6;">Intervju</span>
           <a href="https://www.youtube.com/@SLAVIJAINFO" target="_blank" rel="noopener noreferrer">
-            <h4>Prof. dr Dragan Milić: Okupirali su institucije, decentralizacija je jedini spas</h4>
+            <h4>Prof. dr Dragan Milić: Okupirali su institucije, decentralizacija je spas</h4>
           </a>
           <span class="video-guest">Gost: Prof. dr Dragan Milić</span>
         </article>
@@ -1507,7 +1655,7 @@
           </a>
           <span class="category-badge" style="color: #FFB3B6;">Aktuelno</span>
           <a href="https://www.youtube.com/@SLAVIJAINFO" target="_blank" rel="noopener noreferrer">
-            <h4>Ivan Matović: Starosedeoci Kraljeva neće ustuknuti pred partijskim batinašima</h4>
+            <h4>Ivan Matović: Starosedeoci Kraljeva neće ustuknuti pred batinašima</h4>
           </a>
           <span class="video-guest">Gost: Ivan Matović (Kraljevo)</span>
         </article>
@@ -1530,7 +1678,7 @@
     </div>
   </section>
 
-  <!-- HIGHLIGHTED CAROUSEL: "LIČNOSTI U FOKUSU" (IMPORTANT PEOPLE & OPINION) -->
+  <!-- HIGHLIGHTED CAROUSEL: "LIČNOSTI U FOKUSU" (VIP COLUMN) -->
   <section class="vip-spotlight-section container" id="fokus">
     <div class="vip-container-highlight">
       
@@ -1538,7 +1686,7 @@
         <div class="vip-title-group">
           <span class="vip-badge">Ključne Figure</span>
           <h2 class="vip-title">Ličnosti u Fokusu & Kolumne</h2>
-          <span class="vip-subtitle">• Ekskluzivni stavovi, svedočenja i analize</span>
+          <span class="vip-subtitle">• Stavovi, analize i svedočenja</span>
         </div>
         <div class="carousel-controls">
           <button class="carousel-nav-btn" id="prevBtn" aria-label="Prethodno">
@@ -1568,7 +1716,7 @@
             </div>
             <h3 class="vip-card-title">
               <a href="https://slavija-info.com/srdjan-skoro-vucicu-je-jedini-problem-narod-a-narod-je-odlucio-studenti-pobedjuju/">
-                Srđan Škoro: Vučiću je jedini problem narod, a narod je odlučio...
+                Srđan Škoro: Vučiću je jedini problem narod...
               </a>
             </h3>
             <p class="vip-card-excerpt">
@@ -1614,7 +1762,7 @@
             </div>
             <h3 class="vip-card-title">
               <a href="https://slavija-info.com/srbija-podeljena-u-grcu-i-besu-odlazi-kriminalna-hobotnica/">
-                Nebojša Vujović: Srbija podeljena u grču i besu: Odlazi kriminalna hobotnica
+                Nebojša Vujović: Srbija podeljena u grču i besu
               </a>
             </h3>
             <p class="vip-card-excerpt">
@@ -1637,11 +1785,11 @@
             </div>
             <h3 class="vip-card-title">
               <a href="https://slavija-info.com/dragomir-andjelkovic-zapad-sprema-crni-scenario-za-srbiju-posle-25-oktobra/">
-                Dragomir Anđelković: Zapad sprema crni scenario za Srbiju posle 25. oktobra
+                Dragomir Anđelković: Crni scenario za Srbiju
               </a>
             </h3>
             <p class="vip-card-excerpt">
-              U prljavim političkim igrama važi jedno pravilo: „Brani nekoga kontraproduktivno kako bi mu efikasno naudio.“
+              U prljavim političkim igrama važi jedno pravilo: „Brani nekoga kontraproduktivno kako bi mu naudio.“
             </p>
           </article>
 
@@ -1660,7 +1808,7 @@
             </div>
             <h3 class="vip-card-title">
               <a href="https://slavija-info.com/niko-ne-sme-da-vas-bije-desingerica-tuce-patikom-a-vucic-kovertama/">
-                „Niko ne sme da vas bije“: Desingerica tuče patikom, a Vučić kovertama
+                „Niko ne sme da vas bije“: Desingerica i Vučić
               </a>
             </h3>
             <p class="vip-card-excerpt">
@@ -1668,7 +1816,7 @@
             </p>
           </article>
 
-          <!-- Slide 6: Milan Radonjić (MUP & BIA) -->
+          <!-- Slide 6: Milan Radonjić -->
           <article class="vip-slide-card">
             <div class="vip-avatar-wrap">
               <a href="https://slavija-info.com/mobilizacija-lojalista-za-uterivanje-straha/">
@@ -1687,7 +1835,7 @@
               </a>
             </h3>
             <p class="vip-card-excerpt">
-              Zabrinjavajuća su saznanja o delovanju ad hok operativnih centara, čije jezgro čine penzionisani pripadnici MUP-a, BIA...
+              Zabrinjavajuća su saznanja o delovanju operativnih centara, čije jezgro čine penzioneri MUP-a i BIA...
             </p>
           </article>
 
@@ -1710,16 +1858,14 @@
               </a>
             </h3>
             <p class="vip-card-excerpt">
-              -Dačić i Ružić u koncertu; -Vučić i Dačić u koncertu; -Dačić jako dobro zna da su karte već podeljene...
+              -Dačić i Ružić u koncertu; -Vučić i Dačić u koncertu; karte na političkoj sceni su podeljene...
             </p>
           </article>
 
         </div>
       </div>
 
-      <!-- Carousel Pagination Dots -->
       <div class="carousel-dots" id="carouselDots"></div>
-
     </div>
   </section>
 
@@ -1756,7 +1902,7 @@
             SLAVIJA<span style="color: var(--serbian-red);">INFO</span>
           </div>
         </a>
-        <p style="font-size: 0.88rem; color: #9AA7B5; max-width: 500px;">
+        <p style="font-size: 0.86rem; color: #9AA7B5; max-width: 500px;">
           Nezavisna produkcija i informativni portal posvećen slobodi misli i govora.
         </p>
         
@@ -1828,7 +1974,7 @@
                 <span>291042614315</span>
                 <button class="copy-btn" onclick="copyToClipboard('291042614315', 'Broj deviznog računa')">Kopiraj</button>
               </div>
-              <div style="font-size:0.75rem; color:#A2B2C2; margin-top:2px;">Bank of America</div>
+              <div style="font-size:0.72rem; color:#A2B2C2; margin-top:2px;">Bank of America</div>
             </div>
 
             <!-- Dinarski Račun -->
@@ -1862,7 +2008,6 @@
 
       </div>
 
-      <!-- Footer Bottom -->
       <div class="footer-bottom">
         <p>&copy; 2026 Slavija Info TV & Portal. Sva prava zadržana. Layout inspirisan BBC standardom objektivnog novinarstva.</p>
       </div>
@@ -1873,7 +2018,7 @@
   <!-- Toast Notification Box -->
   <div id="toast" class="toast">Tekst kopiran!</div>
 
-  <!-- JAVASCRIPT: CAROUSEL ENGINE, TOUCH DRAG, DATES & UTILITIES -->
+  <!-- JAVASCRIPT: LOGIC & TOUCH DRIVER -->
   <script>
     // 1. Live Serbian Date
     function updateSerbianDate() {
@@ -1891,11 +2036,20 @@
     const navMenu = document.getElementById('navMenu');
     if (mobileMenuBtn && navMenu) {
       mobileMenuBtn.addEventListener('click', () => {
+        mobileMenuBtn.classList.toggle('active');
         navMenu.classList.toggle('open');
+      });
+
+      // Close menu when a link is clicked
+      navMenu.querySelectorAll('a').forEach(link => {
+        link.addEventListener('click', () => {
+          mobileMenuBtn.classList.remove('active');
+          navMenu.classList.remove('open');
+        });
       });
     }
 
-    // 3. Highlighted VIP Carousel Logic
+    // 3. Highlighted VIP Carousel Engine
     const track = document.getElementById('carouselTrack');
     const viewport = document.getElementById('carouselViewport');
     const prevBtn = document.getElementById('prevBtn');
@@ -1909,9 +2063,9 @@
 
     function getCardsPerView() {
       const w = window.innerWidth;
-      if (w <= 500) return 1;
+      if (w <= 520) return 1;
       if (w <= 768) return 2;
-      if (w <= 1100) return 3;
+      if (w <= 1080) return 3;
       return 4;
     }
 
@@ -1938,12 +2092,11 @@
       if (!firstCard) return;
 
       const cardWidth = firstCard.offsetWidth;
-      const gap = 20; // 20px gap
+      const gap = 16;
       const offset = currentIndex * (cardWidth + gap);
 
       track.style.transform = `translateX(-${offset}px)`;
 
-      // Update dots
       const dots = document.querySelectorAll('.carousel-dot');
       dots.forEach((dot, idx) => {
         dot.classList.toggle('active', idx === currentIndex);
@@ -1966,39 +2119,22 @@
         cardsPerView = newCardsPerView;
         maxIndex = Math.max(0, cards.length - cardsPerView);
         createDots();
-        updateCarousel();
-      } else {
-        updateCarousel();
       }
+      updateCarousel();
     });
 
-    // Touch Swipe & Mouse Drag Support for Carousel
+    // Touch & Swipe gestures for mobile users
     let startX = 0;
-    let isDragging = false;
-
-    viewport.addEventListener('mousedown', (e) => {
-      isDragging = true;
-      startX = e.pageX;
-    });
-
-    window.addEventListener('mouseup', (e) => {
-      if (!isDragging) return;
-      isDragging = false;
-      const diffX = e.pageX - startX;
-      if (diffX > 50) {
-        currentIndex = (currentIndex > 0) ? currentIndex - 1 : 0;
-        updateCarousel();
-      } else if (diffX < -50) {
-        currentIndex = (currentIndex < maxIndex) ? currentIndex + 1 : maxIndex;
-        updateCarousel();
-      }
-    });
+    let isSwiping = false;
 
     viewport.addEventListener('touchstart', (e) => {
       startX = e.touches[0].clientX;
+      isSwiping = true;
     }, { passive: true });
 
     viewport.addEventListener('touchend', (e) => {
+      if (!isSwiping) return;
+      isSwiping = false;
       const endX = e.changedTouches[0].clientX;
       const diffX = endX - startX;
       if (diffX > 40) {
@@ -2010,15 +2146,14 @@
       }
     }, { passive: true });
 
-    // Initialize dots & carousel
     createDots();
     updateCarousel();
 
-    // 4. Copy to Clipboard Utility for Donation Accounts
+    // 4. Copy to Clipboard Utility
     function copyToClipboard(text, label) {
       if (navigator.clipboard && window.isSecureContext) {
         navigator.clipboard.writeText(text).then(() => {
-          showToast(`${label} je uspešno kopiran u privremenu memoriju.`);
+          showToast(`${label} je uspešno kopiran.`);
         }).catch(() => {
           fallbackCopyText(text, label);
         });
@@ -2039,7 +2174,7 @@
         document.execCommand('copy');
         showToast(`${label} je kopiran.`);
       } catch (err) {
-        prompt("Kopirajte broj računa ručno:", text);
+        prompt("Kopirajte broj računa:", text);
       }
       document.body.removeChild(textArea);
     }
@@ -2050,7 +2185,7 @@
       toast.classList.add('show');
       setTimeout(() => {
         toast.classList.remove('show');
-      }, 2800);
+      }, 2600);
     }
   </script>
 </body>
