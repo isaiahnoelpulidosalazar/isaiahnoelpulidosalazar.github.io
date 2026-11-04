@@ -168,7 +168,7 @@ main{padding:32px 20px 56px}
 </main>
 </div>
 <script>
-var G='https://github.com/isaiahnoelsalazar/',GP='https://github.com/isaiahnoelpulidosalazar/',PG='https://isaiahnoelpulidosalazar.github.io/',SG='https://isaiahnoelsalazar.github.io/';
+// Fallback data, used instantly and whenever llms.txt cannot be fetched.
 var RAW=`
 ## Finished
 ECStyleSheet~L:ecstylesheet/~Client-side engine that generates CSS from class names, with no extra stylesheets.~JavaScript
@@ -232,20 +232,21 @@ VITRUM~L:glass/~Editorial site about glass craftsmanship, architecture and desig
 Web Browser~P:WebBrowser~A simple web browser implementation.~C#,.NET
 Women with Baskets | School Work~L:github/women-with-baskets/~Assignment page on the artwork by Anita Magsaysay-Ho.~HTML/CSS/JavaScript
 ## Ongoing
-inpsAndroid~https://rivet.inpsstudio.com/docs/inps-android/overview~Android utility and UI library: custom views, database wrappers, cryptography helpers, validation and thread utilities.~Java,SQLite,XML
+inpsAndroid~https://docs.inpsstudio.com/inps-android/overview~Android utility and UI library: custom views, database wrappers, cryptography helpers, validation and thread utilities.~Java,SQLite,XML
 inpsNuGet~https://nuget.org/packages/inpsNuGet~.NET utility library: embedded Python runtime, executors, WinForms controls, ciphers, converters and file handlers.~C#,.NET,Python,NuGet
 inpsPyPI~https://pypi.org/project/inpsPyPI~Python utility library: database wrappers, Excel automation, data structures, ciphers, converters and validators.~Python,SQLite,PyPI
 Attendance Tracker~P:AttendanceTracker~Attendance and OJT hour tracking with role-based access, calendar view and CSV reports.~Python,Flask,HTML/JavaScript,SQLite
-Community-Supplied Area Condition Report~https://rivet.inpsstudio.com/csacr~Crowdsourced hazard monitoring for roads and buildings with interactive mapping and moderation.~TypeScript,React,Vite
-Docs~https://rivet.inpsstudio.com/docs~Technical documentation engine with guides, architecture specs and API references.~TypeScript,React,Vite
-inpsAndroid Documentation~https://rivet.inpsstudio.com/docs/inps-android/overview~Documentation for the inpsAndroid library.~TypeScript,React,Vite
+Community-Supplied Area Condition Report~https://asd.inpsstudio.com/csacr~Crowdsourced hazard monitoring for roads and buildings with interactive mapping and moderation.~TypeScript,React,Vite
+Docs~https://docs.inpsstudio.com~Technical documentation engine with guides, architecture specs and API references.~TypeScript,React,Vite
+inpsAndroid Documentation~https://docs.inpsstudio.com/inps-android/overview~Documentation for the inpsAndroid library.~TypeScript,React,Vite
 inpsGE~P:inpsGE~Custom 2D game engine built on MonoGame.~C#,MonoGame,XNA,inpsNuGet
 inpsIDE~P:inpsIDE~The official IDE for inpsGE.~C#,.NET,inpsNuGet
-inpsNuGet Documentation~https://rivet.inpsstudio.com/docs/inps-nuget/overview~Documentation for the inpsNuGet library.~TypeScript,React,Vite
-inpsPyPI Documentation~https://rivet.inpsstudio.com/docs/inps-pypi/overview~Documentation for the inpsPyPI library.~TypeScript,React,Vite
+inpsNuGet Documentation~https://docs.inpsstudio.com/inps-nuget/overview~Documentation for the inpsNuGet library.~TypeScript,React,Vite
+inpsPyPI Documentation~https://docs.inpsstudio.com/inps-pypi/overview~Documentation for the inpsPyPI library.~TypeScript,React,Vite
 Pages by inpsStudio~https://pages.inpsstudio.com/~Multi-page publishing infrastructure with edge caching.~PHP,HTML/CSS/JavaScript
 Phoenix~https://phoenix.inpsstudio.com/~A PHP site for inpsStudio.~PHP,HTML/CSS/JavaScript
 Rivet~https://rivet.inpsstudio.com~Home of my React and TypeScript projects.~TypeScript,React,Vite
+Kashflow~L:kashflow~Private, zero-bank-integration expense manager, budget planner and savings goal tracker that runs in your browser.~TypeScript,React,Vite
 Liferoad~P:Liferoad~A 2D game.~C#,MonoGame,XNA
 Monolith~https://monolith.inpsstudio.com~Flask gateway with dynamic reverse proxy, SQL Server authentication, process manager and GitHub API integration.~Python,HTML/CSS/JavaScript
 Portfolio~A:~This portfolio website.~HTML/CSS/JavaScript,ECStyleSheet
@@ -304,9 +305,10 @@ Wedding Invitation~L:github/wedding-invitation/~Sample wedding invitation site w
 Wedding Invitation Sample~L:github/landfill/sample~Second sample of the wedding invitation site.~HTML/CSS/JavaScript
 What is AI? A Guide to AI~L:what-is-ai/~Interactive guide to AI concepts and neural networks.~HTML/CSS/JavaScript
 `;
+var LLMS_URL='https://inpsstudio.com/llms.txt';
 var F=[
-['Autolandia Sales & Revenue Report Generation System','Capstone project providing automated sales tracking, salary calculations based on performance, and activity records to reduce manual work and improve reporting accuracy.',['C#','Python','SQLite'],G+'AUTOLANDIA-Sales-and-Revenue-Report-Generation-System','Capstone'],
-['inpsAndroid','Android library that eliminates boilerplate: validation, data conversion, a SQLite CRUD wrapper, flippable image views, rounded dialogs, dynamic list binding and an async URL request utility.',['Java','XML','SQLite','Open Source'],'https://rivet.inpsstudio.com/docs/inps-android/overview','Docs'],
+['Autolandia Sales & Revenue Report Generation System','Capstone project providing automated sales tracking, salary calculations based on performance, and activity records to reduce manual work and improve reporting accuracy.',['C#','Python','SQLite'],'https://github.com/isaiahnoelsalazar/AUTOLANDIA-Sales-and-Revenue-Report-Generation-System','Capstone'],
+['inpsAndroid','Android library that eliminates boilerplate: validation, data conversion, a SQLite CRUD wrapper, flippable image views, rounded dialogs, dynamic list binding and an async URL request utility.',['Java','XML','SQLite','Open Source'],'https://docs.inpsstudio.com/inps-android/overview','Docs'],
 ['inpsNuGet','A .NET package that simplifies validation, data conversion and file IO.',['C#','.NET','NuGet','Open Source'],'https://nuget.org/packages/inpsNuGet','NuGet'],
 ['inpsPyPI','A Python 3.10+ package for data conversion and validation, simplified SQLite operations, and Excel and file handling.',['Python','PyPI','Open Source'],'https://pypi.org/project/inpsPyPI','PyPI'],
 ['ECStyleSheet','A JavaScript program that generates dynamic CSS from class names, with no build step and no config.',['JavaScript','Open Source'],'https://labs.inpsstudio.com/ecstylesheet/','Demo']];
@@ -316,9 +318,8 @@ var C=[
 ['Data Analytics Essentials','June 2026','379a3ffd-bbc3-4f68-91c7-d17bdae8c8d6','Data_Analytics_Essentials_certificate.pdf']];
 
 function el(t,c,h){var e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e}
-function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;')}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;')}
 function link(u,t){return '<a href="'+u+'" target="_blank" rel="noopener">'+t+'</a>'}
-function host(u){return u.charAt(0)=='/'?'Open':(u.indexOf('github.com')>0?'GitHub':u.indexOf('nuget')>0?'NuGet':u.indexOf('pypi')>0?'PyPI':'Open')}
 
 // featured
 var fe=document.getElementById('featured');
@@ -333,27 +334,28 @@ C.forEach(function(c){ce.appendChild(el('div','card','<h3>'+c[0]+'</h3><p>'+c[1]
 // projects
 var BASE={L:'https://labs.inpsstudio.com/',P:'https://github.com/isaiahnoelpulidosalazar/',S:'https://github.com/isaiahnoelsalazar/',A:'https://isaiahnoelpulidosalazar.github.io/',B:'https://isaiahnoelsalazar.github.io/'};
 function exp(u){return u&&u.charAt(1)==':'&&BASE[u.charAt(0)]?BASE[u.charAt(0)]+u.slice(2):(u||'')}
-function lbl(u){return u.indexOf('github.com')>0?'View on GitHub':u.indexOf('nuget.org')>0?'View on NuGet':u.indexOf('pypi.org')>0?'View on PyPI':u.indexOf('rivet.')>0&&u.indexOf('/docs')>0?'Read the docs':'Open'}
-var INFO={Finished:'Released and available to use.',Ongoing:'In active development.',Archived:'No longer maintained, kept for reference.'},
- MAP={'Finished Projects':'Finished','Ongoing Projects':'Ongoing','Cancelled Projects':'Archived'},
- P={},cat='All',q='',total=0,chips=document.getElementById('chips'),list=document.getElementById('list');
+function lbl(u){return u.indexOf('github.com')>0?'View on GitHub':u.indexOf('nuget.org')>0?'View on NuGet':u.indexOf('pypi.org')>0?'View on PyPI':u.indexOf('docs.inpsstudio.com')>0?'Read the docs':'Open'}
+var INFO={Finished:'Released and available to use.',Ongoing:'In active development.',Archived:'No longer maintained, kept for reference.'};
+var MAP={'Finished Projects':'Finished','Ongoing Projects':'Ongoing','Cancelled Projects':'Archived'};
+var P={},cat='All',q='',total=0,chips=document.getElementById('chips'),list=document.getElementById('list');
 
-// fallback: the RAW text above
 function parseRaw(){var o={},cur;
  RAW.split('\n').forEach(function(l){l=l.trim();if(!l)return;
   if(l.slice(0,2)=='##'){cur=l.slice(3).trim();o[cur]=[];return}
   var a=l.split('~');o[cur].push({t:a[0],u:exp(a[1]),d:a[2],s:(a[3]||'').split(',')})});
  return o}
 
-// live: parse llms.txt
-function parseLLMS(t){var o={},cur=null;
- t.split('\n').forEach(function(l){l=l.trim();
+// Parses llms.txt. Short hand-written descriptions from RAW win over the long SEO ones.
+function parseLLMS(txt){var o={},cur=null,short={};
+ var raw=parseRaw();Object.keys(raw).forEach(function(k){raw[k].forEach(function(p){short[p.t]=p.d})});
+ txt.split('\n').forEach(function(l){l=l.trim();
   var h=l.match(/^## (.+)$/);
   if(h){cur=MAP[h[1]]||null;if(cur)o[cur]=[];return}
   if(!cur)return;
   var m=l.match(/^- \[(.+?)\](?:\((.*?)\))? - (.*) \[Stack: (.*?)(?: \||\])/);
-  if(!m||(m[2]||'').indexOf('landfill/html')>-1)return;   // skip throwaway pages
-  o[cur].push({t:m[1],u:m[2]||'',d:m[3],s:m[4].split(/,\s*/)})});
+  if(!m)return;
+  if((m[2]||'').indexOf('/landfill/html')>-1)return;
+  o[cur].push({t:m[1],u:m[2]||'',d:short[m[1]]||m[3],s:m[4].split(/,\s*/)})});
  return o}
 
 function setData(d){
@@ -367,17 +369,29 @@ function setData(d){
  draw()}
 
 document.getElementById('q').oninput=function(){q=this.value.toLowerCase().trim();draw()};
-function draw(){ /* keep your existing draw() function unchanged */ }
 
-setData(parseRaw());                       // instant render from fallback
-fetch('https://inpsstudio.com/llms.txt',{cache:'no-cache'})
+function draw(){
+ list.innerHTML='';var n=0;
+ Object.keys(P).forEach(function(k){
+  if(cat!='All'&&cat!=k)return;
+  var items=P[k].filter(function(p){return !q||(p.t+' '+p.d+' '+p.s.join(' ')).toLowerCase().indexOf(q)>-1});
+  if(!items.length)return;
+  list.appendChild(el('h2','',k+' <span style="color:var(--mut);font:400 .95rem \'Source Sans 3\'">('+items.length+')</span>'));
+  list.appendChild(el('p','hint',INFO[k]||''));
+  var w=el('div');
+  items.forEach(function(p){n++;w.appendChild(el('div','row','<div><h3>'+esc(p.t)+'</h3><p>'+esc(p.d)+'</p><div class="tags">'+p.s.map(function(t){return '<span class="tag">'+esc(t)+'</span>'}).join('')+'</div></div>'+(p.u?'<div class="side">'+link(p.u,lbl(p.u))+'</div>':'')))});
+  list.appendChild(w)});
+ if(!n)list.appendChild(el('p','empty','No projects match &ldquo;'+esc(q)+'&rdquo;. Try a different word or choose All.'))}
+
+setData(parseRaw());                      // instant render from the fallback
+fetch(LLMS_URL,{cache:'no-cache'})        // then upgrade to live data
  .then(function(r){if(!r.ok)throw 0;return r.text()})
- .then(function(t){var d=parseLLMS(t);if(d.Finished&&d.Finished.length)setData(d)})
- .catch(function(){});                     // keep fallback on any failure
+ .then(function(t){var d=parseLLMS(t);if(d.Finished&&d.Finished.length&&d.Ongoing&&d.Ongoing.length)setData(d)})
+ .catch(function(){});                    // CORS/network failure: keep the fallback
 
 // routing
 function route(){
- var v=(location.hash||'#home').slice(1);if(!document.getElementById(v)||!/^(home|projects|about)$/.test(v))v='home';
+ var v=(location.hash||'#home').slice(1);if(!/^(home|projects|about)$/.test(v))v='home';
  ['home','projects','about'].forEach(function(id){document.getElementById(id).classList.toggle('on',id==v)});
  [].forEach.call(document.querySelectorAll('nav a'),function(a){a.dataset.v==v?a.setAttribute('aria-current','page'):a.removeAttribute('aria-current')});
  window.scrollTo(0,0)}
