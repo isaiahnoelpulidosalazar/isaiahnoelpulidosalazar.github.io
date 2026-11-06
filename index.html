@@ -113,7 +113,7 @@ main{padding:32px 20px 56px}
  <div class="stats">
   <div><strong>3×</strong><span>Local champion, Android development</span></div>
   <div><strong>2×</strong><span>Cluster 1st runner-up</span></div>
-  <div><strong id="count">75+</strong><span>Projects, libraries and experiments</span></div>
+  <div><strong id="count">&mdash;</strong><span>Projects, libraries and experiments</span></div>
  </div>
 
  <h2>Competition</h2>
@@ -126,7 +126,7 @@ main{padding:32px 20px 56px}
 
  <h2>Featured projects</h2>
  <p class="hint"><a href="#projects">Browse all projects</a></p>
- <div id="featured"></div>
+ <div id="featured"><p class="hint">Loading featured projects...</p></div>
 </section>
 
 <section class="view" id="projects">
@@ -136,7 +136,7 @@ main{padding:32px 20px 56px}
   <input id="q" type="search" placeholder="Search projects" aria-label="Search projects">
   <span id="chips" style="display:contents"></span>
  </div>
- <div id="list"></div>
+ <div id="list"><p class="hint">Loading projects...</p></div>
 </section>
 
 <section class="view" id="about">
@@ -167,235 +167,281 @@ main{padding:32px 20px 56px}
 
 </main>
 </div>
+
 <script>
-// Fallback data, used instantly and whenever llms.txt cannot be fetched.
-var RAW=`
-## Finished
-ECStyleSheet~L:ecstylesheet/~Client-side engine that generates CSS from class names, with no extra stylesheets.~JavaScript
-Applock (Android 7.0+)~P:Applock~Lock screen that requires a 4-digit passcode to open apps.~Java,XML
-Autolandia Sales & Revenue Report Generation System~S:AUTOLANDIA-Sales-and-Revenue-Report-Generation-System~Capstone project: automated sales tracking, performance-based salary calculations and activity records.~C#,.NET Framework,Python,SQLite,CSSimpleFunctions
-Bad Phone Number Inputs~L:bad-phone-number-inputs/~Common phone number input mistakes and the form validation failures they cause.~HTML/CSS/JavaScript
-Ball~A:ball-download/~Bouncing ball game.~C#,Unity
-Ball (Web)~A:ball/~Bouncing ball game online.~C#,Unity
-Base64 Encoder and Decoder~P:Base64-Encoder-and-Decoder~Tool for encoding and decoding Base64 strings.~C#,.NET
-Bill Calculator (Android 4.1+)~A:bill-calculator-download/~Bill and tip calculator.~Java,XML
-Black~L:black/~A pitch-black, high-contrast dark mode page.~HTML,ECStyleSheet
-Calm~L:calm/~Calming standby screen with ocean waves and luminous orbs.~HTML/CSS/JavaScript
-Compass (Android 4.2+)~L:github/compass-download/~Free compass app with direction tracking and offline orientation.~Java,XML
-Dice~A:dice-download/~Roll the dice.~C#,Unity
-Dice (Web)~A:dice/~Roll the dice online.~C#,Unity
-Dice (Web | Mobile)~A:dice-mobile/~Roll the dice online, mobile friendly.~C#,Unity
-Dictionary~L:dictionary/~Online dictionary with definitions, pronunciations, origins, examples and synonyms.~HTML/CSS/JavaScript,ECStyleSheet
-Art Nouveau Design Language System~L:DLS/art-nouveau/~Organic curves, floral patterns and decorative typography.~HTML/CSS/JavaScript
-Claymorphism Design Language System~L:DLS/claymorphism/~Soft, tactile 3D components with puffy buttons and inner shadows.~HTML/CSS/JavaScript
-Editorial Design Language System~L:DLS/editorial/~Magazine-style layouts with serif headers and refined typography grids.~HTML/CSS/JavaScript
-Glassmorphism Design Language System~L:DLS/glassmorphism/~Frosted glass components with translucent layers and background blur.~HTML/CSS/JavaScript
-Luxury Typography Design Language System~L:DLS/luxury-typography/~High-contrast serif pairings, refined kerning and metallic accents.~HTML/CSS/JavaScript
-Minimalism Design Language System~L:DLS/minimalism/~Clean spatial grids, restrained type and functional components.~HTML/CSS/JavaScript
-Neobrutalism Design Language System~L:DLS/neobrutalism/~Stark borders, solid colors and hard drop shadows.~HTML/CSS/JavaScript
-Neumorphism Design Language System~L:DLS/neumorphism/~Soft extruded surfaces with dual inner shadows.~HTML/CSS/JavaScript
-Swiss Design Language System~L:DLS/swiss-design/~Rigid typographic grids, asymmetrical layouts and bold sans-serif type.~HTML/CSS/JavaScript
-Document Converter~L:document-converter/~Convert document formats with batch processing and secure file handling.~HTML/JavaScript,ECStyleSheet
-Electronic Gadget Store | School Work~L:github/electronic-gadget-store/~Assignment page for a sample electronic gadget store.~HTML/CSS/JavaScript,ECStyleSheet
-File Organizer by Extension~P:FileOrganizerByExtension~Sorts files into folders by extension.~Python
-GameDev_2DRPG | School Work~S:GameDev_2DRPG~2D RPG made in Unity as school work.~C#,Unity
-HTML Editor (Android 7.0+)~L:github/html-editor-download/~Write, edit and preview HTML, CSS and JavaScript on your phone.~Java,SQLite,XML
-Increment Decrement (Android 7.0+)~S:IncrementDecrement~Number counter.~Java,XML
-inpsos~P:inpsos~Console-only operating system that runs the easec interpreted language.~C,Python,Assembly
-Live HTML~L:live-html/~Edit HTML, CSS and JavaScript with a side-by-side live preview.~HTML/CSS/JavaScript
-Match Up Game (Android 7.0+) | School Work~L:github/match-up-game-download/~Tile-matching memory game.~Java,XML,inpsAndroid
-Monay (Android 7.0+) | School Work~S:Monay~Assignment e-wallet app using the SimpleFunctions dependency.~Java,SQLite,XML,SimpleFunctions
-Multiple Dice~A:multiple-dice-download/~Roll multiple dice.~C#,Unity
-Multiple Dice (Web)~A:multiple-dice/~Roll multiple dice online.~C#,Unity
-Multiplication Table | School Work~L:github/multiplication-table/~Interactive 1-12 multiplication table with quick quizzes.~HTML/CSS/JavaScript
-MySQL Manager~L:mysql-manager/~Web-based SQL execution, schema navigation, row editing and data export.~HTML/CSS/JavaScript
-Note (Android 4.1+)~B:note-download/~A note app.~Java,SQLite,XML,Almond
-OTP~L:otp/~Private, offline authenticator with local time-based code generation.~HTML/JavaScript,ECStyleSheet
-Personal Webpage | School Work~L:github/personal-webpage/~Assignment page for a sample portfolio website.~HTML/CSS/JavaScript
-Rainbow~L:rainbow/~Fluid rainbow gradient background.~HTML/CSS/JavaScript
-SalazarIsaiahNoel_BSIT701P_Lab1 | School Work~S:SalazarIsaiahNoel_BSIT701P_Lab1~Assignment: finished racing game tutorial.~C#,Unity
-SalazarIsaiahNoel_BSIT701P_Lab2 | School Work~S:SalazarIsaiahNoel_BSIT701P_Lab2~Assignment: finished FPS shooter tutorial.~C#,Unity
-Sample PHP Page~https://php.inpsstudio.com/sample/~A sample PHP page.~PHP,HTML/CSS/JavaScript
-Sample Python OpenGL Scripts~P:Sample-Python-OpenGL-Scripts~Scripts created from school activities.~Python,OpenGL
-Shopping List App (Android 7.0+)~B:shoppinglist-download/~A free shopping list app.~Java,SQLite,XML
-Simple Field Checker (Android 7.0+)~S:SimpleFieldChecker~Checks whether two fields are equal.~Java,XML
-Simple Web Calculator~L:github/simple-web-calculator/~Basic arithmetic, percentages and formulas on any device.~HTML/CSS/JavaScript
-Slavija Info Sample Layout~L:github/samples/slavija-info-sample-layout~Sample home page layout for the Slavija Info website.~HTML/CSS/JavaScript
-Solution Provider - ChatGPT~L:solution-provider/chatgpt/~Sample web layouts and components generated with ChatGPT.~HTML/CSS/JavaScript
-Solution Provider - Claude~L:solution-provider/claude/~Sample web layouts and components generated with Claude.~HTML/CSS/JavaScript
-Solution Provider - Copilot~L:solution-provider/copilot/~Sample web layouts and components generated with Copilot.~HTML/CSS/JavaScript
-Solution Provider - Gemini~L:solution-provider/gemini/~Sample web layouts and components generated with Gemini.~HTML/CSS/JavaScript
-SQL Server Manager~L:sql-server-manager/~Query execution, schema navigation and row editing for SQL Server.~HTML/CSS/JavaScript
-Student Registration App (Android 7.0+)~B:studentregistrationapp-download/~Sample student registration app.~Java,SQLite,XML
-Thock~L:thock/~Guide to mechanical keyboard switches, keycaps and acoustic tuning.~HTML/CSS/JavaScript
-VITRUM~L:glass/~Editorial site about glass craftsmanship, architecture and design.~HTML/CSS/JavaScript
-Web Browser~P:WebBrowser~A simple web browser implementation.~C#,.NET
-Women with Baskets | School Work~L:github/women-with-baskets/~Assignment page on the artwork by Anita Magsaysay-Ho.~HTML/CSS/JavaScript
-## Ongoing
-inpsAndroid~https://docs.inpsstudio.com/inps-android/overview~Android utility and UI library: custom views, database wrappers, cryptography helpers, validation and thread utilities.~Java,SQLite,XML
-inpsNuGet~https://nuget.org/packages/inpsNuGet~.NET utility library: embedded Python runtime, executors, WinForms controls, ciphers, converters and file handlers.~C#,.NET,Python,NuGet
-inpsPyPI~https://pypi.org/project/inpsPyPI~Python utility library: database wrappers, Excel automation, data structures, ciphers, converters and validators.~Python,SQLite,PyPI
-Attendance Tracker~P:AttendanceTracker~Attendance and OJT hour tracking with role-based access, calendar view and CSV reports.~Python,Flask,HTML/JavaScript,SQLite
-Community-Supplied Area Condition Report~https://asd.inpsstudio.com/csacr~Crowdsourced hazard monitoring for roads and buildings with interactive mapping and moderation.~TypeScript,React,Vite
-Docs~https://docs.inpsstudio.com~Technical documentation engine with guides, architecture specs and API references.~TypeScript,React,Vite
-inpsAndroid Documentation~https://docs.inpsstudio.com/inps-android/overview~Documentation for the inpsAndroid library.~TypeScript,React,Vite
-inpsGE~P:inpsGE~Custom 2D game engine built on MonoGame.~C#,MonoGame,XNA,inpsNuGet
-inpsIDE~P:inpsIDE~The official IDE for inpsGE.~C#,.NET,inpsNuGet
-inpsNuGet Documentation~https://docs.inpsstudio.com/inps-nuget/overview~Documentation for the inpsNuGet library.~TypeScript,React,Vite
-inpsPyPI Documentation~https://docs.inpsstudio.com/inps-pypi/overview~Documentation for the inpsPyPI library.~TypeScript,React,Vite
-Pages by inpsStudio~https://pages.inpsstudio.com/~Multi-page publishing infrastructure with edge caching.~PHP,HTML/CSS/JavaScript
-Phoenix~https://phoenix.inpsstudio.com/~A PHP site for inpsStudio.~PHP,HTML/CSS/JavaScript
-Rivet~https://rivet.inpsstudio.com~Home of my React and TypeScript projects.~TypeScript,React,Vite
-Kashflow~L:kashflow~Private, zero-bank-integration expense manager, budget planner and savings goal tracker that runs in your browser.~TypeScript,React,Vite
-Liferoad~P:Liferoad~A 2D game.~C#,MonoGame,XNA
-Monolith~https://monolith.inpsstudio.com~Flask gateway with dynamic reverse proxy, SQL Server authentication, process manager and GitHub API integration.~Python,HTML/CSS/JavaScript
-Portfolio~A:~This portfolio website.~HTML/CSS/JavaScript,ECStyleSheet
-## Archived
-ainps~P:ainps~Experimental local AI program.~Python
-Almond (Android 4.1+)~S:Almond~Archived Android dependency that simplifies development.~Java,SQLite,XML
-AutoClicker~P:AutoClicker~Automatically clicks the screen for you.~C#,.NET
-Autolandia Sales & Revenue Report Generation System (Rework)~P:AUTOLANDIA-Sales-and-Revenue-Report-Generation-System~Rework of the capstone project.~C#,.NET,inpsNuGet
-Blog~~Blog site created with ECStyleSheet.~HTML/JavaScript,ECStyleSheet
-Bread (Android 4.1+)~S:Bread~Archived Android dependency that simplifies development.~Java,XML
-BusSeatingArrangementExample (Android 4.1+)~S:BusSeatingArrangementExample~Sample bus seating reservation app.~Java,SQLite,XML
-Captain's Cup POS (Android 7.0+)~S:CaptainsCupPOS~Point-of-sale application for Captain's Cup.~Java,SQLite,XML
-chease~P:chease~Interpreted programming language in C# with a custom syntax.~C#,.NET
-Chess~L:github/chess/~Play chess against bots online.~HTML/JavaScript,ECStyleSheet
-Cod (Android 7.0+)~S:Cod~Archived Android dependency that simplifies development.~Java,SQLite,XML
-Code Notes~L:github/code-notes/~Concise notes for Android Java, Java and C#.~HTML/CSS
-CSharpSimpleFunctions (.NET Framework 4.7.2+)~https://nuget.org/packages/CSharpSimpleFunctions~Archived utility package for .NET Framework 4.7.2+.~C#,.NET Framework,NuGet
-CSSimpleFunctions (.NET 6.0+ | .NET Framework 4.5+)~https://nuget.org/packages/CSSimpleFunctions~Archived utility package for C#.~C#,.NET,NuGet
-easec~P:easec~Interpreted language in C with an easy-to-remember syntax.~C
-EC Demo~L:github/ec-demo/~Interactive ECStyleSheet and ECElements demo.~HTML/CSS/JavaScript,ECStyleSheet
-ECElements~L:ecelements/~Modular JavaScript UI framework with canvas charts, modals and data tables.~JavaScript,ECStyleSheet
-ECElements Test Runner~L:github/ecelements-test/~Automated test runner for ECElements.~HTML/CSS/JavaScript,ECStyleSheet
-ECIDE~L:github/ecide/~Lightweight online IDE built with ECStyleSheet and ECElements.~HTML/CSS/JavaScript,ECStyleSheet
-ECStyleSheet Test Runner~L:github/ecstylesheet-test/~Automated test runner for ECStyleSheet.~HTML/CSS/JavaScript,ECStyleSheet
-Expenses and Savings~L:expenses-and-savings/~Budget builder and expense calculator for tracking net savings.~HTML/CSS/JavaScript
-inpsAndroid Old Documentation~~Previous documentation site for inpsAndroid.~HTML/CSS/JavaScript,ECStyleSheet
-inpsNuGet Old Documentation~~Previous documentation site for inpsNuGet.~HTML/CSS/JavaScript,ECStyleSheet
-inpsPyPI Old Documentation~~Previous documentation site for inpsPyPI.~HTML/CSS/JavaScript,ECStyleSheet
-Hello by inpsStudio~~Social app for sharing updates and messaging friends.~HTML/CSS/JavaScript
-Luxowash~https://luxowash-management-system.vercel.app~Car wash management: customers, service tracking and reporting.~HTML/CSS/JavaScript,TypeScript,Python
-Minesweeper~L:github/minesweeper/~Classic Minesweeper with best-time tracking.~HTML/JavaScript,ECStyleSheet
-My old HTML practice website~L:github/thml/~My early HTML practice website.~HTML/CSS
-NETSimpleFunctions (.NET 6.0+ | .NET Framework 4.7.2+)~https://nuget.org/packages/NETSimpleFunctions~Utility functions to speed up C# development.~C#,.NET,.NET Framework,Python,NuGet
-Number Memory Game~L:github/number-memory-game/~Memorize increasingly long digit sequences and track high scores.~HTML/JavaScript,ECStyleSheet
-PacmanAndroid (Android 4.4+)~S:PacmanAndroid~Simple Pacman game in Android Studio.~Java,XML
-Posts~~Posts on science, technology, culture and gaming.~HTML/JavaScript,ECStyleSheet
-PythonSimpleFunctions (Python 3.x+)~https://pypi.org/project/PythonSimpleFunctions~Utility functions to speed up Python development.~Python,SQLite,PyPI
-QR Generator (Android 7.0+)~B:qr-generator-download/~A free QR generator app.~Java,XML
-QR Scanner and Generator~L:github/qr/~Scan QR codes by camera and generate them as high-resolution images.~HTML/JavaScript,ECStyleSheet
-saia_ProjectA (Android 6.0+)~S:saia_ProjectA~Multiple functions gathered through various experiments.~Java,SQLite,XML
-sAP (Android 6.0+)~S:sAP~An attempt at a modular Android application.~Java,XML
-sAPModule_OBXR (Android 6.0+)~S:sAPModule_OBXR~sAP module that shows a constant reminder in the notification bar.~Java,SQLite,XML
-sAPModule_QRGN (Android 6.0+)~S:sAPModule_QRGN~sAP module that generates QR codes.~Java,XML
-sAPModule_QRSC (Android 6.0+)~S:sAPModule_QRSC~sAP module that scans QR codes.~Java,XML
-sAPModule_SHPL (Android 6.0+)~S:sAPModule_SHPL~sAP module that serves as a simple shopping list.~Java,SQLite,XML
-ScreenShare~~A simple screen sharing utility.~HTML/CSS/JavaScript
-SimpleFunctions (Android 7.0+)~S:SimpleFunctions~Utility functions to speed up Android development.~Java,SQLite,XML
-SkillSwap (Android 7.0+)~S:SkillSwap~Recreated sample problem from a competition.~Java,SQLite,XML,Cod
-Snake~L:github/snake/~Classic Snake game with high scores.~HTML/JavaScript,ECStyleSheet
-SQuuLite (Android 7.0+)~~Free SQLite playground app.~Java,SQLite,XML
-Sudoku~L:github/sudoku/~Sudoku with generated puzzles from easy to expert.~HTML/CSS/JavaScript
-Ulap (Android 7.0+)~S:Ulap~Sample login app in Android (Java).~Java,SQLite,XML,SimpleFunctions
-Vita~L:life/~Essays on the science and philosophy of life.~HTML/CSS/JavaScript
-Website Monitor~P:WebsiteMonitor~Checks the status of a list of URLs.~Python
-Wedding Invitation~L:github/wedding-invitation/~Sample wedding invitation site with schedule, gallery and RSVP.~HTML/CSS/JavaScript
-Wedding Invitation Sample~L:github/landfill/sample~Second sample of the wedding invitation site.~HTML/CSS/JavaScript
-What is AI? A Guide to AI~L:what-is-ai/~Interactive guide to AI concepts and neural networks.~HTML/CSS/JavaScript
-`;
-var LLMS_URL='https://inpsstudio.com/llms.txt';
-var F=[
-['Autolandia Sales & Revenue Report Generation System','Capstone project providing automated sales tracking, salary calculations based on performance, and activity records to reduce manual work and improve reporting accuracy.',['C#','Python','SQLite'],'https://github.com/isaiahnoelsalazar/AUTOLANDIA-Sales-and-Revenue-Report-Generation-System','Capstone'],
-['inpsAndroid','Android library that eliminates boilerplate: validation, data conversion, a SQLite CRUD wrapper, flippable image views, rounded dialogs, dynamic list binding and an async URL request utility.',['Java','XML','SQLite','Open Source'],'https://docs.inpsstudio.com/inps-android/overview','Docs'],
-['inpsNuGet','A .NET package that simplifies validation, data conversion and file IO.',['C#','.NET','NuGet','Open Source'],'https://nuget.org/packages/inpsNuGet','NuGet'],
-['inpsPyPI','A Python 3.10+ package for data conversion and validation, simplified SQLite operations, and Excel and file handling.',['Python','PyPI','Open Source'],'https://pypi.org/project/inpsPyPI','PyPI'],
-['ECStyleSheet','A JavaScript program that generates dynamic CSS from class names, with no build step and no config.',['JavaScript','Open Source'],'https://labs.inpsstudio.com/ecstylesheet/','Demo']];
-var C=[
-['CSS Essentials','July 2026','d77aa127-a509-457b-bb92-9e18f57dfc6a','CSS_Essentials_certificate.pdf'],
-['HTML Essentials','July 2026','c9233b0d-2a2b-4620-8122-b91292b10c21','HTML_Essentials_certificate.pdf'],
-['Data Analytics Essentials','June 2026','379a3ffd-bbc3-4f68-91c7-d17bdae8c8d6','Data_Analytics_Essentials_certificate.pdf']];
+var LLMS_URL = 'https://inpsstudio.com/llms.txt';
 
-function el(t,c,h){var e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e}
-function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;')}
-function link(u,t){return '<a href="'+u+'" target="_blank" rel="noopener">'+t+'</a>'}
+// Featured projects: specify only the project names to match against online text
+var FEATURED_PROJECT_NAMES = [
+  'Autolandia Sales & Revenue Report Generation System',
+  'inpsAndroid',
+  'inpsNuGet',
+  'inpsPyPI',
+  'ECStyleSheet'
+];
 
-// featured
-var fe=document.getElementById('featured');
-F.forEach(function(p){var r=el('div','row');
- r.innerHTML='<div><h3>'+esc(p[0])+'</h3><p>'+esc(p[1])+'</p><div class="tags">'+p[2].map(function(t){return '<span class="tag">'+t+'</span>'}).join('')+'</div></div><div class="side">'+(p[4]=='Capstone'?'<span class="badge">Capstone</span>':'')+link(p[3],{GitHub:'View on GitHub',NuGet:'View on NuGet',PyPI:'View on PyPI',Capstone:'View on GitHub',Docs:'Read the docs',Demo:'View demo'}[p[4]])+'</div>';
- fe.appendChild(r)});
+// Certifications: defined as a structured dictionary / array of objects
+var CERTIFICATIONS = [
+  {
+    title: 'CSS Essentials',
+    date: 'July 2026',
+    badgeId: 'd77aa127-a509-457b-bb92-9e18f57dfc6a',
+    file: 'CSS_Essentials_certificate.pdf'
+  },
+  {
+    title: 'HTML Essentials',
+    date: 'July 2026',
+    badgeId: 'c9233b0d-2a2b-4620-8122-b91292b10c21',
+    file: 'HTML_Essentials_certificate.pdf'
+  },
+  {
+    title: 'Data Analytics Essentials',
+    date: 'June 2026',
+    badgeId: '379a3ffd-bbc3-4f68-91c7-d17bdae8c8d6',
+    file: 'Data_Analytics_Essentials_certificate.pdf'
+  }
+];
 
-// certs
-var ce=document.getElementById('certs');
-C.forEach(function(c){ce.appendChild(el('div','card','<h3>'+c[0]+'</h3><p>'+c[1]+'</p><div class="links">'+link('https://www.credly.com/badges/'+c[2]+'/public_url','View credential')+link(c[3],'Download certificate')+'</div>'))});
+// Utility functions
+function el(t, c, h) {
+  var e = document.createElement(t);
+  if (c) e.className = c;
+  if (h != null) e.innerHTML = h;
+  return e;
+}
 
-// projects
-var BASE={L:'https://labs.inpsstudio.com/',P:'https://github.com/isaiahnoelpulidosalazar/',S:'https://github.com/isaiahnoelsalazar/',A:'https://isaiahnoelpulidosalazar.github.io/',B:'https://isaiahnoelsalazar.github.io/'};
-function exp(u){return u&&u.charAt(1)==':'&&BASE[u.charAt(0)]?BASE[u.charAt(0)]+u.slice(2):(u||'')}
-function lbl(u){return u.indexOf('github.com')>0?'View on GitHub':u.indexOf('nuget.org')>0?'View on NuGet':u.indexOf('pypi.org')>0?'View on PyPI':u.indexOf('docs.inpsstudio.com')>0?'Read the docs':'Open'}
-var INFO={Finished:'Released and available to use.',Ongoing:'In active development.',Archived:'No longer maintained, kept for reference.'};
-var MAP={'Finished Projects':'Finished','Ongoing Projects':'Ongoing','Cancelled Projects':'Archived'};
-var P={},cat='All',q='',total=0,chips=document.getElementById('chips'),list=document.getElementById('list');
+function esc(s) {
+  return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;');
+}
 
-function parseRaw(){var o={},cur;
- RAW.split('\n').forEach(function(l){l=l.trim();if(!l)return;
-  if(l.slice(0,2)=='##'){cur=l.slice(3).trim();o[cur]=[];return}
-  var a=l.split('~');o[cur].push({t:a[0],u:exp(a[1]),d:a[2],s:(a[3]||'').split(',')})});
- return o}
+function link(u, t) {
+  return '<a href="' + u + '" target="_blank" rel="noopener">' + t + '</a>';
+}
 
-// Parses llms.txt. Short hand-written descriptions from RAW win over the long SEO ones.
-function parseLLMS(txt){var o={},cur=null,short={};
- var raw=parseRaw();Object.keys(raw).forEach(function(k){raw[k].forEach(function(p){short[p.t]=p.d})});
- txt.split('\n').forEach(function(l){l=l.trim();
-  var h=l.match(/^## (.+)$/);
-  if(h){cur=MAP[h[1]]||null;if(cur)o[cur]=[];return}
-  if(!cur)return;
-  var m=l.match(/^- \[(.+?)\](?:\((.*?)\))? - (.*) \[Stack: (.*?)(?: \||\])/);
-  if(!m)return;
-  if((m[2]||'').indexOf('/landfill/html')>-1)return;
-  o[cur].push({t:m[1],u:m[2]||'',d:short[m[1]]||m[3],s:m[4].split(/,\s*/)})});
- return o}
+function lbl(u) {
+  if (!u) return 'Open';
+  if (u.indexOf('github.com') > -1) return 'View on GitHub';
+  if (u.indexOf('nuget.org') > -1) return 'View on NuGet';
+  if (u.indexOf('pypi.org') > -1) return 'View on PyPI';
+  if (u.indexOf('docs.inpsstudio.com') > -1) return 'Read the docs';
+  if (u.indexOf('labs.inpsstudio.com') > -1) return 'View project';
+  return 'Open';
+}
 
-function setData(d){
- P=d;total=0;Object.keys(P).forEach(function(k){total+=P[k].length});
- document.getElementById('count').textContent=total;
- chips.innerHTML='';cat='All';
- ['All'].concat(Object.keys(P)).forEach(function(k){
-  var b=el('button','chip',k+' ('+(k=='All'?total:P[k].length)+')');b.type='button';b.setAttribute('aria-pressed',k=='All');
-  b.onclick=function(){cat=k;[].forEach.call(chips.children,function(c){c.setAttribute('aria-pressed',c===b)});draw()};
-  chips.appendChild(b)});
- draw()}
+// Render dynamic certifications
+function renderCertifications() {
+  var ce = document.getElementById('certs');
+  ce.innerHTML = '';
+  CERTIFICATIONS.forEach(function(c) {
+    var credLink = c.badgeId
+      ? link('https://www.credly.com/badges/' + c.badgeId + '/public_url', 'View credential')
+      : (c.url ? link(c.url, 'View credential') : '');
+    var dlLink = c.file ? link(c.file, 'Download certificate') : '';
 
-document.getElementById('q').oninput=function(){q=this.value.toLowerCase().trim();draw()};
+    var card = el('div', 'card');
+    card.innerHTML = '<h3>' + esc(c.title) + '</h3>' +
+      '<p>' + esc(c.date) + '</p>' +
+      '<div class="links">' + credLink + dlLink + '</div>';
+    ce.appendChild(card);
+  });
+}
 
-function draw(){
- list.innerHTML='';var n=0;
- Object.keys(P).forEach(function(k){
-  if(cat!='All'&&cat!=k)return;
-  var items=P[k].filter(function(p){return !q||(p.t+' '+p.d+' '+p.s.join(' ')).toLowerCase().indexOf(q)>-1});
-  if(!items.length)return;
-  list.appendChild(el('h2','',k+' <span style="color:var(--mut);font:400 .95rem \'Source Sans 3\'">('+items.length+')</span>'));
-  list.appendChild(el('p','hint',INFO[k]||''));
-  var w=el('div');
-  items.forEach(function(p){n++;w.appendChild(el('div','row','<div><h3>'+esc(p.t)+'</h3><p>'+esc(p.d)+'</p><div class="tags">'+p.s.map(function(t){return '<span class="tag">'+esc(t)+'</span>'}).join('')+'</div></div>'+(p.u?'<div class="side">'+link(p.u,lbl(p.u))+'</div>':'')))});
-  list.appendChild(w)});
- if(!n)list.appendChild(el('p','empty','No projects match &ldquo;'+esc(q)+'&rdquo;. Try a different word or choose All.'))}
+// Dynamically add a certification helper
+function addCertification(cert) {
+  CERTIFICATIONS.push(cert);
+  renderCertifications();
+}
+renderCertifications();
 
-setData(parseRaw());                      // instant render from the fallback
-fetch(LLMS_URL,{cache:'no-cache'})        // then upgrade to live data
- .then(function(r){if(!r.ok)throw 0;return r.text()})
- .then(function(t){var d=parseLLMS(t);if(d.Finished&&d.Finished.length&&d.Ongoing&&d.Ongoing.length)setData(d)})
- .catch(function(){});                    // CORS/network failure: keep the fallback
+// Project categories and mappings
+var INFO = {
+  Finished: 'Released and available to use.',
+  Ongoing: 'In active development.',
+  Archived: 'No longer maintained, kept for reference.'
+};
+var MAP = {
+  'Finished Projects': 'Finished',
+  'Ongoing Projects': 'Ongoing',
+  'Cancelled Projects': 'Archived'
+};
 
-// routing
-function route(){
- var v=(location.hash||'#home').slice(1);if(!/^(home|projects|about)$/.test(v))v='home';
- ['home','projects','about'].forEach(function(id){document.getElementById(id).classList.toggle('on',id==v)});
- [].forEach.call(document.querySelectorAll('nav a'),function(a){a.dataset.v==v?a.setAttribute('aria-current','page'):a.removeAttribute('aria-current')});
- window.scrollTo(0,0)}
-window.addEventListener('hashchange',route);route();
+var P = {}, cat = 'All', q = '', total = 0;
+var chips = document.getElementById('chips');
+var list = document.getElementById('list');
+var fe = document.getElementById('featured');
+
+// Parse online llms.txt format
+function parseLLMS(txt) {
+  var o = {}, cur = null;
+  txt.split('\n').forEach(function(l) {
+    l = l.trim();
+    var h = l.match(/^## (.+)$/);
+    if (h) {
+      cur = MAP[h[1]] || null;
+      if (cur && !o[cur]) o[cur] = [];
+      return;
+    }
+    if (!cur) return;
+    if (l.indexOf('/landfill/html') > -1) return;
+
+    // Matches: - [Title](URL) - Description [Stack: ... | ...]
+    var m = l.match(/^- \[(.+?)\](?:\((.*?)\))?\s*-\s*(.*)/);
+    if (m) {
+      var title = m[1].trim();
+      var url = m[2] ? m[2].trim() : '';
+      var rest = m[3].trim();
+      var desc = rest;
+      var stack = [];
+
+      var stackMatch = rest.match(/\[Stack:\s*(.*?)(?:\s*\||\])/);
+      if (stackMatch) {
+        desc = rest.slice(0, stackMatch.index).trim();
+        stack = stackMatch[1].split(/,\s*/).map(function(s) { return s.trim(); }).filter(Boolean);
+      }
+
+      o[cur].push({ t: title, u: url, d: desc, s: stack });
+    }
+  });
+  return o;
+}
+
+// Render featured projects by matching name only
+function renderFeatured(allProjects) {
+  fe.innerHTML = '';
+  var matches = 0;
+
+  FEATURED_PROJECT_NAMES.forEach(function(name) {
+    var p = allProjects.find(function(item) {
+      return item.t.trim().toLowerCase() === name.trim().toLowerCase();
+    });
+    if (!p) return;
+    matches++;
+
+    var isCapstone = p.d.toLowerCase().indexOf('capstone') > -1;
+    var r = el('div', 'row');
+    r.innerHTML =
+      '<div>' +
+        '<h3>' + esc(p.t) + '</h3>' +
+        '<p>' + esc(p.d) + '</p>' +
+        '<div class="tags">' +
+          p.s.map(function(t) { return '<span class="tag">' + esc(t) + '</span>'; }).join('') +
+        '</div>' +
+      '</div>' +
+      '<div class="side">' +
+        (isCapstone ? '<span class="badge">Capstone</span>' : '') +
+        (p.u ? link(p.u, lbl(p.u)) : '') +
+      '</div>';
+    fe.appendChild(r);
+  });
+
+  if (!matches) {
+    fe.innerHTML = '<p class="empty">No featured projects found.</p>';
+  }
+}
+
+function setData(d) {
+  P = d;
+  total = 0;
+  var allProjects = [];
+
+  Object.keys(P).forEach(function(k) {
+    total += P[k].length;
+    allProjects = allProjects.concat(P[k]);
+  });
+
+  document.getElementById('count').textContent = total;
+
+  // Render featured projects based on online matching names
+  renderFeatured(allProjects);
+
+  // Setup category filter buttons
+  chips.innerHTML = '';
+  cat = 'All';
+  ['All'].concat(Object.keys(P)).forEach(function(k) {
+    var b = el('button', 'chip', k + ' (' + (k == 'All' ? total : P[k].length) + ')');
+    b.type = 'button';
+    b.setAttribute('aria-pressed', k == 'All');
+    b.onclick = function() {
+      cat = k;
+      [].forEach.call(chips.children, function(c) { c.setAttribute('aria-pressed', c === b); });
+      draw();
+    };
+    chips.appendChild(b);
+  });
+
+  draw();
+}
+
+document.getElementById('q').oninput = function() {
+  q = this.value.toLowerCase().trim();
+  draw();
+};
+
+function draw() {
+  list.innerHTML = '';
+  var n = 0;
+  Object.keys(P).forEach(function(k) {
+    if (cat != 'All' && cat != k) return;
+    var items = P[k].filter(function(p) {
+      return !q || (p.t + ' ' + p.d + ' ' + p.s.join(' ')).toLowerCase().indexOf(q) > -1;
+    });
+    if (!items.length) return;
+
+    list.appendChild(el('h2', '', k + ' <span style="color:var(--mut);font:400 .95rem \'Source Sans 3\'">(' + items.length + ')</span>'));
+    list.appendChild(el('p', 'hint', INFO[k] || ''));
+
+    var w = el('div');
+    items.forEach(function(p) {
+      n++;
+      w.appendChild(el('div', 'row',
+        '<div>' +
+          '<h3>' + esc(p.t) + '</h3>' +
+          '<p>' + esc(p.d) + '</p>' +
+          '<div class="tags">' +
+            p.s.map(function(t) { return '<span class="tag">' + esc(t) + '</span>'; }).join('') +
+          '</div>' +
+        '</div>' +
+        (p.u ? '<div class="side">' + link(p.u, lbl(p.u)) + '</div>' : '')
+      ));
+    });
+    list.appendChild(w);
+  });
+
+  if (!n) {
+    list.appendChild(el('p', 'empty', 'No projects match &ldquo;' + esc(q) + '&rdquo;. Try a different word or choose All.'));
+  }
+}
+
+// Fetch live data directly from llms.txt (no offline fallback text)
+fetch(LLMS_URL, { cache: 'no-cache' })
+  .then(function(r) {
+    if (!r.ok) throw new Error('Network error: ' + r.status);
+    return r.text();
+  })
+  .then(function(txt) {
+    var data = parseLLMS(txt);
+    setData(data);
+  })
+  .catch(function(err) {
+    fe.innerHTML = '<p class="empty">Unable to load featured projects from the server.</p>';
+    list.innerHTML = '<p class="empty">Unable to load projects from the server. Please check your connection.</p>';
+    document.getElementById('count').textContent = '—';
+  });
+
+// Single-page view routing
+function route() {
+  var v = (location.hash || '#home').slice(1);
+  if (!/^(home|projects|about)$/.test(v)) v = 'home';
+  ['home', 'projects', 'about'].forEach(function(id) {
+    document.getElementById(id).classList.toggle('on', id == v);
+  });
+  [].forEach.call(document.querySelectorAll('nav a'), function(a) {
+    a.dataset.v == v ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current');
+  });
+  window.scrollTo(0, 0);
+}
+window.addEventListener('hashchange', route);
+route();
 </script>
 </body>
 </html>
