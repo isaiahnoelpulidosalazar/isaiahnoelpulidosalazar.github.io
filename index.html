@@ -155,13 +155,12 @@ main{padding:32px 20px 56px}
  <div class="card"><h3>2× Cluster Level 1st Runner-Up, STI Codefest</h3><p>Represented STI College Santa Rosa at the regional cluster level against top teams from across the cluster.</p></div>
 
  <h2>Certificates</h2>
- <p class="hint">Cisco Networking Academy (DICT-ITU DTC Initiative)</p>
+ <p class="hint">Professional certifications, credentials, and course completions.</p>
  <div id="certs"></div>
 
  <h2>Education</h2>
  <div class="edu">
   <time>2022 – 2026</time><div><strong>B.S. Information Technology</strong><br><span style="color:var(--mut)">STI College Santa Rosa</span></div>
-  <time>2020 – 2022</time><div><strong>Senior High School</strong><br><span style="color:var(--mut)">STI College Santa Rosa</span></div>
  </div>
 </section>
 
@@ -180,22 +179,99 @@ var FEATURED_PROJECT_NAMES = [
   'ECStyleSheet'
 ];
 
-// Certifications: defined as a structured dictionary / array of objects
+/**
+ * Certifications list:
+ * You can add certificates from ANY issuer or platform (Cisco, Coursera, freeCodeCamp, AWS, Google, etc.).
+ *
+ * Supported fields per entry:
+ * - title: Certification name (required)
+ * - issuer: Issuing organization or platform (optional)
+ * - date: Issue date or completion period (optional)
+ * - credentialUrl: Direct URL to the verification page (Coursera, Udemy, etc.) OR
+ * - badgeId: Credly badge ID string (shorthand, automatically expands to Credly public badge URL)
+ * - file: Path or URL to the downloadable PDF certificate (optional)
+ */
 var CERTIFICATIONS = [
   {
+    title: 'Python Essentials 2',
+    issuer: 'Cisco Networking Academy (DICT-ITU DTC Initiative)',
+    date: 'November 2026',
+    badgeId: '1e7696b7-37f5-4ccb-8253-0121c34bff2d',
+    file: 'Python_Essentials_2_certificate.pdf'
+  },
+  {
+    title: 'Python Essentials 1',
+    issuer: 'Cisco Networking Academy (DICT-ITU DTC Initiative)',
+    date: 'November 2026',
+    badgeId: '740ba7c3-c0b5-4c83-a503-769c1a9f7478',
+    file: 'Python_Essentials_1_certificate.pdf'
+  },
+  {
+    title: 'Hardware and Upgrade Support',
+    issuer: 'Cisco Networking Academy (DICT-ITU DTC Initiative)',
+    date: 'November 2026',
+    badgeId: '08c70a3a-fce4-4578-9c51-97a75e855f13',
+    file: 'Hardware_and_Upgrade_Support_certificate.pdf'
+  },
+  {
+    title: 'Microsoft Certified: Azure AI Fundamentals',
+    issuer: 'Microsoft',
+    date: 'October 2026',
+    badgeId: '1a6b295e-9eab-4438-97b8-b7ea7266c310',
+    file: 'Microsoft_Azure_AI_Fundamentals_certificate.pdf'
+  },
+  {
+    title: 'Introduction to IoT and Digital Transformation',
+    issuer: 'Cisco Networking Academy (DICT-ITU DTC Initiative)',
+    date: 'October 2026',
+    badgeId: 'e3033b9d-d0d0-4fc9-a7ab-982788d4efc2',
+    file: 'Introduction_to_IoT_certificate.pdf'
+  },
+  {
+    title: 'JavaScript Essentials 1',
+    issuer: 'Cisco Networking Academy (DICT-ITU DTC Initiative)',
+    date: 'September 2026',
+    badgeId: '0fd3a088-337b-422c-bf0d-cdbc8776297b',
+    file: 'JavaScript_Essentials_1_certificate.pdf'
+  },
+  {
+    title: 'Industrial Cybersecurity Essentials',
+    issuer: 'Cisco Networking Academy (DICT-ITU DTC Initiative)',
+    date: 'September 2026',
+    badgeId: 'ee2474e9-0a71-4463-9f69-34ffb1a41e1f',
+    file: 'Industrial_Cybersecurity_Essentials_certificate.pdf'
+  },
+  {
+    title: 'Prompt Like an Engineer',
+    issuer: 'Cisco Networking Academy (DICT-ITU DTC Initiative)',
+    date: 'September 2026',
+    badgeId: '9141cdc1-cfc6-4467-b7eb-73d00d0a3ba1',
+    file: 'Prompt_Like_an_Engineer_certificate.pdf'
+  },
+  {
+    title: 'Create Digital Content, Communicate and Collaborate Online',
+    issuer: 'Cisco Networking Academy (DICT-ITU DTC Initiative)',
+    date: 'September 2026',
+    badgeId: 'd9dcf7f3-4e8b-4611-8b74-1d3a197fc032',
+    file: 'Create_Digital_Content_-_Communicate_and_Collaborate_Online_certificate.pdf'
+  },
+  {
     title: 'CSS Essentials',
+    issuer: 'Cisco Networking Academy (DICT-ITU DTC Initiative)',
     date: 'July 2026',
     badgeId: 'd77aa127-a509-457b-bb92-9e18f57dfc6a',
     file: 'CSS_Essentials_certificate.pdf'
   },
   {
     title: 'HTML Essentials',
+    issuer: 'Cisco Networking Academy (DICT-ITU DTC Initiative)',
     date: 'July 2026',
     badgeId: 'c9233b0d-2a2b-4620-8122-b91292b10c21',
     file: 'HTML_Essentials_certificate.pdf'
   },
   {
     title: 'Data Analytics Essentials',
+    issuer: 'Cisco Networking Academy (DICT-ITU DTC Initiative)',
     date: 'June 2026',
     badgeId: '379a3ffd-bbc3-4f68-91c7-d17bdae8c8d6',
     file: 'Data_Analytics_Essentials_certificate.pdf'
@@ -224,29 +300,40 @@ function lbl(u) {
   if (u.indexOf('nuget.org') > -1) return 'View on NuGet';
   if (u.indexOf('pypi.org') > -1) return 'View on PyPI';
   if (u.indexOf('docs.inpsstudio.com') > -1) return 'Read the docs';
-  if (u.indexOf('labs.inpsstudio.com') > -1) return 'View project';
+  if (u.indexOf('labs.inpsstudio.com') > -1) return 'View demo';
   return 'Open';
 }
 
-// Render dynamic certifications
+// Render dynamic certifications from any issuer
 function renderCertifications() {
   var ce = document.getElementById('certs');
   ce.innerHTML = '';
   CERTIFICATIONS.forEach(function(c) {
-    var credLink = c.badgeId
-      ? link('https://www.credly.com/badges/' + c.badgeId + '/public_url', 'View credential')
-      : (c.url ? link(c.url, 'View credential') : '');
+    // Resolve verification URL: explicit URL first, or expand Credly badgeId
+    var verifyUrl = c.credentialUrl || c.url || '';
+    if (!verifyUrl && c.badgeId) {
+      verifyUrl = c.badgeId.indexOf('://') > -1
+        ? c.badgeId
+        : 'https://www.credly.com/badges/' + c.badgeId + '/public_url';
+    }
+
+    var credLink = verifyUrl ? link(verifyUrl, 'View credential') : '';
     var dlLink = c.file ? link(c.file, 'Download certificate') : '';
 
+    var meta = [];
+    if (c.issuer) meta.push(esc(c.issuer));
+    if (c.date) meta.push(esc(c.date));
+
     var card = el('div', 'card');
-    card.innerHTML = '<h3>' + esc(c.title) + '</h3>' +
-      '<p>' + esc(c.date) + '</p>' +
-      '<div class="links">' + credLink + dlLink + '</div>';
+    card.innerHTML =
+      '<h3>' + esc(c.title) + '</h3>' +
+      (meta.length ? '<p>' + meta.join(' &bull; ') + '</p>' : '') +
+      ((credLink || dlLink) ? '<div class="links">' + credLink + dlLink + '</div>' : '');
     ce.appendChild(card);
   });
 }
 
-// Dynamically add a certification helper
+// Helper to dynamically push a certification at runtime
 function addCertification(cert) {
   CERTIFICATIONS.push(cert);
   renderCertifications();
@@ -284,7 +371,6 @@ function parseLLMS(txt) {
     if (!cur) return;
     if (l.indexOf('/landfill/html') > -1) return;
 
-    // Matches: - [Title](URL) - Description [Stack: ... | ...]
     var m = l.match(/^- \[(.+?)\](?:\((.*?)\))?\s*-\s*(.*)/);
     if (m) {
       var title = m[1].trim();
@@ -412,7 +498,7 @@ function draw() {
   }
 }
 
-// Fetch live data directly from llms.txt (no offline fallback text)
+// Fetch live data directly from llms.txt
 fetch(LLMS_URL, { cache: 'no-cache' })
   .then(function(r) {
     if (!r.ok) throw new Error('Network error: ' + r.status);
