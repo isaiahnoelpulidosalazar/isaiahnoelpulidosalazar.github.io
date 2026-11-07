@@ -170,7 +170,6 @@ main{padding:32px 20px 56px}
 <script>
 var LLMS_URL = 'https://inpsstudio.com/llms.txt';
 
-// Featured projects: specify only the project names to match against online text
 var FEATURED_PROJECT_NAMES = [
   'Autolandia Sales & Revenue Report Generation System',
   'inpsAndroid',
@@ -179,18 +178,6 @@ var FEATURED_PROJECT_NAMES = [
   'ECStyleSheet'
 ];
 
-/**
- * Certifications list:
- * You can add certificates from ANY issuer or platform (Cisco, Coursera, freeCodeCamp, AWS, Google, etc.).
- *
- * Supported fields per entry:
- * - title: Certification name (required)
- * - issuer: Issuing organization or platform (optional)
- * - date: Issue date or completion period (optional)
- * - credentialUrl: Direct URL to the verification page (Coursera, Udemy, etc.) OR
- * - badgeId: Credly badge ID string (shorthand, automatically expands to Credly public badge URL)
- * - file: Path or URL to the downloadable PDF certificate (optional)
- */
 var CERTIFICATIONS = [
   {
     title: 'Python Essentials 2',
@@ -278,7 +265,6 @@ var CERTIFICATIONS = [
   }
 ];
 
-// Utility functions
 function el(t, c, h) {
   var e = document.createElement(t);
   if (c) e.className = c;
@@ -304,12 +290,10 @@ function lbl(u) {
   return 'Open';
 }
 
-// Render dynamic certifications from any issuer
 function renderCertifications() {
   var ce = document.getElementById('certs');
   ce.innerHTML = '';
   CERTIFICATIONS.forEach(function(c) {
-    // Resolve verification URL: explicit URL first, or expand Credly badgeId
     var verifyUrl = c.credentialUrl || c.url || '';
     if (!verifyUrl && c.badgeId) {
       verifyUrl = c.badgeId.indexOf('://') > -1
@@ -333,14 +317,12 @@ function renderCertifications() {
   });
 }
 
-// Helper to dynamically push a certification at runtime
 function addCertification(cert) {
   CERTIFICATIONS.push(cert);
   renderCertifications();
 }
 renderCertifications();
 
-// Project categories and mappings
 var INFO = {
   Finished: 'Released and available to use.',
   Ongoing: 'In active development.',
@@ -357,7 +339,6 @@ var chips = document.getElementById('chips');
 var list = document.getElementById('list');
 var fe = document.getElementById('featured');
 
-// Parse online llms.txt format
 function parseLLMS(txt) {
   var o = {}, cur = null;
   txt.split('\n').forEach(function(l) {
@@ -391,7 +372,6 @@ function parseLLMS(txt) {
   return o;
 }
 
-// Render featured projects by matching name only
 function renderFeatured(allProjects) {
   fe.innerHTML = '';
   var matches = 0;
@@ -437,10 +417,8 @@ function setData(d) {
 
   document.getElementById('count').textContent = total;
 
-  // Render featured projects based on online matching names
   renderFeatured(allProjects);
 
-  // Setup category filter buttons
   chips.innerHTML = '';
   cat = 'All';
   ['All'].concat(Object.keys(P)).forEach(function(k) {
@@ -498,7 +476,6 @@ function draw() {
   }
 }
 
-// Fetch live data directly from llms.txt
 fetch(LLMS_URL, { cache: 'no-cache' })
   .then(function(r) {
     if (!r.ok) throw new Error('Network error: ' + r.status);
@@ -514,7 +491,6 @@ fetch(LLMS_URL, { cache: 'no-cache' })
     document.getElementById('count').textContent = '—';
   });
 
-// Single-page view routing
 function route() {
   var v = (location.hash || '#home').slice(1);
   if (!/^(home|projects|about)$/.test(v)) v = 'home';
